@@ -1,5 +1,6 @@
 <script setup>
 import { Head, useForm, router } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
 const props = defineProps({
@@ -16,8 +17,8 @@ const form = useForm({
 
 // --- Assets ---
 const equipmentTypes = [
-    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', width: 130, height: 260 },
-    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', width: 180, height: 320 },
+    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', width: 100, height: 200 },
+    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', width: 140, height: 250 },
     { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', width: 120, height: 120 },
     { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', width: 150, height: 100 },
     { id: 'cycle', name: 'Bike', src: '/images/equipment/RecumbentCycle.svg', width: 80, height: 130 },
@@ -39,6 +40,7 @@ const step = ref(1); // 1: Shape Select, 2: Builder
 const selectedRoom = ref(null);
 const placedItems = ref([]);
 const selectedItemId = ref(null);
+const selectedItem = computed(() => placedItems.value.find(i => i.id === selectedItemId.value));
 const draggingNewItem = ref(null);
 
 // --- Camera / ViewBox State ---
@@ -252,8 +254,11 @@ const rotateSelected = () => {
 
 const deleteSelected = () => {
     if (selectedItemId.value) {
-        placedItems.value = placedItems.value.filter(i => i.id !== selectedItemId.value);
-        selectedItemId.value = null;
+        const index = placedItems.value.findIndex(i => i.id === selectedItemId.value);
+        if (index !== -1) {
+            placedItems.value.splice(index, 1);
+            selectedItemId.value = null;
+        }
     }
 };
 
@@ -331,38 +336,23 @@ onUnmounted(() => {
 <template>
     <Head title="Gym Builder Studio" />
 
-    <div class="h-screen w-full bg-base-300 text-base-content font-sans flex flex-col overflow-hidden select-none">
-        
-        <!-- Header -->
-        <!-- Header -->
-        <header class="navbar bg-base-100/90 backdrop-blur border-b border-base-content/10 z-20 shadow-sm shrink-0">
-            <div class="flex-1 gap-4">
-                <Link :href="route('dashboard')" class="btn btn-ghost text-xl font-black italic tracking-tighter text-primary">
-                    FitPung<span class="text-base-content">Studio</span>
-                </Link>
-                <div class="text-sm breadcrumbs hidden md:block opacity-50">
-                    <ul>
-                        <li><Link :href="route('dashboard')">Dashboard</Link></li>
-                        <li v-if="form.name">{{ form.name }}</li>
-                        <li v-else>New Design</li>
-                    </ul>
-                </div>
+    <AppLayout>
+        <template #header-actions>
+            <div v-if="step === 2" class="flex gap-2">
+                <button class="btn btn-sm btn-ghost" @click="step = 1">Change Layout</button>
+                <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
+                <button 
+                    class="btn btn-primary btn-sm shadow-lg shadow-primary/30 min-w-[100px]" 
+                    @click="saveLayout" 
+                    :disabled="form.processing"
+                >
+                    <span v-if="form.processing" class="loading loading-spinner loading-xs"></span>
+                    <span v-else>Save Design</span>
+                </button>
             </div>
-            <div class="flex-none gap-2">
-                <div v-if="step === 2" class="flex gap-2">
-                    <button class="btn btn-sm btn-ghost" @click="step = 1">Change Layout</button>
-                    <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
-                    <button 
-                        class="btn btn-primary btn-sm shadow-lg shadow-primary/30 min-w-[100px]" 
-                        @click="saveLayout" 
-                        :disabled="form.processing"
-                    >
-                        <span v-if="form.processing" class="loading loading-spinner loading-xs"></span>
-                        <span v-else>Save Design</span>
-                    </button>
-                </div>
-            </div>
-        </header>
+        </template>
+
+        <div class="flex-1 flex flex-col overflow-hidden select-none bg-base-300 w-full h-full">
 
         <!-- Phase 1: Room Selection -->
         <div v-if="step === 1" class="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in bg-neutral">
@@ -379,8 +369,15 @@ onUnmounted(() => {
                     @click="selectRoom(shape)"
                     class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-transparent hover:border-primary group cursor-pointer w-64 h-64 flex items-center justify-center relative overflow-hidden"
                 >
-                    <svg viewBox="0 0 1000 800" class="w-full h-full p-4 opacity-50 group-hover:opacity-100 transition-opacity">
-                        <polygon :points="shape.points" fill="currentColor" class="text-base-300 group-hover:text-primary transition-colors" stroke="currentColor" stroke-width="10" />
+                    <svg viewBox="0 0 1000 800" class="w-full h-full p-8 transition-all duration-300">
+                        <polygon 
+                            :points="shape.points" 
+                            fill="currentColor" 
+                            class="text-base-content/30 group-hover:text-primary transition-colors" 
+                            stroke="currentColor" 
+                            stroke-width="20"
+                            stroke-linejoin="round"
+                        />
                     </svg>
                     <div class="absolute bottom-4 font-bold text-lg tracking-wider uppercase">{{ shape.name }}</div>
                 </button>
@@ -416,7 +413,7 @@ onUnmounted(() => {
             </aside>
 
             <!-- Main Canvas Area -->
-            <main class="flex-1 bg-neutral relative overflow-hidden bg-[radial-gradient(#ffffff05_1px,transparent_1px)] [background-size:20px_20px]">
+            <main class="flex-1 bg-base-200 relative overflow-hidden text-base-content/20 bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:20px_20px]">
                 
                 <!-- SVG Canvas taking Full Width/Height -->
                 <svg 
@@ -453,21 +450,6 @@ onUnmounted(() => {
                         @mousedown="startDragItem($event, item)"
                         class="cursor-move group"
                     >
-                        <!-- Selection Halo -->
-                        <rect 
-                            v-if="selectedItemId === item.id"
-                            :x="-item.width/2 - 10" 
-                            :y="-item.height/2 - 10" 
-                            :width="item.width + 20" 
-                            :height="item.height + 20" 
-                            fill="none" 
-                            stroke="#570df8" 
-                            stroke-width="3" 
-                            stroke-dasharray="8,5" 
-                            class="animate-pulse"
-                            vector-effect="non-scaling-stroke"
-                        />
-
                         <!-- The Equipment Image -->
                         <image 
                             :href="item.src" 
@@ -477,46 +459,88 @@ onUnmounted(() => {
                             :height="item.height"
                             class="drop-shadow-md filter hover:brightness-110 transition-all"
                         />
+                    </g>
+                    
+                    <!-- Selection Overlay Layer (Rendered on top) -->
+                    <g v-if="selectedItem">
+                       <!-- Primary container: follows item X/Y -->
+                       <g :transform="`translate(${selectedItem.x}, ${selectedItem.y})`">
+                            
+                            <!-- Rotated Controls (Halo & Handle) -->
+                            <!-- These MATCH item rotation to surround it correctly -->
+                            <g :transform="`rotate(${selectedItem.rotation})`">
+                                <rect 
+                                    :x="-selectedItem.width/2 - 10" 
+                                    :y="-selectedItem.height/2 - 10" 
+                                    :width="selectedItem.width + 20" 
+                                    :height="selectedItem.height + 20" 
+                                    fill="none" 
+                                    stroke="#570df8" 
+                                    stroke-width="2" 
+                                    stroke-dasharray="6,4" 
+                                    class="animate-pulse"
+                                    vector-effect="non-scaling-stroke"
+                                />
+                                <!-- Rotation Handle -->
+                                <g 
+                                    :transform="`translate(0, ${-selectedItem.height/2 - 40})`"
+                                    class="cursor-ew-resize"
+                                    @mousedown.stop="startRotateItem($event, selectedItem)"
+                                >
+                                    <line x1="0" y1="0" x2="0" y2="35" stroke="#570df8" stroke-width="2" />
+                                    <circle r="6" fill="#570df8" stroke="white" stroke-width="2" />
+                                </g>
+                            </g>
 
-                        <!-- Rotation Handle -->
-                        <g 
-                            v-if="selectedItemId === item.id"
-                            :transform="`translate(0, ${-item.height/2 - 40})`"
-                            class="cursor-ew-resize hover:scale-125 transition-transform origin-bottom"
-                            @mousedown.stop="startRotateItem($event, item)"
-                        >
-                            <line x1="0" y1="0" x2="0" y2="35" stroke="#570df8" stroke-width="2" />
-                            <circle r="8" fill="#570df8" stroke="white" stroke-width="2" />
-                        </g>
+                            <!-- Non-Rotated Controls (Floating Menu) -->
+                            <!-- Positioned to the right of the item -->
+                            <foreignObject 
+                                :x="Math.max(selectedItem.width, selectedItem.height)/2 + 10" 
+                                :y="-50" 
+                                width="60" 
+                                height="100"
+                                class="overflow-visible"
+                            >
+                                <div class="flex flex-col gap-2" xmlns="http://www.w3.org/1999/xhtml" @mousedown.stop>
+                                    <button 
+                                        class="btn btn-circle btn-sm btn-info text-white shadow-xl hover:scale-110 transition-transform" 
+                                        @click.stop="rotateSelected"
+                                        title="Rotate 90°"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    </button>
+                                    <button 
+                                        class="btn btn-circle btn-sm btn-error text-white shadow-xl hover:scale-110 transition-transform" 
+                                        @click.stop="deleteSelected"
+                                        title="Delete"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                </div>
+                            </foreignObject>
+                       </g>
                     </g>
                 </svg>
 
                 <!-- Zoom & Edit Controls Overlay -->
-                <!-- Optional floating UI buttons if user prefers clicking over scrolling -->
-                <div class="absolute bottom-6 right-6 flex flex-col gap-2">
-                    <button 
-                        v-if="selectedItemId" 
-                        class="btn btn-circle btn-info text-white shadow-xl animate-bounce-in" 
-                        @click="rotateSelected"
-                        title="Rotate 90°"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-2">
+                    <button class="btn btn-circle btn-success text-white shadow-xl" @click="svgViewBox.w *= 0.9; svgViewBox.h *= 0.9" title="Zoom In">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                     </button>
-                    <button 
-                        v-if="selectedItemId" 
-                        class="btn btn-circle btn-error text-white shadow-xl animate-bounce-in" 
-                        @click="deleteSelected"
-                        title="Delete Selected Item"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <button class="btn btn-circle btn-warning text-white shadow-xl" @click="svgViewBox.w *= 1.1; svgViewBox.h *= 1.1" title="Zoom Out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
                     </button>
-                    <button class="btn btn-circle btn-neutral shadow-xl" @click="svgViewBox.w *= 0.9; svgViewBox.h *= 0.9" title="Zoom In">➕</button>
-                    <button class="btn btn-circle btn-neutral shadow-xl" @click="svgViewBox.w *= 1.1; svgViewBox.h *= 1.1" title="Zoom Out">➖</button>
-                    <button class="btn btn-neutral shadow-xl" @click="selectRoom(selectedRoom)">Fit</button>
+                    <button class="btn btn-circle btn-neutral shadow-xl" @click="selectRoom(selectedRoom)" title="Fit to Screen">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                    </button>
                 </div>
             </main>
         </div>
-    </div>
+        </div>
+    </AppLayout>
+
     <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
         <div class="bg-base-100 p-8 rounded-2xl shadow-2xl text-center max-w-sm mx-4 transform transition-all scale-100 border border-base-content/10">
             <div class="mb-4 text-success flex justify-center">

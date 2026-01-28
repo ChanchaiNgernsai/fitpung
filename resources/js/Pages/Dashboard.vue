@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 
 defineProps({
@@ -38,13 +38,15 @@ const getViewBox = (pointsStr) => {
 <template>
     <Head title="Dashboard" />
 
-    <AuthenticatedLayout>
-        <template #header>
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+    <AppLayout>
+                <template #header>
+            <div class="relative flex items-center justify-center py-2 h-10 w-full px-4">
+                <!-- Title Centered -->
+                <h2 class="text-3xl font-bold leading-tight text-base-content absolute left-1/2 -translate-x-1/2">
                     My Gym Designs
                 </h2>
-                <Link :href="route('gym-builder.create')" class="btn btn-primary btn-sm">
+                <!-- Button Right Aligned -->
+                <Link :href="route('gym-builder.create')" class="btn btn-primary btn-sm ml-auto absolute right-0">
                     + New Design
                 </Link>
             </div>
@@ -107,9 +109,11 @@ const getViewBox = (pointsStr) => {
                         <div class="card-body items-center text-center -mt-6 z-10">
                             <h2 class="card-title">{{ layout.name }}</h2>
                             <p class="text-xs opacity-50">Updated: {{ new Date(layout.updated_at).toLocaleDateString() }}</p>
-                            <div class="card-actions mt-4">
-                                <Link :href="route('gym-builder.edit', layout.id)" class="btn btn-primary btn-sm">Edit</Link>
-                                <button @click="deleteLayout(layout.id)" class="btn btn-ghost btn-xs text-error">Delete</button>
+                            <div class="card-actions mt-4 gap-3">
+                                <Link :href="route('gym-builder.edit', layout.id)" class="btn btn-primary btn-sm px-6">Edit</Link>
+                                <button @click="deleteLayout(layout.id)" class="btn btn-sm btn-error btn-outline" title="Delete">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -117,7 +121,7 @@ const getViewBox = (pointsStr) => {
 
             </div>
         </div>
-    </AuthenticatedLayout>
+    </AppLayout>
 </template>
 
 

@@ -1,71 +1,17 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
 
 defineProps({
     canLogin: Boolean,
     canRegister: Boolean,
-});
-
-const isDark = ref(false);
-
-const toggleTheme = () => {
-    isDark.value = !isDark.value;
-    if (isDark.value) {
-        document.documentElement.classList.add('dark');
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-    }
-};
-
-onMounted(() => {
-    // Check local storage or system preference
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        isDark.value = true;
-        document.documentElement.classList.add('dark');
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-        isDark.value = false;
-        document.documentElement.classList.remove('dark');
-        document.documentElement.setAttribute('data-theme', 'light');
-    }
 });
 </script>
 
 <template>
     <Head title="Home - FitPung" />
 
-    <div class="min-h-screen bg-base-100 font-sans text-base-content selection:bg-primary selection:text-primary-content transition-colors duration-300">
-        <!-- Navbar -->
-        <nav class="navbar fixed top-0 z-50 bg-base-100/80 backdrop-blur-md border-b border-base-content/10 transition-colors duration-300">
-            <div class="container mx-auto">
-                <div class="flex-1">
-                    <a class="btn btn-ghost text-2xl font-black tracking-tighter">
-                        <span class="text-primary">FIT</span>PUNG
-                    </a>
-                </div>
-                <div class="flex-none gap-2 items-center">
-                    <!-- Theme Toggle -->
-                    <button @click="toggleTheme" class="btn btn-circle btn-ghost btn-sm" title="Toggle Theme">
-                        <svg v-if="!isDark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-</svg>
-                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-</svg>
-                    </button>
-
-                    <Link v-if="!$page.props.auth.user" :href="route('login')" class="btn btn-ghost btn-sm">Log in</Link>
-                    <Link v-if="!$page.props.auth.user" :href="route('register')" class="btn btn-primary btn-sm">Get Started</Link>
-                    <Link v-if="$page.props.auth.user" :href="route('dashboard')" class="btn btn-primary btn-sm">Dashboard</Link>
-                </div>
-            </div>
-        </nav>
-
+    <AppLayout>
         <!-- Hero Section with Video/Image Background Aesthetic -->
         <div class="hero min-h-screen relative overflow-hidden">
              <!-- Abstract Sporting Background -->
@@ -89,7 +35,7 @@ onMounted(() => {
                         <Link :href="route('gym-builder.create')" class="btn btn-primary btn-lg px-8 font-bold border-0 bg-gradient-to-r from-primary to-accent hover:scale-105 transition-transform shadow-[0_0_20px_rgba(var(--p),0.5)]">
                             Launch Gym Builder
                         </Link>
-                        <Link :href="route('register')" class="btn btn-outline btn-lg px-8 text-white hover:bg-white hover:text-black">
+                        <Link :href="route('register')" class="btn btn-outline btn-lg px-8">
                             Join Community
                         </Link>
                     </div>
@@ -214,5 +160,5 @@ onMounted(() => {
                 </div>
             </div>
         </footer>
-    </div>
+    </AppLayout>
 </template>
