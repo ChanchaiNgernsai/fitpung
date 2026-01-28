@@ -355,19 +355,28 @@ onUnmounted(() => {
         <div class="flex-1 flex flex-col overflow-hidden select-none bg-base-300 w-full h-full">
 
         <!-- Phase 1: Room Selection -->
-        <div v-if="step === 1" class="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in bg-neutral">
-            <div class="text-center mb-10">
-                <h1 class="text-4xl font-bold mb-2 text-neutral-content">Start Your Gym Design</h1>
-                <p class="opacity-60 text-neutral-content">Select a room layout to begin placing your equipment</p>
+        <div v-if="step === 1" class="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in bg-neutral relative overflow-hidden text-neutral-content">
+            <!-- Background Image/Gradient -->
+            <div class="absolute inset-0 z-0 pointer-events-none">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 mix-blend-overlay"></div>
+                <!-- Abstract Gym shapes -->
+                <svg class="absolute top-0 left-0 w-full h-full opacity-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <path d="M0 0 L50 100 L100 0 Z" fill="currentColor" />
+                </svg>
+            </div>
+
+            <div class="text-center mb-10 relative z-10">
+                <h1 class="text-4xl font-bold mb-2">Start Your Gym Design</h1>
+                <p class="opacity-60">Select a room layout to begin placing your equipment</p>
             </div>
             
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl px-4 relative z-10">
                 <!-- Using fixed viewBox for previews -->
                 <button 
                     v-for="shape in roomShapes" 
                     :key="shape.id"
                     @click="selectRoom(shape)"
-                    class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-transparent hover:border-primary group cursor-pointer w-64 h-64 flex items-center justify-center relative overflow-hidden"
+                    class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-transparent hover:border-primary group cursor-pointer w-full aspect-square flex items-center justify-center relative overflow-hidden"
                 >
                     <svg viewBox="0 0 1000 800" class="w-full h-full p-8 transition-all duration-300">
                         <polygon 
@@ -385,13 +394,15 @@ onUnmounted(() => {
         </div>
 
         <!-- Phase 2: Builder Interface -->
-        <div v-if="step === 2" class="flex-1 flex overflow-hidden">
+        <div v-if="step === 2" class="flex-1 flex flex-col md:flex-row overflow-hidden p-0 relative">
             
             <!-- Sidebar: Equipment -->
-            <aside class="w-72 bg-base-100 border-r border-base-content/10 flex flex-col z-10 shadow-xl">
-                <div class="p-4 border-b border-base-content/10">
-                    <h2 class="font-bold text-lg">Equipment</h2>
-                    <p class="text-xs opacity-50">Drag items to the floor</p>
+            <aside class="w-full md:w-72 h-48 md:h-auto bg-base-100 border-b md:border-b-0 md:border-r border-base-content/10 flex flex-col z-10 shadow-xl shrink-0">
+                <div class="p-4 border-b border-base-content/10 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-lg">Equipment</h2>
+                        <p class="text-xs opacity-50">Drag items to the floor</p>
+                    </div>
                 </div>
                 <div class="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3 content-start">
                     <div 

@@ -92,20 +92,6 @@ const user = usePage().props.auth.user;
                  <div class="flex-1 w-full">
                     <slot name="header" />
                  </div>
-                 
-                 <div v-if="!route().current('dashboard')" class="flex gap-2 shrink-0">
-                    <Link 
-                        :href="route('dashboard')" 
-                        :class="[
-                            'btn btn-sm shadow', 
-                            route().current('dashboard') 
-                                ? (isDark ? 'bg-white text-black hover:bg-gray-200 border-none' : 'btn-neutral') 
-                                : 'btn-ghost bg-base-200/50 hover:bg-base-300'
-                        ]"
-                    >
-                        Dashboard
-                    </Link>
-                 </div>
             </div>
         </header>
 
