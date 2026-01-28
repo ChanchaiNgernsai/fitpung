@@ -5,17 +5,16 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+use App\Http\Controllers\GymLayoutController;
+
 Route::get('/', function () {
     return Inertia::render('Home');
 })->name('home');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::get('/gym-builder', function () {
-    return Inertia::render('GymBuilder');
-})->name('gym-builder');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [GymLayoutController::class, 'index'])->name('dashboard');
+    Route::resource('gym-builder', GymLayoutController::class);
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

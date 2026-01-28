@@ -1,16 +1,28 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+
+const props = defineProps({
+    layout: Object
+});
+
+// --- Form for Saving ---
+const form = useForm({
+    name: props.layout?.name || '',
+    room_config: props.layout?.room_config || null,
+    items: props.layout?.items || [],
+});
+
 
 // --- Assets ---
 const equipmentTypes = [
-    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', width: 60, height: 120 },
-    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', width: 50, height: 110 },
-    { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', width: 80, height: 100 },
-    { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', width: 100, height: 80 },
-    { id: 'cycle', name: 'Bike', src: '/images/equipment/RecumbentCycle.svg', width: 50, height: 90 },
-    { id: 'lat', name: 'Lat Pulldown', src: '/images/equipment/LatPulldown.svg', width: 60, height: 90 },
-    { id: 'leg', name: 'Leg Press', src: '/images/equipment/LegPress.svg', width: 80, height: 110 },
+    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', width: 130, height: 260 },
+    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', width: 180, height: 320 },
+    { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', width: 120, height: 120 },
+    { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', width: 150, height: 100 },
+    { id: 'cycle', name: 'Bike', src: '/images/equipment/RecumbentCycle.svg', width: 80, height: 130 },
+    { id: 'lat', name: 'Lat Pulldown', src: '/images/equipment/LatPulldown.svg', width: 140, height: 180 },
+    { id: 'leg', name: 'Leg Press', src: '/images/equipment/LegPress.svg', width: 120, height: 140 },
 ];
 
 // --- Room Shapes ---
@@ -144,10 +156,14 @@ const handleWheel = (event) => {
 // --- Mouse Interaction Handler ---
 
 const handleMouseDown = (event) => {
-    // If middle click or space bar held (future), we pan
-    // For now, let's say dragging on empty space Pans, dragging item Moves.
+    // If we clicked an item, we handle select in startDragItem (mousedown on group)
+    // But if we clicked empty space, we pan and deselect
     
-    if (event.target.tagName !== 'image' && event.target.tagName !== 'rect' && event.target.tagName !== 'circle' && event.target.tagName !== 'line') {
+    // Check if we clicked on an item or the background
+    const isItemClick = event.target.closest('.cursor-move');
+    
+    if (!isItemClick) {
+        selectedItemId.value = null; // Deselect if clicking background
         isPanning.value = true;
         lastMousePos.value = { x: event.clientX, y: event.clientY };
     }
@@ -225,6 +241,15 @@ const handleMouseUp = () => {
     isRotatingItem.value = false;
 };
 
+const rotateSelected = () => {
+    if (selectedItemId.value) {
+        const item = placedItems.value.find(i => i.id === selectedItemId.value);
+        if (item) {
+            item.rotation = (item.rotation || 0) + 90;
+        }
+    }
+};
+
 const deleteSelected = () => {
     if (selectedItemId.value) {
         placedItems.value = placedItems.value.filter(i => i.id !== selectedItemId.value);
@@ -239,12 +264,63 @@ const clearCanvas = () => {
     }
 };
 
+const showSuccessModal = ref(false);
+
+const saveLayout = () => {
+    if (!selectedRoom.value) return;
+
+    form.room_config = selectedRoom.value;
+    form.items = placedItems.value;
+
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => {
+            showSuccessModal.value = true;
+            setTimeout(() => {
+                router.visit(route('dashboard'));
+            }, 1000);
+        },
+        onError: () => {
+            alert('Failed to save layout. Please check your connection.');
+        }
+    };
+
+    if (props.layout) {
+        form.put(route('gym-builder.update', props.layout.id), options);
+    } else {
+        const name = prompt("Name your design:", "My New Gym");
+        if (!name) return;
+        form.name = name;
+        form.post(route('gym-builder.store'), options);
+    }
+};
+
 onMounted(() => {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
     });
+
+    // Initialize from props if editing
+    if (props.layout) {
+        // Deep clone to avoid mutating props and allow distinct reactivity
+        selectedRoom.value = JSON.parse(JSON.stringify(props.layout.room_config));
+        placedItems.value = JSON.parse(JSON.stringify(props.layout.items));
+        step.value = 2;
+        
+        // Fit view
+        nextTick(() => {
+             const bbox = getBoundingBox(selectedRoom.value.points);
+             const padding = 100;
+             svgViewBox.value = {
+                x: bbox.x - padding,
+                y: bbox.y - padding,
+                w: bbox.w + (padding * 2),
+                h: bbox.h + (padding * 2)
+            };
+        });
+    }
 });
 onUnmounted(() => {
     window.removeEventListener('mousemove', handleMouseMove);
@@ -258,15 +334,32 @@ onUnmounted(() => {
     <div class="h-screen w-full bg-base-300 text-base-content font-sans flex flex-col overflow-hidden select-none">
         
         <!-- Header -->
+        <!-- Header -->
         <header class="navbar bg-base-100/90 backdrop-blur border-b border-base-content/10 z-20 shadow-sm shrink-0">
-            <div class="flex-1">
-                <a class="btn btn-ghost text-2xl font-black italic tracking-tighter text-primary">FitPung<span class="text-base-content">Studio</span></a>
+            <div class="flex-1 gap-4">
+                <Link :href="route('dashboard')" class="btn btn-ghost text-xl font-black italic tracking-tighter text-primary">
+                    FitPung<span class="text-base-content">Studio</span>
+                </Link>
+                <div class="text-sm breadcrumbs hidden md:block opacity-50">
+                    <ul>
+                        <li><Link :href="route('dashboard')">Dashboard</Link></li>
+                        <li v-if="form.name">{{ form.name }}</li>
+                        <li v-else>New Design</li>
+                    </ul>
+                </div>
             </div>
             <div class="flex-none gap-2">
                 <div v-if="step === 2" class="flex gap-2">
                     <button class="btn btn-sm btn-ghost" @click="step = 1">Change Layout</button>
                     <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
-                    <button class="btn btn-primary btn-sm shadow-lg shadow-primary/30">Save Design</button>
+                    <button 
+                        class="btn btn-primary btn-sm shadow-lg shadow-primary/30 min-w-[100px]" 
+                        @click="saveLayout" 
+                        :disabled="form.processing"
+                    >
+                        <span v-if="form.processing" class="loading loading-spinner loading-xs"></span>
+                        <span v-else>Save Design</span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -334,7 +427,6 @@ onUnmounted(() => {
                     @drop="handleDropOnCanvas"
                     @wheel="handleWheel"
                     @mousedown="handleMouseDown"
-                    @click="selectedItemId = null" 
                 >
                     <defs>
                         <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -399,14 +491,42 @@ onUnmounted(() => {
                     </g>
                 </svg>
 
-                <!-- Zoom Controls Overlay -->
+                <!-- Zoom & Edit Controls Overlay -->
                 <!-- Optional floating UI buttons if user prefers clicking over scrolling -->
                 <div class="absolute bottom-6 right-6 flex flex-col gap-2">
-                    <button class="btn btn-circle btn-neutral shadow-xl" @click="svgViewBox.w *= 0.9; svgViewBox.h *= 0.9">➕</button>
-                    <button class="btn btn-circle btn-neutral shadow-xl" @click="svgViewBox.w *= 1.1; svgViewBox.h *= 1.1">➖</button>
+                    <button 
+                        v-if="selectedItemId" 
+                        class="btn btn-circle btn-info text-white shadow-xl animate-bounce-in" 
+                        @click="rotateSelected"
+                        title="Rotate 90°"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    </button>
+                    <button 
+                        v-if="selectedItemId" 
+                        class="btn btn-circle btn-error text-white shadow-xl animate-bounce-in" 
+                        @click="deleteSelected"
+                        title="Delete Selected Item"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                    <button class="btn btn-circle btn-neutral shadow-xl" @click="svgViewBox.w *= 0.9; svgViewBox.h *= 0.9" title="Zoom In">➕</button>
+                    <button class="btn btn-circle btn-neutral shadow-xl" @click="svgViewBox.w *= 1.1; svgViewBox.h *= 1.1" title="Zoom Out">➖</button>
                     <button class="btn btn-neutral shadow-xl" @click="selectRoom(selectedRoom)">Fit</button>
                 </div>
             </main>
+        </div>
+    </div>
+    <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+        <div class="bg-base-100 p-8 rounded-2xl shadow-2xl text-center max-w-sm mx-4 transform transition-all scale-100 border border-base-content/10">
+            <div class="mb-4 text-success flex justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold mb-2">บันทึกสำเร็จ!</h3>
+            <p class="text-base-content/60 mb-6 py-2">กำลังกลับไปหน้า Dashboard...</p>
+            <div class="loading loading-dots loading-lg text-primary"></div>
         </div>
     </div>
 </template>
