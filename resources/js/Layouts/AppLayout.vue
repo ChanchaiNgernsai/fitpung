@@ -42,7 +42,7 @@ const user = usePage().props.auth.user;
                 <!-- Left: Logo -->
                 <div class="flex items-center gap-6">
                     <Link href="/" class="btn btn-ghost text-2xl font-black italic tracking-tighter p-0 hover:bg-transparent">
-                        <span class="text-primary">FIT</span>PUNG
+                        <span class="text-indigo-600">FIT</span>PUNG
                     </Link>
                 </div>
 
@@ -80,7 +80,7 @@ const user = usePage().props.auth.user;
                     </div>
                     <div v-else class="flex gap-2">
                         <Link :href="route('login')" class="btn btn-ghost btn-sm">Log In</Link>
-                        <Link :href="route('register')" class="btn btn-primary btn-sm">Sign Up</Link>
+                        <Link :href="route('register')" class="btn bg-indigo-600 hover:bg-indigo-700 text-white border-0 btn-sm">Sign Up</Link>
                     </div>
                 </div>
             </div>

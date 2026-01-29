@@ -7,9 +7,15 @@ use Inertia\Inertia;
 
 use App\Http\Controllers\GymLayoutController;
 
+use App\Models\GymLayout;
+
 Route::get('/', function () {
-    return Inertia::render('Home');
+    return Inertia::render('Home', [
+        'gyms' => GymLayout::where('is_public', true)->orWhere('id', '>', 0)->limit(6)->get() // For demo, fetch all or specific
+    ]);
 })->name('home');
+
+Route::get('/gyms/{id}', [GymLayoutController::class, 'showPublic'])->name('gyms.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [GymLayoutController::class, 'index'])->name('dashboard');

@@ -109,4 +109,24 @@ class GymLayoutController extends Controller
 
         return redirect()->route('dashboard')->with('success', 'Layout deleted.');
     }
+    /**
+     * Show the public gym details.
+     */
+    public function showPublic($id)
+    {
+        $gym = GymLayout::where('id', $id)->firstOrFail();
+
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        // Allow any logged-in user to view the gym
+        // if (!$gym->is_public && $gym->user_id !== Auth::id()) {
+        //     abort(404);
+        // }
+
+        return Inertia::render('Gyms/Show', [
+            'gym' => $gym
+        ]);
+    }
 }

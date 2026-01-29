@@ -1,5 +1,5 @@
 <script setup>
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
@@ -338,17 +338,23 @@ onUnmounted(() => {
 
     <AppLayout>
         <template #header-actions>
-            <div v-if="step === 2" class="flex gap-2">
-                <button class="btn btn-sm btn-ghost" @click="step = 1">Change Layout</button>
-                <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
-                <button 
-                    class="btn btn-primary btn-sm shadow-lg shadow-primary/30 min-w-[100px]" 
-                    @click="saveLayout" 
-                    :disabled="form.processing"
-                >
-                    <span v-if="form.processing" class="loading loading-spinner loading-xs"></span>
-                    <span v-else>Save Design</span>
-                </button>
+            <div class="flex gap-2 items-center">
+                <Link :href="route('dashboard')" class="btn btn-sm btn-neutral gap-1 mr-2 hidden md:flex">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                     Dashboard
+                </Link>
+                <div v-if="step === 2" class="flex gap-2">
+                    <button class="btn btn-sm btn-ghost" @click="step = 1">Change Layout</button>
+                    <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
+                    <button 
+                        class="btn btn-primary btn-sm shadow-lg shadow-primary/30 min-w-[100px]" 
+                        @click="saveLayout" 
+                        :disabled="form.processing"
+                    >
+                        <span v-if="form.processing" class="loading loading-spinner loading-xs"></span>
+                        <span v-else>Save Design</span>
+                    </button>
+                </div>
             </div>
         </template>
 

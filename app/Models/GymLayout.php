@@ -15,6 +15,10 @@ class GymLayout extends Model
         'name',
         'room_config',
         'items',
+        'is_public',
+        'description',
+        'price',
+        'thumbnail_path',
     ];
 
     protected $casts = [
