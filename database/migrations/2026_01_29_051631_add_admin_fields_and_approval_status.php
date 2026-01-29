@@ -1,0 +1,43 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        if (!Schema::hasColumn('users', 'is_admin')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->boolean('is_admin')->default(false);
+            });
+        }
+
+        if (!Schema::hasColumn('gym_layouts', 'is_approved')) {
+            Schema::table('gym_layouts', function (Blueprint $table) {
+                $table->boolean('is_approved')->default(false);
+            });
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        if (Schema::hasColumn('users', 'is_admin')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('is_admin');
+            });
+        }
+
+        if (Schema::hasColumn('gym_layouts', 'is_approved')) {
+            Schema::table('gym_layouts', function (Blueprint $table) {
+                $table->dropColumn('is_approved');
+            });
+        }
+    }
+};
