@@ -37,7 +37,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->route('home')->with('success', 'เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับครับ');
     }
 
     /**
@@ -51,6 +51,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/')->with('logout', 'ออกจากระบบสำเร็จ');
     }
 }

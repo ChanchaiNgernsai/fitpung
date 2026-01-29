@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
 const isDark = ref(false);
@@ -17,6 +17,26 @@ const toggleTheme = () => {
     }
 };
 
+const toastMessage = ref(null);
+const toastType = ref('success');
+const page = usePage();
+
+watch(() => page.props.flash, (flash) => {
+    if (flash?.success) {
+        toastMessage.value = flash.success;
+        toastType.value = 'success';
+        setTimeout(() => toastMessage.value = null, 3000);
+    } else if (flash?.error) {
+        toastMessage.value = flash.error;
+        toastType.value = 'error';
+        setTimeout(() => toastMessage.value = null, 3000);
+    } else if (flash?.logout) {
+        toastMessage.value = flash.logout;
+        toastType.value = 'logout';
+        setTimeout(() => toastMessage.value = null, 3000);
+    }
+}, { deep: true, immediate: true });
+
 onMounted(() => {
     // Check local storage or system preference
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -30,7 +50,7 @@ onMounted(() => {
     }
 });
 
-const user = usePage().props.auth.user;
+const user = computed(() => usePage().props.auth.user);
 </script>
 
 <template>
@@ -102,5 +122,55 @@ const user = usePage().props.auth.user;
                 <slot />
             </div>
         </main>
+
+        <!-- Toast Notification -->
+        <transition name="toast-slide">
+            <div v-if="toastMessage" class="fixed top-24 right-5 z-[100] flex items-end justify-end pointer-events-none">
+                
+                <div :class="[
+                    'pointer-events-auto flex items-start gap-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur shadow-2xl rounded-xl p-4 min-w-[320px] max-w-[400px] border border-gray-100 dark:border-gray-700 ring-1 ring-black/5 transform transition-all',
+                ]">
+                    <!-- Icon Bubble -->
+                    <div :class="[
+                        'rounded-full p-2 flex-shrink-0 mt-0.5',
+                        (toastType === 'error' || toastType === 'logout') ? 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-500 dark:bg-green-900/20 dark:text-green-400'
+                    ]">
+                        <!-- Success/Logout Icon -->
+                        <svg v-if="toastType === 'success' || toastType === 'logout'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                        <!-- Error Icon -->
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex flex-col text-left flex-1">
+                        <h3 :class="['text-sm font-bold leading-tight mb-0.5', (toastType === 'error' || toastType === 'logout') ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100']">
+                            {{ toastType === 'success' ? 'Success' : (toastType === 'logout' ? 'System' : 'Error') }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 font-medium leading-snug">
+                            {{ toastMessage }}
+                        </p>
+                    </div>
+
+                    <!-- Close Button -->
+                    <button @click="toastMessage = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors -mr-1 -mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
+
+<style scoped>
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+</style>
