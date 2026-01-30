@@ -5,53 +5,68 @@ import { ref, onMounted, computed, nextTick } from 'vue';
 
 const props = defineProps({
     gym: Object,
+    equipments: Array,
 });
 
 const svgContent = ref('');
 const selectedMuscle = ref(null);
 const workoutPlan = ref([]);
+const isMapExpanded = ref(false);
 
-// Mapping Muscle ID (from SVG) -> Equipment Types
-const muscleMapping = {
-    'Pectoralis_Major': ['Bench Press', 'Smith Machine', 'Chest Press'],
-    'Rectus_Abdominis': ['Crunch Machine', 'Yoga Mat'],
-    'Obliques': ['Cable Machine'],
-    'Deltoid': ['Shoulder Press', 'Dumbbells'],
-    'Biceps': ['Dumbbells', 'Barbell'],
-    'Quadriceps': ['Leg Press', 'Squat Rack', 'Leg Extension'],
-    'Gastrocnemius': ['Calf Raise'], 
-    // Add fuzzy matching for complex IDs
+// Map SVG ID prefixes to DB muscle keys
+const svgToDbMuscleMap = {
+    'Pecs': 'pectorals',
+    'Triceps': 'triceps',
+    'Biceps': 'biceps',
+    'Brachialis': 'biceps',
+    'Brachioradialis': 'forearms',
+    'Deltoides': 'anterior_deltoids',
+    'Deltoid': 'anterior_deltoids',
+    'Deltoids_front': 'anterior_deltoids',
+    'Latissimus': 'latissimus_dorsi',
+    'Gluteus': 'glutes',
+    'Lower_abs': 'abs',
+    'Upper_abs': 'abs',
+    'Mid_quad': 'quadriceps',
+    'Inner_quads': 'quadriceps',
+    'Outer_quads': 'quadriceps',
+    'Soleus': 'calves',
+    'Calves': 'calves',
+    'Scm': 'neck',
+    'Traps': 'traps',
+    'Obliques': 'obliques'
 };
 
-const getEquipmentForMuscle = (muscleId) => {
-    // Simple fuzzy match for demo
-    if (!muscleId) return [];
-    const id = muscleId.toLowerCase();
-    
-    // Core Logic: Filter the GYM's actual items based on the muscle
-    // But first we need to know what TYPE of equipment targets this muscle.
-    // In a real app, EquipmentType would have a 'muscles_targeted' field.
-    // Here we assume item.name or similar exists, but GymLayout.items only has { id, name, type, x, y ... }
-    
-    // Let's assume we map generic names
-    let targetTypes = [];
-    if (id.includes('pectoralis')) targetTypes = ['Bench Press', 'Smith Machine', 'Pec Fly'];
-    else if (id.includes('abdominis') || id.includes('abdominal')) targetTypes = ['Mat', 'Crunch'];
-    else if (id.includes('deltoid')) targetTypes = ['Shoulder Press', 'Dumbbell'];
-    else if (id.includes('bicep')) targetTypes = ['Dumbbell', 'Barbell'];
-    else if (id.includes('quadriceps') || id.includes('femoris') || id.includes('sartorius')) targetTypes = ['Leg Press', 'Squat Rack', 'Leg Extension'];
-    else if (id.includes('gastrocnemius') || id.includes('soleus') || id.includes('tibialis')) targetTypes = ['Calf Raise', 'Leg Press'];
-    else if (id.includes('gluteus')) targetTypes = ['Squat Rack', 'Leg Press'];
-    
-    // Now find matching items in the gym
-    return props.gym.items.filter(item => {
-        return targetTypes.some(type => item.name.toLowerCase().includes(type.toLowerCase()));
-    });
+const getDbMuscleKey = (id) => {
+    if (!id) return null;
+    const prefix = id.split('_')[0];
+    return svgToDbMuscleMap[prefix] || id.toLowerCase();
 };
 
 const availableEquipment = computed(() => {
     if (!selectedMuscle.value) return [];
-    return getEquipmentForMuscle(selectedMuscle.value);
+    const muscleKey = getDbMuscleKey(selectedMuscle.value);
+    
+    // 1. Filter all items that match the muscle
+    const matchingItems = props.gym.items.filter(item => {
+        const itemFilename = item.src.split('/').pop().toLowerCase();
+        return props.equipments.some(eq => 
+            eq.filename.toLowerCase() === itemFilename &&
+            eq.target_muscles.some(m => m.key === muscleKey)
+        );
+    });
+
+    // 2. Deduplicate by filename so each equipment type appears once in the list
+    const uniqueMap = new Map();
+    matchingItems.forEach(item => {
+        const itemFilename = item.src.split('/').pop().toLowerCase();
+        if (!uniqueMap.has(itemFilename)) {
+            const dbInfo = props.equipments.find(e => e.filename.toLowerCase() === itemFilename);
+            uniqueMap.set(itemFilename, { ...item, dbInfo });
+        }
+    });
+
+    return Array.from(uniqueMap.values());
 });
 
 // Interactive Map Logic
@@ -59,37 +74,30 @@ onMounted(async () => {
     try {
         const response = await fetch('/images/Front_body_interactive.svg');
         let text = await response.text();
-        
-        // Remove scripts/styles if they conflict, but we accept them for now
-        // We need to inject click handlers. Since we can't easily modify string binding events,
-        // we'll rely on global delegation or finding elements after mount.
         svgContent.value = text;
         
         nextTick(() => {
             const container = document.getElementById('muscle-map-container');
             if (!container) return;
             
-            // Attach listeners to all elements with class 'interactive-muscle'
-            // or just all groups if class is missing in some
-            const muscles = container.querySelectorAll('.interactive-muscle, [id*="_"]'); // broad selector
+            const muscles = container.querySelectorAll('.interactive-muscle'); 
             
             muscles.forEach(el => {
-                el.style.cursor = 'pointer';
-                el.classList.add('hover:opacity-80', 'transition-opacity');
-                
                 el.addEventListener('click', (e) => {
-                    // Reset previous selection style
-                    muscles.forEach(m => m.style.fill = ''); 
-                    
                     const target = e.currentTarget;
-                    const id = target.id;
-                    const name = target.getAttribute('data-name') || id;
+                    const isAlreadySelected = target.classList.contains('muscle-highlight');
+
+                    container.querySelectorAll('.muscle-highlight').forEach(m => {
+                        m.classList.remove('muscle-highlight');
+                    });
                     
-                    console.log('Clicked muscle:', name);
-                    selectedMuscle.value = id; // Store ID for logic
-                    
-                    // Highlight
-                    target.style.fill = '#ec4899'; // Pink/Primary color
+                    if (isAlreadySelected) {
+                        selectedMuscle.value = null;
+                    } else {
+                        const id = target.id;
+                        selectedMuscle.value = id; 
+                        target.classList.add('muscle-highlight');
+                    }
                     e.stopPropagation();
                 });
             });
@@ -99,31 +107,36 @@ onMounted(async () => {
     }
 });
 
-// Helper to clean muscle ID
-const cleanMuscleName = (id) => {
-    if (!id) return '';
-    // Remove numbers and file artifacts, replace underscores
-    return id.replace(/_\d+.*$/, '') // Remove trailing numbers
-             .replace(/_/g, ' ')     // Replace underscores
-             .replace(/Left|Right/g, '') // Remove side if generic
-             .trim();
-};
-
 const isItemHighlight = (item) => {
     if (!selectedMuscle.value) return false;
-    // Check if this item is in the Available Equipment list for the current muscle
-    // This is a simple O(N) lookup, for large lists use a Set
-    return availableEquipment.value.some(eq => eq.id === item.id);
+    const muscleKey = getDbMuscleKey(selectedMuscle.value);
+    const itemFilename = item.src.split('/').pop().toLowerCase();
+    
+    return props.equipments.some(eq => 
+        eq.filename.toLowerCase() === itemFilename &&
+        eq.target_muscles.some(m => m.key === muscleKey)
+    );
+};
+
+const cleanMuscleName = (id) => {
+    if (!id) return '';
+    const key = getDbMuscleKey(id);
+    
+    for (const eq of props.equipments) {
+        const muscle = eq.target_muscles.find(m => m.key === key);
+        if (muscle) return muscle.name_th;
+    }
+
+    return id.replace(/_\d+.*$/, '').replace(/_/g, ' ').replace(/Left|Right/g, '').trim();
 };
 
 const addToPlan = (item) => {
     workoutPlan.value.push({
         id: Date.now(),
         item: item,
-        loading: false,
+        muscle: cleanMuscleName(selectedMuscle.value),
         sets: 3,
-        reps: 12,
-        muscle: cleanMuscleName(selectedMuscle.value)
+        reps: 12
     });
 };
 
@@ -131,17 +144,118 @@ const removeFromPlan = (id) => {
     workoutPlan.value = workoutPlan.value.filter(x => x.id !== id);
 };
 
-// SVG Preview helper
-const getViewBox = (pointsStr) => {
-    if (!pointsStr) return '0 0 1000 800';
-    const points = pointsStr.split(' ').map(p => { const [x, y] = p.split(',').map(Number); return { x, y }; });
-    const minX = Math.min(...points.map(p => p.x));
-    const maxX = Math.max(...points.map(p => p.x));
-    const minY = Math.min(...points.map(p => p.y));
-    const maxY = Math.max(...points.map(p => p.y));
-    const padding = 50; 
-    return `${minX - padding} ${minY - padding} ${maxX - minX + padding*2} ${maxY - minY + padding*2}`;
+// --- ViewBox & Interactive State for Fullscreen Map ---
+const modalViewBox = ref({ x: 0, y: 0, w: 1000, h: 800 });
+const isPanning = ref(false);
+const lastMousePos = ref({ x: 0, y: 0 });
+
+const getInitialBounds = (pointsStr, items = [], padding = 150) => {
+    if (!pointsStr) return { x: 0, y: 0, w: 1000, h: 800 };
+    
+    const points = pointsStr.split(' ').map(p => { 
+        const [x, y] = p.split(',').map(Number); 
+        return { x, y }; 
+    });
+
+    let minX = Math.min(...points.map(p => p.x));
+    let maxX = Math.max(...points.map(p => p.x));
+    let minY = Math.min(...points.map(p => p.y));
+    let maxY = Math.max(...points.map(p => p.y));
+
+    if (items.length > 0) {
+        items.forEach(item => {
+            const hw = item.width / 2;
+            const hh = item.height / 2;
+            minX = Math.min(minX, item.x - hw);
+            maxX = Math.max(maxX, item.x + hw);
+            minY = Math.min(minY, item.y - hh);
+            maxY = Math.max(maxY, item.y + hh);
+        });
+    }
+
+    return {
+        x: minX - padding,
+        y: minY - padding,
+        w: (maxX - minX) + (padding * 2),
+        h: (maxY - minY) + (padding * 2)
+    };
 };
+
+const getViewBoxString = (bounds) => `${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`;
+
+// Interactive Helpers (Simplified port from Builder)
+const getSvgPoint = (clientX, clientY, svgId) => {
+    const svg = document.getElementById(svgId);
+    if (!svg) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    return pt.matrixTransform(ctm.inverse());
+};
+
+const handleModalWheel = (event) => {
+    if (!isMapExpanded.value) return;
+    event.preventDefault();
+    const zoomIntensity = 0.1;
+    const svgId = 'fullscreen-gym-canvas';
+    const svgP = getSvgPoint(event.clientX, event.clientY, svgId);
+
+    const direction = event.deltaY > 0 ? 1 : -1;
+    const newW = modalViewBox.value.w * (1 + direction * zoomIntensity);
+    const newH = modalViewBox.value.h * (1 + direction * zoomIntensity);
+
+    if (newW < 100 || newW > 8000) return;
+
+    const mouseRelX = (svgP.x - modalViewBox.value.x) / modalViewBox.value.w;
+    const mouseRelY = (svgP.y - modalViewBox.value.y) / modalViewBox.value.h;
+
+    modalViewBox.value.x = svgP.x - (mouseRelX * newW);
+    modalViewBox.value.y = svgP.y - (mouseRelY * newH);
+    modalViewBox.value.w = newW;
+    modalViewBox.value.h = newH;
+};
+
+const handleModalMouseDown = (event) => {
+    isPanning.value = true;
+    lastMousePos.value = { x: event.clientX, y: event.clientY };
+};
+
+const handleModalMouseMove = (event) => {
+    if (!isPanning.value || !isMapExpanded.value) return;
+    
+    const dx = event.clientX - lastMousePos.value.x;
+    const dy = event.clientY - lastMousePos.value.y;
+    
+    const svg = document.getElementById('fullscreen-gym-canvas');
+    if (!svg) return;
+    
+    const scaleX = modalViewBox.value.w / svg.clientWidth;
+    const scaleY = modalViewBox.value.h / svg.clientHeight;
+
+    modalViewBox.value.x -= dx * scaleX;
+    modalViewBox.value.y -= dy * scaleY;
+
+    lastMousePos.value = { x: event.clientX, y: event.clientY };
+};
+
+const handleModalMouseUp = () => {
+    isPanning.value = false;
+};
+
+const openMap = () => {
+    // Maximum possible expansion with minimal safety margin
+    const bounds = getInitialBounds(props.gym.room_config.points, props.gym.items, 5);
+    modalViewBox.value = bounds;
+    isMapExpanded.value = true;
+};
+
+onMounted(() => {
+    window.addEventListener('mousemove', handleModalMouseMove);
+    window.addEventListener('mouseup', handleModalMouseUp);
+});
+
 </script>
 
 <template>
@@ -153,8 +267,8 @@ const getViewBox = (pointsStr) => {
         <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-12 gap-8">
                 
-                <!-- LEFT: Sidebar Info & Gym Map (4 cols) -->
-                <div class="lg:col-span-4 space-y-6">
+                <!-- BOTTOM (SIDEBAR ON LG): Info & Gym Map -->
+                <div class="lg:col-span-4 space-y-6 order-2 lg:order-none">
                     <!-- Gym Info Card -->
                     <div class="card bg-base-100 shadow-xl border border-base-content/5">
                         <div class="card-body">
@@ -163,25 +277,24 @@ const getViewBox = (pointsStr) => {
                         </div>
                     </div>
 
-                    <!-- Gym Floor Preview -->
+                    <!-- Gym Floor Layout -->
                     <div class="card bg-neutral text-neutral-content shadow-xl overflow-hidden relative group">
-                         <div class="absolute top-4 left-4 z-10 badge badge-primary font-bold shadow-lg">Gym Layout</div>
-                        <div class="h-64 relative flex items-center justify-center p-8 bg-gradient-to-br from-neutral to-base-300">
-                             <!-- Background Pattern -->
-                             <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
-                            
+                        <div class="absolute top-4 left-4 z-10 badge badge-primary font-bold shadow-lg">Gym Layout</div>
+
+                        <div class="h-80 relative flex items-center justify-center pt-8 pb-2 px-4 bg-white border-t border-base-200">
                             <svg 
-                                :viewBox="getViewBox(gym.room_config.points)" 
-                                class="w-full h-full drop-shadow-2xl transition-all duration-500"
+                                :viewBox="getViewBoxString(getInitialBounds(gym.room_config.points, gym.items, 40))" 
+                                class="w-full h-full transition-all duration-500 transform translate-y-6"
+                                style="filter: drop-shadow(0 20px 40px rgba(0,0,0,0.15));"
                                 preserveAspectRatio="xMidYMid meet"
                             >
                                 <!-- Room Shape -->
                                 <polygon 
                                     :points="gym.room_config.points" 
-                                    fill="#1f2937" 
+                                    fill="#111827" 
                                     stroke="currentColor" 
-                                    stroke-width="5"
-                                    class="text-base-content/20"
+                                    stroke-width="8"
+                                    class="text-base-content/10"
                                 />
                                 
                                 <!-- Items -->
@@ -190,15 +303,15 @@ const getViewBox = (pointsStr) => {
                                     :key="item.id" 
                                     :transform="`translate(${item.x}, ${item.y}) rotate(${item.rotation})`"
                                     class="transition-all duration-300"
-                                    :class="isItemHighlight(item) ? 'scale-125' : 'opacity-90'"
+                                    :class="isItemHighlight(item) ? 'opacity-100' : 'opacity-60'"
                                 >
-                                    <!-- Highlight Ring -->
+                                    <!-- Green Glow Ring -->
                                     <circle 
                                         v-if="isItemHighlight(item)"
-                                        r="30" 
-                                        fill="none" 
+                                        r="35" 
+                                        fill="rgba(0,255,0,0.2)" 
                                         stroke="#00ff00" 
-                                        stroke-width="4" 
+                                        stroke-width="5" 
                                         class="animate-pulse"
                                     />
                                     
@@ -208,11 +321,16 @@ const getViewBox = (pointsStr) => {
                                         :y="-item.height/2" 
                                         :width="item.width" 
                                         :height="item.height"
-                                        class="drop-shadow-sm filter"
-                                        :class="isItemHighlight(item) ? 'brightness-125 drop-shadow-[0_0_10px_rgba(0,255,0,0.5)]' : 'grayscale contrast-125'"
+                                        class="transition-all duration-500"
+                                        :style="isItemHighlight(item) ? { filter: 'drop-shadow(0 0 8px #00ff00) brightness(1.5)', transform: 'scale(1.1)' } : { filter: 'grayscale(1) brightness(0.7)' }"
                                     />
                                 </g>
                             </svg>
+
+                            <!-- Expand Button -->
+                            <button @click="openMap" class="absolute bottom-4 right-4 btn btn-circle btn-sm btn-ghost bg-base-100/20 hover:bg-base-100/40 backdrop-blur-sm border-none transition-all hover:scale-110">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                            </button>
                         </div>
                     </div>
                     
@@ -245,12 +363,12 @@ const getViewBox = (pointsStr) => {
                     </div>
                 </div>
 
-                <!-- MIDDLE: Interactive Map (5 cols) -->
-                <div class="lg:col-span-4 flex flex-col items-center">
+                <!-- TOP (MIDDLE ON LG): Interactive Map -->
+                <div class="lg:col-span-4 flex flex-col items-center order-1 lg:order-none">
                     <div class="text-center mb-6">
                         <div class="badge badge-accent badge-lg font-bold mb-2 shadow-lg shadow-accent/20">Interactive Selector</div>
                         <h2 class="text-2xl font-black italic uppercase">TARGET YOUR MUSCLES</h2>
-                        <p class="text-sm opacity-60">Click on a muscle group below.</p>
+                        <p class="text-sm opacity-60">คลิกที่ส่วนกล้ามเนื้อที่ต้องการฝึก</p>
                     </div>
 
                     <div 
@@ -294,7 +412,31 @@ const getViewBox = (pointsStr) => {
                                 </figure>
                                 <div class="card-body p-4">
                                     <h4 class="font-bold text-sm">{{ item.name }}</h4>
-                                    <div class="card-actions mt-2">
+                                    
+                                    <!-- Technique Details -->
+                                    <div v-if="item.dbInfo && item.dbInfo.technique[getDbMuscleKey(selectedMuscle)]" class="mt-4 space-y-3 bg-base-200/50 p-3 rounded-xl text-xs">
+                                        <div class="badge badge-outline gap-2">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].variation_name }}</div>
+                                        
+                                        <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].setup">
+                                            <span class="font-bold text-primary mr-1">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].setup.title }}:</span>
+                                            <span class="opacity-70">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].setup.description }}</span>
+                                        </div>
+                                        
+                                        <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle">
+                                            <span class="font-bold text-primary mr-1">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.title }}:</span>
+                                            <span class="opacity-70">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.description }}</span>
+                                            <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.warning" class="text-[10px] text-error mt-1 italic font-bold">
+                                                ⚠ {{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.warning }}
+                                            </div>
+                                        </div>
+                                        
+                                        <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].breathing">
+                                            <span class="font-bold text-primary mr-1">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].breathing.title }}:</span>
+                                            <span class="opacity-70">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].breathing.description }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-actions mt-4 border-t border-base-content/5 pt-3">
                                         <button @click="addToPlan(item)" class="btn btn-sm btn-primary w-full shadow-lg shadow-primary/20">
                                             + Add to Plan
                                         </button>
@@ -320,5 +462,72 @@ const getViewBox = (pointsStr) => {
                 </div>
             </div>
         </div>
+
+        <!-- Fullscreen Map Modal -->
+        <div v-if="isMapExpanded" class="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4">
+            <div class="absolute inset-0 bg-white/80 backdrop-blur-3xl animate-fade-in" @click="isMapExpanded = false"></div>
+            
+            <div class="card w-full max-w-[96vw] h-full max-h-[96vh] bg-white shadow-2xl relative animate-zoom-in overflow-hidden border border-black/5">
+                <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-white">
+                    <!-- Floating Close Button -->
+                    <button @click="isMapExpanded = false" class="absolute top-6 right-6 z-50 btn btn-circle btn-sm btn-neutral shadow-lg hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+
+                    <svg 
+                        id="fullscreen-gym-canvas"
+                        :viewBox="getViewBoxString(modalViewBox)" 
+                        class="w-full h-full cursor-move touch-none transform translate-y-10"
+                        preserveAspectRatio="xMidYMid meet"
+                        @wheel="handleModalWheel"
+                        @mousedown="handleModalMouseDown"
+                    >
+                         <!-- Room Shape -->
+                         <polygon 
+                            :points="gym.room_config.points" 
+                            fill="#111827" 
+                            stroke="currentColor" 
+                            stroke-width="5"
+                            class="text-base-content/10"
+                        />
+                        
+                        <!-- Items -->
+                        <g 
+                            v-for="item in gym.items" 
+                            :key="'fs-'+item.id" 
+                            :transform="`translate(${item.x}, ${item.y}) rotate(${item.rotation})`"
+                        >
+                            <circle 
+                                v-if="isItemHighlight(item)"
+                                r="40" 
+                                fill="rgba(0,255,0,0.15)" 
+                                stroke="#00ff00" 
+                                stroke-width="4" 
+                                class="animate-pulse"
+                            />
+                             <image 
+                                :href="item.src" 
+                                :x="-item.width/2" 
+                                :y="-item.height/2" 
+                                :width="item.width" 
+                                :height="item.height"
+                                :style="isItemHighlight(item) ? { filter: 'drop-shadow(0 0 15px #00ff00) brightness(1.5)', transform: 'scale(1.15)' } : { filter: 'grayscale(1) opacity(0.5)' }"
+                                class="transition-all duration-300"
+                            />
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </div>
     </AppLayout>
 </template>
+
+<style scoped>
+.animate-zoom-in {
+    animation: zoom-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes zoom-in {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+</style>

@@ -23,7 +23,7 @@ const equipmentTypes = [
     { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', width: 150, height: 100 },
     { id: 'cycle', name: 'Bike', src: '/images/equipment/RecumbentCycle.svg', width: 80, height: 130 },
     { id: 'lat', name: 'Lat Pulldown', src: '/images/equipment/LatPulldown.svg', width: 140, height: 180 },
-    { id: 'leg', name: 'Leg Press', src: '/images/equipment/LegPress.svg', width: 120, height: 140 },
+    { id: 'dumbbells', name: 'Dumbbells', src: '/images/equipment/Dumbbells.svg', width: 120, height: 140 },
 ];
 
 // --- Room Shapes ---

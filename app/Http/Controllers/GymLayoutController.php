@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Equipment;
 use App\Models\GymLayout;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -126,7 +127,8 @@ class GymLayoutController extends Controller
         // }
 
         return Inertia::render('Gyms/Show', [
-            'gym' => $gym
+            'gym' => $gym,
+            'equipments' => Equipment::all()
         ]);
     }
 }

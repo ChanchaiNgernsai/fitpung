@@ -19,7 +19,13 @@
     
     <style type="text/css">
     svg { filter: drop-shadow(0 0 15px rgba(0,0,0,0.6)); }
-    .st0 { fill: #FFFFFF; } /* Background body white */
+    
+    /* Disable all pointer events by default */
+    path, circle, polygon, rect, g { pointer-events: none; }
+
+    /* Explicitly lock body background */
+    .st0 { fill: #FFFFFF; pointer-events: none !important; } 
+
     /* Main Muscle Outlines - visible */
     .st1, .st3, .st4 { 
         fill: #FFFFFF; 
@@ -27,14 +33,11 @@
         stroke-width: 0.5;
         transition: fill 0.2s, stroke 0.2s; 
     } 
-    /* Hide internal detail lines (often st2, st6, st7) */
-    .st2, .st6, .st7 {
-        display: none;
-    }
-    /* st5 is used for details in Pecs but as main shape in Pectineus. */
-    .st5 {
-        display: none;
-    }
+
+    /* Hide internal detail lines */
+    .st2, .st6, .st7 { display: none; }
+    .st5 { display: none; }
+
     /* Exception: Show st5 for Pectineus */
     #Pectinius_Right .st5, #Pectinius_Left .st5 {
         display: block;
@@ -43,11 +46,17 @@
         stroke-width: 0.5;
         transition: fill 0.2s, stroke 0.2s;
     }
-    /* Detail lines and internal fibers - make them pop but slightly thinner than outline if possible, 
-       but for this style we want bold everywhere per user request */
-    /* If specific detail classes exist separately, we can tune them. 
-       Based on previous edits, we treat them similarly or slightly thinner. */
+
+    /* Enable interaction ONLY for muscles */
     .interactive-muscle { cursor: pointer; pointer-events: all; }
+    
+    /* Ensure only the FILL area of muscle shapes is clickable, not the stroke line */
+    .interactive-muscle path,
+    .interactive-muscle polygon,
+    .interactive-muscle rect {
+        pointer-events: fill;
+    }
+
     .interactive-muscle:hover { opacity: 1.0; }
     .interactive-muscle:hover path,
     .interactive-muscle:hover polygon,
@@ -55,11 +64,15 @@
         fill: #00FF00 !important; /* Neon Green */
         transition: fill 0.1s ease-in-out;
     }
+
     /* Highlight state: Solid Red */
-    .muscle-highlight { opacity: 1 !important; }
-    .muscle-highlight path { 
+    .muscle-highlight { opacity: 1 !important; pointer-events: all; } 
+    .muscle-highlight path,
+    .muscle-highlight polygon,
+    .muscle-highlight rect { 
         fill: #FF0000 !important; 
         stroke: #990000 !important;
+        pointer-events: fill;
     }
 </style>
     
@@ -2323,7 +2336,7 @@
             
             
             
-            </g><g id="Scm_00000050638738960208808000000011068059099103715510_">
+            </g><g id="Scm_00000050638738960208808000000011068059099103715510_" class="interactive-muscle" data-name="Neck (SCM)" onclick="toggleMuscle(this)">
                 
                 
                 
