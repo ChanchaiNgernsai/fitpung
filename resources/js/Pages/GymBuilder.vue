@@ -1,7 +1,7 @@
 <script setup>
-import { Head, useForm, router, Link } from '@inertiajs/vue3';
+import { Head, useForm, router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 
 const props = defineProps({
     layout: Object
@@ -56,7 +56,7 @@ const selectedRoom = ref(null);
 const placedItems = ref([]);
 const selectedItemId = ref(null);
 const selectedItem = computed(() => placedItems.value.find(i => i.id === selectedItemId.value));
-// Custom Drawing / Editor State
+const draggingNewItem = ref(null);
 const drawingPoints = ref([]); 
 const floorWalls = ref([]);   // New Wall-based system
 const selectedWallId = ref(null);
@@ -66,22 +66,48 @@ const initialWallPos = ref(null); // Store stating coords to prevent jumping
 const mousePos = ref({ x: 0, y: 0 });
 const snapGrid = 1; // 1px grid = Free movement
 const draggingVertexIndex = ref(null);
-const myLayouts = ref(JSON.parse(localStorage.getItem('my_gym_layouts') || '[]'));
 
-const allRoomShapes = computed(() => {
-    const base = [
-        { id: 'rect', name: 'Rectangle', points: '100,100 900,100 900,700 100,700' },
-        { id: 'l-shape', name: 'L-Shape', points: '100,100 900,100 900,400 500,400 500,700 100,700' },
-        { id: 'l-shape-alt', name: 'L-Shape 2', points: '100,100 500,100 500,400 900,400 900,700 100,700' },
-        { id: 't-shape', name: 'T-Shape', points: '100,200 900,200 900,400 600,400 600,700 400,700 400,400 100,400' },
-        { id: 'u-shape', name: 'U-Shape', points: '100,100 300,100 300,500 700,500 700,100 900,100 900,700 100,700' },
-        { id: 'trapezoid', name: 'Trapezoid', points: '300,100 900,100 900,700 100,700' },
-        { id: 'triangle', name: 'Triangle', points: '500,100 900,700 100,700' },
-    ];
-    
-    const customs = myLayouts.value.map(l => ({ ...l, isCustom: true }));
-    return [...base, ...customs, { id: 'custom', name: 'Custom Draw', points: '', icon: 'plus' }];
+// Construct a list of points from discrete walls for the 'Floor' effect
+const computedRoomPoints = computed(() => {
+    const room = selectedRoom.value;
+    if (!room || !room.walls || room.walls.length === 0) return "";
+    return room.walls.map(w => `${w.x1},${w.y1} ${w.x2},${w.y2}`).join(' ');
 });
+
+const getCustomPoints = (walls) => {
+    if (!walls || walls.length === 0) return "";
+    return walls.map(w => `${w.x1},${w.y1} ${w.x2},${w.y2}`).join(' ');
+};
+
+// --- User-Specific Persistence ---
+const page = usePage();
+const currentUser = computed(() => page.props.auth?.user);
+const storageKey = computed(() => currentUser.value ? `my_gym_layouts_${currentUser.value.id}` : null);
+const myLayouts = ref([]);
+
+const loadMyLayouts = () => {
+    if (storageKey.value) {
+        const saved = localStorage.getItem(storageKey.value);
+        myLayouts.value = saved ? JSON.parse(saved) : [];
+    } else {
+        myLayouts.value = [];
+    }
+};
+
+// Auto-reload when switching accounts
+watch(storageKey, () => {
+    loadMyLayouts();
+}, { immediate: true });
+
+const deleteTemplate = (id, event) => {
+    event.stopPropagation();
+    if (confirm("ลบแบบแปลนนี้ใช่หรือไม่?")) {
+        myLayouts.value = myLayouts.value.filter(l => l.id !== id);
+        if (storageKey.value) {
+            localStorage.setItem(storageKey.value, JSON.stringify(myLayouts.value));
+        }
+    }
+};
 
 // --- Camera / ViewBox State ---
 const svgViewBox = ref({ x: 0, y: 0, w: 1000, h: 800 });
@@ -98,10 +124,13 @@ const initialMouseAngle = ref(0);
 // --- Actions ---
 
 const getBoundingBox = (pointsStr) => {
-    const points = pointsStr.split(' ').map(p => {
+    if (!pointsStr) return { x: 0, y: 0, w: 1000, h: 800 };
+    const points = pointsStr.trim().split(/\s+/).map(p => {
         const [x, y] = p.split(',').map(Number);
         return { x, y };
-    });
+    }).filter(p => !isNaN(p.x) && !isNaN(p.y));
+    
+    if (points.length === 0) return { x: 0, y: 0, w: 1000, h: 800 };
     
     const minX = Math.min(...points.map(p => p.x));
     const maxX = Math.max(...points.map(p => p.x));
@@ -109,6 +138,13 @@ const getBoundingBox = (pointsStr) => {
     const maxY = Math.max(...points.map(p => p.y));
     
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+};
+
+const wallsToPoints = (walls) => {
+    if (!walls || walls.length === 0) return "";
+    // Collect all unique points. Since walls are connected, 
+    // we can try to follow the sequence. For simplicity in a closed loop:
+    return walls.map(w => `${w.x1},${w.y1}`).join(' ');
 };
 
 const selectRoom = (room) => {
@@ -126,22 +162,28 @@ const selectRoom = (room) => {
         return;
     }
 
-    selectedRoom.value = room;
-    if (room.points) {
-        floorWalls.value = []; // Clear custom walls if picking standard room
-    } else if (room.walls) {
-        floorWalls.value = JSON.parse(JSON.stringify(room.walls));
+    // Deep clone room and ensure it has points for rendering
+    const roomClone = JSON.parse(JSON.stringify(room));
+    if (roomClone.walls && !roomClone.points) {
+        roomClone.points = wallsToPoints(roomClone.walls);
+    }
+
+    selectedRoom.value = roomClone;
+    if (roomClone.points) {
+        floorWalls.value = []; 
+    } else if (roomClone.walls) {
+        floorWalls.value = JSON.parse(JSON.stringify(roomClone.walls));
     }
     
     step.value = 2;
     
     // Fit to screen logic
     let bbox;
-    if (room.points) {
-        bbox = getBoundingBox(room.points);
-    } else if (room.walls) {
-        const xs = room.walls.flatMap(w => [w.x1, w.x2]);
-        const ys = room.walls.flatMap(w => [w.y1, w.y2]);
+    if (roomClone.points) {
+        bbox = getBoundingBox(roomClone.points);
+    } else if (roomClone.walls) {
+        const xs = roomClone.walls.flatMap(w => [w.x1, w.x2]);
+        const ys = roomClone.walls.flatMap(w => [w.y1, w.y2]);
         bbox = { 
             x: Math.min(...xs), y: Math.min(...ys), 
             w: Math.max(...xs) - Math.min(...xs), 
@@ -249,13 +291,14 @@ const deleteWall = () => {
 
 const finishWalls = () => {
     if (floorWalls.value.length === 0) return;
-    selectedRoom.value = { 
+    const pointsStr = wallsToPoints(floorWalls.value);
+    const customRoom = { 
         id: 'custom-' + Date.now(), 
         name: 'My Custom View', 
-        walls: JSON.parse(JSON.stringify(floorWalls.value)) 
+        walls: JSON.parse(JSON.stringify(floorWalls.value)),
+        points: pointsStr
     };
-    step.value = 2;
-    selectRoom(selectedRoom.value); // Recalculate bbox
+    selectRoom(customRoom);
 };
 
 const saveTemplate = () => {
@@ -264,10 +307,17 @@ const saveTemplate = () => {
         myLayouts.value.push({ 
             id: 'user-' + Date.now(), 
             name, 
+            creatorName: currentUser.value?.name || 'Unknown',
+            creatorEmail: currentUser.value?.email || '',
+            creatorId: currentUser.value?.id,
             walls: JSON.parse(JSON.stringify(floorWalls.value)) 
         });
-        localStorage.setItem('my_gym_layouts', JSON.stringify(myLayouts.value));
-        alert("บันทึกเรียบร้อย!");
+        if (storageKey.value) {
+            localStorage.setItem(storageKey.value, JSON.stringify(myLayouts.value));
+            alert("บันทึกเรียบร้อย!");
+        } else {
+            alert("กรุณาเข้าสู่ระบบเพื่อบันทึกแบบแปลน");
+        }
     }
 };
 
@@ -298,12 +348,12 @@ const handleDropOnCanvas = (event) => {
             src: draggingNewItem.value.src,
             x: svgP.x,
             y: svgP.y,
-            width: draggingNewItem.value.width,
-            height: draggingNewItem.value.height,
+            width: draggingNewItem.value.width || 100,
+            height: draggingNewItem.value.height || 100,
             rotation: 0
         };
         
-        placedItems.value.push(newItem);
+        placedItems.value = [...placedItems.value, newItem];
         selectedItemId.value = newItem.id;
         draggingNewItem.value = null;
     }
@@ -387,10 +437,8 @@ const handleMouseMove = (event) => {
         
         // Convert screen pixels to SVG units
         const svg = document.getElementById('gym-canvas');
-        const ctm = svg.getScreenCTM();
-        // Scale factor: how many SVG units per screen pixel
-        // If current w is 1000 and screen w is 500, scale is 2
-        // ctm.a is roughly (screen_w / svg_w)
+        const ctm = svg?.getScreenCTM();
+        if (!svg || !ctm) return;
         
         const scaleX = svgViewBox.value.w / svg.clientWidth;
         const scaleY = svgViewBox.value.h / svg.clientHeight;
@@ -536,6 +584,7 @@ const saveLayout = () => {
 };
 
 onMounted(() => {
+    loadMyLayouts();
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('keydown', (e) => {
@@ -611,20 +660,13 @@ onUnmounted(() => {
                 <p class="opacity-60">Select a room layout to begin placing your equipment</p>
             </div>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl px-4 relative z-10">
-                <button 
-                    v-for="shape in allRoomShapes" 
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl px-4 relative z-10 pb-12">
+                <div 
+                    v-for="shape in roomShapes" 
                     :key="shape.id"
                     @click="selectRoom(shape)"
                     class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-transparent hover:border-primary group cursor-pointer w-full aspect-square flex items-center justify-center relative overflow-hidden"
                 >
-                    <button 
-                        v-if="shape.isCustom" 
-                        @click="deleteTemplate(shape.id, $event)"
-                        class="absolute top-2 right-2 btn btn-xs btn-circle btn-error opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                    >
-                        ✕
-                    </button>
                     <div v-if="shape.icon === 'plus'" class="flex flex-col items-center justify-center p-8">
                          <svg xmlns="http://www.w3.org/2000/svg" class="w-32 h-32 text-base-content/30 group-hover:text-primary transition-colors mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -641,7 +683,67 @@ onUnmounted(() => {
                         />
                     </svg>
                     <div class="absolute bottom-4 font-bold text-lg tracking-wider uppercase px-4 truncate w-full text-center">{{ shape.name }}</div>
-                </button>
+                </div>
+            </div>
+
+            <!-- User Saved Layouts Section -->
+            <div class="w-full max-w-6xl px-4 relative z-10 mt-8 mb-4 border-t border-white/10 pt-12">
+                <div class="flex items-center gap-4 mb-8">
+                    <h2 class="text-3xl font-bold">แบบของฉัน</h2>
+                    <div class="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
+                </div>
+                
+                <div v-if="myLayouts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div 
+                        v-for="shape in myLayouts" 
+                        :key="shape.id"
+                        @click="selectRoom(shape)"
+                        class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-transparent hover:border-primary group cursor-pointer w-full aspect-square flex items-center justify-center relative overflow-hidden"
+                    >
+                        <button 
+                            @click="deleteTemplate(shape.id, $event)"
+                            class="absolute top-2 right-2 btn btn-xs btn-circle btn-error opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                        >
+                            ✕
+                        </button>
+                        <svg viewBox="0 0 1000 800" class="w-full h-full p-8 transition-all duration-300">
+                            <!-- Draw walls for custom saved layouts -->
+                            <g v-if="shape.walls">
+                                <polygon 
+                                    :points="getCustomPoints(shape.walls)" 
+                                    fill="currentColor" 
+                                    class="text-base-content/10 group-hover:text-primary/10 transition-colors"
+                                />
+                                <line 
+                                    v-for="w in shape.walls" 
+                                    :key="w.id"
+                                    :x1="w.x1" :y1="w.y1" :x2="w.x2" :y2="w.y2"
+                                    stroke="currentColor" stroke-width="24" stroke-linecap="round"
+                                    class="text-base-content/30 group-hover:text-primary transition-colors"
+                                />
+                            </g>
+                            <polygon 
+                                v-else-if="shape.points"
+                                :points="shape.points" 
+                                fill="currentColor" 
+                                class="text-base-content/30 group-hover:text-primary transition-colors" 
+                                stroke="currentColor" 
+                                stroke-width="20"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                        <div class="absolute bottom-4 px-4 w-full text-center">
+                            <div class="font-bold text-lg tracking-wider uppercase truncate">{{ shape.name }}</div>
+                            <div class="text-[10px] opacity-60 mt-0.5 text-primary">
+                                {{ shape.creatorEmail || currentUser?.email }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Empty State -->
+                <div v-else class="text-center py-12 bg-base-100/50 rounded-3xl border-2 border-dashed border-white/5">
+                    <p class="text-white/30 italic">ยังไม่มีแบบแปลนที่บันทึกไว้ในบัญชีนี้</p>
+                </div>
             </div>
         </div>
 
@@ -776,6 +878,7 @@ onUnmounted(() => {
                     :viewBox="`${svgViewBox.x} ${svgViewBox.y} ${svgViewBox.w} ${svgViewBox.h}`"
                     class="w-full h-full cursor-crosshair touch-none"
                     @dragover.prevent
+                    @dragenter.prevent
                     @drop="handleDropOnCanvas"
                     @wheel="handleWheel"
                     @mousedown="handleMouseDown"
@@ -786,36 +889,49 @@ onUnmounted(() => {
                         </pattern>
                     </defs>
 
-                    <!-- Room Floor & Walls -->
-                    <g v-if="selectedRoom?.walls">
-                        <line 
-                           v-for="w in selectedRoom.walls" 
-                           :key="w.id"
-                           :x1="w.x1" :y1="w.y1" :x2="w.x2" :y2="w.y2"
-                           stroke="#1e293b" 
-                           stroke-width="12"
-                           stroke-linecap="round"
-                        />
-                    </g>
-                    <g v-else-if="selectedRoom?.blocks">
-                        <rect 
-                           v-for="b in selectedRoom.blocks" 
-                           :key="b.id"
-                           :x="b.x" :y="b.y" :width="b.w" :height="b.h"
-                           fill="#f8fafc" stroke="#333" stroke-width="5"
-                           class="drop-shadow-2xl"
-                        />
-                        <rect v-for="b in selectedRoom.blocks" :key="'grid-'+b.id" :x="b.x" :y="b.y" :width="b.w" :height="b.h" fill="url(#grid)" pointer-events="none" opacity="0.6" />
-                    </g>
-                    <g v-else-if="selectedRoom?.points">
+                    <!-- Background Catcher: Ensures the whole canvas is interactive and clickable -->
+                    <rect 
+                        :x="svgViewBox.x - 5000" :y="svgViewBox.y - 5000" 
+                        :width="svgViewBox.w + 10000" :height="svgViewBox.h + 10000" 
+                        fill="white"
+                        fill-opacity="0"
+                        style="pointer-events: all; cursor: crosshair;"
+                        @mousedown="handleMouseDown"
+                        @dragover.prevent
+                        @dragenter.prevent
+                        @drop="handleDropOnCanvas"
+                    />
+
+                    <!-- Room Floor & Walls (Unified Rendering) -->
+                    <g v-if="selectedRoom">
                         <polygon 
-                            :points="selectedRoom.points" 
+                            v-if="selectedRoom.points || computedRoomPoints"
+                            :points="selectedRoom.points || computedRoomPoints" 
                             fill="#f8fafc" 
-                            stroke="#333" 
-                            stroke-width="5"
+                            stroke="#1e293b" 
+                            stroke-width="12"
+                            stroke-linejoin="round"
                             class="drop-shadow-2xl"
                         />
-                        <polygon :points="selectedRoom.points" fill="url(#grid)" pointer-events="none" opacity="0.6" />
+                        <polygon 
+                            v-if="selectedRoom.points || computedRoomPoints"
+                            :points="selectedRoom.points || computedRoomPoints" 
+                            fill="url(#grid)" 
+                            pointer-events="none" 
+                            opacity="0.6" 
+                        />
+
+                        <!-- Support for layouts with blocks (standard rectangles) -->
+                        <g v-if="selectedRoom.blocks">
+                            <rect 
+                                v-for="b in selectedRoom.blocks" 
+                                :key="b.id"
+                                :x="b.x" :y="b.y" :width="b.w" :height="b.h"
+                                fill="#f8fafc" stroke="#1e293b" stroke-width="12"
+                                class="drop-shadow-2xl"
+                            />
+                            <rect v-for="b in selectedRoom.blocks" :key="'grid-'+b.id" :x="b.x" :y="b.y" :width="b.w" :height="b.h" fill="url(#grid)" pointer-events="none" opacity="0.6" />
+                        </g>
                     </g>
 
                     <!-- Placed Items -->
