@@ -16,32 +16,72 @@ const form = useForm({
 
 
 // --- Assets ---
+const pixelsPerMeter = ref(50); // 50px = 1m
+
 const equipmentTypes = [
-    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', width: 100, height: 200 },
-    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', width: 140, height: 250 },
-    { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', width: 120, height: 120 },
-    { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', width: 150, height: 100 },
-    { id: 'cycle', name: 'Bike', src: '/images/equipment/RecumbentCycle.svg', width: 80, height: 130 },
-    { id: 'lat', name: 'Lat Pulldown', src: '/images/equipment/LatPulldown.svg', width: 140, height: 180 },
-    { id: 'dumbbells', name: 'Dumbbells', src: '/images/equipment/Dumbbells.svg', width: 120, height: 140 },
+    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', w_m: 1, h_m: 2.2 },
+    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', w_m: 0.8, h_m: 2 },
+    { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', w_m: 1.2, h_m: 1.5 },
+    { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', w_m: 2.2, h_m: 1.4 },
+    { id: 'cycle', name: 'Bike', src: '/images/equipment/RecumbentCycle.svg', w_m: 0.6, h_m: 1.2 },
+    { id: 'lat', name: 'Lat Pulldown', src: '/images/equipment/LatPulldown.svg', w_m: 1.2, h_m: 1.2 },
+    { id: 'dumbbells', name: 'Dumbbells', src: '/images/equipment/Dumbbells.svg', w_m: 2.5, h_m: 0.6 },
 ];
+
+// Combine equipment types with scale
+const equipmentList = computed(() => {
+    return equipmentTypes.map(item => ({
+        ...item,
+        width: item.w_m * pixelsPerMeter.value,
+        height: item.h_m * pixelsPerMeter.value
+    }));
+});
 
 // --- Room Shapes ---
 // Points are roughly in a 1000x1000 coordinate space
 const roomShapes = [
     { id: 'rect', name: 'Rectangle', points: '100,100 900,100 900,700 100,700' },
     { id: 'l-shape', name: 'L-Shape', points: '100,100 900,100 900,400 500,400 500,700 100,700' },
+    { id: 'l-shape-alt', name: 'L-Shape 2', points: '100,100 500,100 500,400 900,400 900,700 100,700' },
+    { id: 't-shape', name: 'T-Shape', points: '100,200 900,200 900,400 600,400 600,700 400,700 400,400 100,400' },
+    { id: 'u-shape', name: 'U-Shape', points: '100,100 300,100 300,500 700,500 700,100 900,100 900,700 100,700' },
     { id: 'trapezoid', name: 'Trapezoid', points: '300,100 900,100 900,700 100,700' },
     { id: 'triangle', name: 'Triangle', points: '500,100 900,700 100,700' },
+    { id: 'custom', name: 'Custom Draw', points: '', icon: 'plus' },
 ];
 
 // --- State ---
-const step = ref(1); // 1: Shape Select, 2: Builder
+const step = ref(1); // 1: Shape Select, 1.5: Drawing, 2: Builder
 const selectedRoom = ref(null);
 const placedItems = ref([]);
 const selectedItemId = ref(null);
 const selectedItem = computed(() => placedItems.value.find(i => i.id === selectedItemId.value));
-const draggingNewItem = ref(null);
+// Custom Drawing / Editor State
+const drawingPoints = ref([]); 
+const floorWalls = ref([]);   // New Wall-based system
+const selectedWallId = ref(null);
+const draggingWallId = ref(null);
+const draggingEndPoint = ref(null); // 'start', 'end', or 'both'
+const initialWallPos = ref(null); // Store stating coords to prevent jumping
+const mousePos = ref({ x: 0, y: 0 });
+const snapGrid = 1; // 1px grid = Free movement
+const draggingVertexIndex = ref(null);
+const myLayouts = ref(JSON.parse(localStorage.getItem('my_gym_layouts') || '[]'));
+
+const allRoomShapes = computed(() => {
+    const base = [
+        { id: 'rect', name: 'Rectangle', points: '100,100 900,100 900,700 100,700' },
+        { id: 'l-shape', name: 'L-Shape', points: '100,100 900,100 900,400 500,400 500,700 100,700' },
+        { id: 'l-shape-alt', name: 'L-Shape 2', points: '100,100 500,100 500,400 900,400 900,700 100,700' },
+        { id: 't-shape', name: 'T-Shape', points: '100,200 900,200 900,400 600,400 600,700 400,700 400,400 100,400' },
+        { id: 'u-shape', name: 'U-Shape', points: '100,100 300,100 300,500 700,500 700,100 900,100 900,700 100,700' },
+        { id: 'trapezoid', name: 'Trapezoid', points: '300,100 900,100 900,700 100,700' },
+        { id: 'triangle', name: 'Triangle', points: '500,100 900,700 100,700' },
+    ];
+    
+    const customs = myLayouts.value.map(l => ({ ...l, isCustom: true }));
+    return [...base, ...customs, { id: 'custom', name: 'Custom Draw', points: '', icon: 'plus' }];
+});
 
 // --- Camera / ViewBox State ---
 const svgViewBox = ref({ x: 0, y: 0, w: 1000, h: 800 });
@@ -72,20 +112,163 @@ const getBoundingBox = (pointsStr) => {
 };
 
 const selectRoom = (room) => {
+    if (room.id === 'custom') {
+        step.value = 1.5;
+        // Start with 4 walls forming a default room
+        floorWalls.value = [
+            { id: 1, x1: 200, y1: 200, x2: 800, y2: 200 },
+            { id: 2, x1: 800, y1: 200, x2: 800, y2: 600 },
+            { id: 3, x1: 800, y1: 600, x2: 200, y2: 600 },
+            { id: 4, x1: 200, y1: 600, x2: 200, y2: 200 }
+        ];
+        selectedWallId.value = 1;
+        svgViewBox.value = { x: 0, y: 0, w: 1000, h: 800 };
+        return;
+    }
+
     selectedRoom.value = room;
+    if (room.points) {
+        floorWalls.value = []; // Clear custom walls if picking standard room
+    } else if (room.walls) {
+        floorWalls.value = JSON.parse(JSON.stringify(room.walls));
+    }
+    
     step.value = 2;
     
     // Fit to screen logic
-    // We calculate the bbox of the room + some padding
-    const bbox = getBoundingBox(room.points);
-    const padding = 100;
-    
+    let bbox;
+    if (room.points) {
+        bbox = getBoundingBox(room.points);
+    } else if (room.walls) {
+        const xs = room.walls.flatMap(w => [w.x1, w.x2]);
+        const ys = room.walls.flatMap(w => [w.y1, w.y2]);
+        bbox = { 
+            x: Math.min(...xs), y: Math.min(...ys), 
+            w: Math.max(...xs) - Math.min(...xs), 
+            h: Math.max(...ys) - Math.min(...ys) 
+        };
+    } else {
+        bbox = { x: 0, y: 0, w: 1000, h: 800 };
+    }
+
+    const padding = 150;
     svgViewBox.value = {
         x: bbox.x - padding,
         y: bbox.y - padding,
         w: bbox.w + (padding * 2),
         h: bbox.h + (padding * 2)
     };
+};
+
+const handleCanvasMouseDown = (event) => {
+    const svgP = getSvgPoint(event.clientX, event.clientY);
+    
+    if (step.value === 1.5) {
+        // 1. Check for End-point Handles
+        for (const wall of floorWalls.value) {
+            const hDistS = Math.sqrt(Math.pow(wall.x1 - svgP.x, 2) + Math.pow(wall.y1 - svgP.y, 2));
+            const hDistE = Math.sqrt(Math.pow(wall.x2 - svgP.x, 2) + Math.pow(wall.y2 - svgP.y, 2));
+            
+            if (hDistS < 20) {
+                draggingWallId.value = wall.id;
+                draggingEndPoint.value = 'start';
+                selectedWallId.value = wall.id;
+                initialWallPos.value = { x1: wall.x1, y1: wall.y1, mx: svgP.x, my: svgP.y };
+                return;
+            }
+            if (hDistE < 20) {
+                draggingWallId.value = wall.id;
+                draggingEndPoint.value = 'end';
+                selectedWallId.value = wall.id;
+                initialWallPos.value = { x2: wall.x2, y2: wall.y2, mx: svgP.x, my: svgP.y };
+                return;
+            }
+        }
+
+        // 2. Check for Wall Line Click (Drag entire wall)
+        const clickedWall = floorWalls.value.find(wall => {
+            const d = distToSegment(svgP, { x: wall.x1, y: wall.y1 }, { x: wall.x2, y: wall.y2 });
+            return d < 15;
+        });
+
+        if (clickedWall) {
+            handleWallMouseDown(clickedWall, event);
+            return;
+        }
+
+        selectedWallId.value = null;
+    }
+    handleMouseDown(event);
+};
+
+const handleWallMouseDown = (wall, event) => {
+    const svgP = getSvgPoint(event.clientX, event.clientY);
+    selectedWallId.value = wall.id;
+    draggingWallId.value = wall.id;
+    draggingEndPoint.value = 'both';
+    initialWallPos.value = { 
+        x1: wall.x1, y1: wall.y1, 
+        x2: wall.x2, y2: wall.y2,
+        mx: svgP.x, my: svgP.y 
+    };
+};
+
+const handleEndPointMouseDown = (wall, point, event) => {
+    const svgP = getSvgPoint(event.clientX, event.clientY);
+    draggingWallId.value = wall.id;
+    draggingEndPoint.value = point; // 'start' or 'end'
+    selectedWallId.value = wall.id;
+    initialWallPos.value = { 
+        x1: wall.x1, y1: wall.y1, 
+        x2: wall.x2, y2: wall.y2,
+        mx: svgP.x, my: svgP.y 
+    };
+};
+
+// Math helpers for walls
+const distToSegment = (p, v, w) => {
+  const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
+  if (l2 === 0) return Math.sqrt(Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2));
+  let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.sqrt(Math.pow(p.x - (v.x + t * (w.x - v.x)), 2) + Math.pow(p.y - (v.y + t * (w.y - v.y)), 2));
+};
+
+const addWall = () => {
+    const newWall = { id: Date.now(), x1: 400, y1: 300, x2: 600, y2: 300 };
+    floorWalls.value.push(newWall);
+    selectedWallId.value = newWall.id;
+};
+
+const deleteWall = () => {
+    if (selectedWallId.value) {
+        floorWalls.value = floorWalls.value.filter(w => w.id !== selectedWallId.value);
+        selectedWallId.value = null;
+    }
+};
+
+const finishWalls = () => {
+    if (floorWalls.value.length === 0) return;
+    selectedRoom.value = { 
+        id: 'custom-' + Date.now(), 
+        name: 'My Custom View', 
+        walls: JSON.parse(JSON.stringify(floorWalls.value)) 
+    };
+    step.value = 2;
+    selectRoom(selectedRoom.value); // Recalculate bbox
+};
+
+const saveTemplate = () => {
+    const name = prompt("ชื่อแบบแปลนของคุณ:", "แบบแปลนใหม่ " + (myLayouts.value.length + 1));
+    if (name) {
+        myLayouts.value.push({ 
+            id: 'user-' + Date.now(), 
+            name, 
+            walls: JSON.parse(JSON.stringify(floorWalls.value)) 
+        });
+        localStorage.setItem('my_gym_layouts', JSON.stringify(myLayouts.value));
+        alert("บันทึกเรียบร้อย!");
+    }
 };
 
 const handleDragStartFromSidebar = (item, event) => {
@@ -95,11 +278,12 @@ const handleDragStartFromSidebar = (item, event) => {
 
 const getSvgPoint = (clientX, clientY) => {
     const svg = document.getElementById('gym-canvas');
-    if (!svg) return { x: 0, y: 0 };
+    if (!svg) return { x: clientX, y: clientY };
     const pt = svg.createSVGPoint();
     pt.x = clientX;
     pt.y = clientY;
-    return pt.matrixTransform(svg.getScreenCTM().inverse());
+    const transformed = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return { x: transformed.x, y: transformed.y };
 };
 
 const handleDropOnCanvas = (event) => {
@@ -235,12 +419,63 @@ const handleMouseMove = (event) => {
             item.rotation = initialRotation.value + delta;
         }
     }
+    
+    if (step.value === 1.5) {
+        const svgP = getSvgPoint(event.clientX, event.clientY);
+        mousePos.value = {
+            x: Math.round(svgP.x / snapGrid) * snapGrid,
+            y: Math.round(svgP.y / snapGrid) * snapGrid
+        };
+
+        if (draggingWallId.value !== null && initialWallPos.value) {
+            const wall = floorWalls.value.find(w => w.id === draggingWallId.value);
+            
+            // Calculate absolute distance moved by mouse since click
+            const dx_raw = svgP.x - initialWallPos.value.mx;
+            const dy_raw = svgP.y - initialWallPos.value.my;
+
+            // Apply movement based on drag mode
+            if (draggingEndPoint.value === 'start') {
+                wall.x1 = initialWallPos.value.x1 + dx_raw;
+                wall.y1 = initialWallPos.value.y1 + dy_raw;
+                for (const other of floorWalls.value) {
+                    if (other.id === wall.id) continue;
+                    const targets = [{x: other.x1, y: other.y1}, {x: other.x2, y: other.y2}];
+                    for (const t of targets) {
+                         if (Math.sqrt(Math.pow(t.x - wall.x1, 2) + Math.pow(t.y - wall.y1, 2)) < 20) {
+                             wall.x1 = t.x; wall.y1 = t.y; break;
+                         }
+                    }
+                }
+            } else if (draggingEndPoint.value === 'end') {
+                wall.x2 = initialWallPos.value.x2 + dx_raw;
+                wall.y2 = initialWallPos.value.y2 + dy_raw;
+                for (const other of floorWalls.value) {
+                    if (other.id === wall.id) continue;
+                    const targets = [{x: other.x1, y: other.y1}, {x: other.x2, y: other.y2}];
+                    for (const t of targets) {
+                         if (Math.sqrt(Math.pow(t.x - wall.x2, 2) + Math.pow(t.y - wall.y2, 2)) < 20) {
+                             wall.x2 = t.x; wall.y2 = t.y; break;
+                         }
+                    }
+                }
+            } else if (draggingEndPoint.value === 'both') {
+                wall.x1 = initialWallPos.value.x1 + dx_raw;
+                wall.y1 = initialWallPos.value.y1 + dy_raw;
+                wall.x2 = initialWallPos.value.x2 + dx_raw;
+                wall.y2 = initialWallPos.value.y2 + dy_raw;
+            }
+        }
+    }
 };
 
 const handleMouseUp = () => {
     isPanning.value = false;
     isDraggingItem.value = false;
     isRotatingItem.value = false;
+    draggingVertexIndex.value = null;
+    draggingWallId.value = null;
+    draggingEndPoint.value = null;
 };
 
 const rotateSelected = () => {
@@ -377,14 +612,25 @@ onUnmounted(() => {
             </div>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl px-4 relative z-10">
-                <!-- Using fixed viewBox for previews -->
                 <button 
-                    v-for="shape in roomShapes" 
+                    v-for="shape in allRoomShapes" 
                     :key="shape.id"
                     @click="selectRoom(shape)"
                     class="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-transparent hover:border-primary group cursor-pointer w-full aspect-square flex items-center justify-center relative overflow-hidden"
                 >
-                    <svg viewBox="0 0 1000 800" class="w-full h-full p-8 transition-all duration-300">
+                    <button 
+                        v-if="shape.isCustom" 
+                        @click="deleteTemplate(shape.id, $event)"
+                        class="absolute top-2 right-2 btn btn-xs btn-circle btn-error opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                    >
+                        ✕
+                    </button>
+                    <div v-if="shape.icon === 'plus'" class="flex flex-col items-center justify-center p-8">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="w-32 h-32 text-base-content/30 group-hover:text-primary transition-colors mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                         </svg>
+                    </div>
+                    <svg v-else viewBox="0 0 1000 800" class="w-full h-full p-8 transition-all duration-300">
                         <polygon 
                             :points="shape.points" 
                             fill="currentColor" 
@@ -394,9 +640,100 @@ onUnmounted(() => {
                             stroke-linejoin="round"
                         />
                     </svg>
-                    <div class="absolute bottom-4 font-bold text-lg tracking-wider uppercase">{{ shape.name }}</div>
+                    <div class="absolute bottom-4 font-bold text-lg tracking-wider uppercase px-4 truncate w-full text-center">{{ shape.name }}</div>
                 </button>
             </div>
+        </div>
+
+        <!-- Phase 1.5: Wall-Based Floor Designer -->
+        <div v-if="step === 1.5" class="flex-1 flex flex-col md:flex-row overflow-hidden p-0 relative">
+            
+            <aside class="w-full md:w-80 bg-base-100 border-r border-base-content/10 flex flex-col z-10 p-6 shadow-2xl">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-black text-primary">Wall Designer</h2>
+                    <p class="text-xs opacity-50 uppercase tracking-widest mt-1">ประกอบโครงสร้างยิมของคุณ</p>
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <button class="btn btn-primary gap-3 shadow-lg h-14" @click="addWall">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+                        <span class="text-lg">เพิ่มกำแพงใหม่</span>
+                    </button>
+                    
+                    <button v-if="selectedWallId" class="btn btn-error btn-outline btn-sm animate-in fade-in zoom-in duration-200" @click="deleteWall">
+                        ลบกำแพงที่เลือก
+                    </button>
+
+                    <div class="divider"></div>
+                    
+                    <div class="space-y-3">
+                        <button class="btn btn-outline btn-block" @click="saveTemplate">บันทึกเป็นแบบของฉัน</button>
+                        <button class="btn btn-primary btn-block shadow-xl text-lg h-14" @click="finishWalls">เสร็จสิ้น และวางเครื่อง</button>
+                        <button class="btn btn-ghost btn-block btn-sm opacity-50" @click="step = 1">ยกเลิก</button>
+                    </div>
+                </div>
+
+                <div class="mt-auto p-4 bg-primary/5 rounded-2xl border border-primary/10 text-[11px] space-y-2">
+                    <p class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> ลากจุดปลายเพื่อยืด/หด หรือหมุนกำแพง</p>
+                    <p class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> ลากกลางเส้นเพื่อย้ายตำแหน่ง</p>
+                    <p class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> จุดปลายจะ "ดูด" ติดกันเมื่อเข้าใกล้</p>
+                </div>
+            </aside>
+
+            <main class="flex-1 bg-base-300 relative overflow-hidden bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:24px_24px] text-base-content/5">
+                <svg 
+                    id="gym-canvas"
+                    class="w-full h-full cursor-crosshair select-none touch-none"
+                    :viewBox="`${svgViewBox.x} ${svgViewBox.y} ${svgViewBox.w} ${svgViewBox.h}`"
+                    @mousedown="handleCanvasMouseDown"
+                    @mousemove="handleMouseMove"
+                >
+                     <!-- Render Walls -->
+                     <g v-for="w in floorWalls" :key="w.id">
+                         <!-- The Wall Line -->
+                         <line 
+                            :x1="w.x1" :y1="w.y1" :x2="w.x2" :y2="w.y2"
+                            :stroke="selectedWallId === w.id ? '#f59e0b' : '#570df8'"
+                            :stroke-width="selectedWallId === w.id ? 14 : 8"
+                            stroke-linecap="round"
+                            class="cursor-move drop-shadow-md transition-colors duration-200"
+                         />
+                         <!-- Wall Glow (Selected) - Invisible but provides better hit area -->
+                         <line 
+                            :x1="w.x1" :y1="w.y1" :x2="w.x2" :y2="w.y2"
+                            stroke="transparent" stroke-width="30" stroke-linecap="round"
+                            class="cursor-move"
+                         />
+                         
+                         <!-- Length Label -->
+                         <text 
+                            :x="(w.x1 + w.x2)/2" 
+                            :y="(w.y1 + w.y2)/2 - 15"
+                            :transform="`rotate(${Math.atan2(w.y2-w.y1, w.x2-w.x1) * 180 / Math.PI}, ${(w.x1 + w.x2)/2}, ${(w.y1 + w.y2)/2})`"
+                            text-anchor="middle"
+                            font-weight="900"
+                            fill="#1e293b"
+                            style="font-size: 16px; paint-order: stroke; stroke: white; stroke-width: 4px;"
+                         >
+                            {{ (Math.sqrt(Math.pow(w.x2-w.x1, 2) + Math.pow(w.y2-w.y1, 2)) / pixelsPerMeter).toFixed(1) }}m
+                         </text>
+
+                         <!-- End-point Handles -->
+                         <circle 
+                            :cx="w.x1" :cy="w.y1" r="10" 
+                            fill="white" :stroke="selectedWallId === w.id ? '#f59e0b' : '#570df8'" stroke-width="4"
+                            class="cursor-pointer shadow-sm"
+                            @mousedown.stop="handleEndPointMouseDown(w, 'start', $event)"
+                         />
+                         <circle 
+                            :cx="w.x2" :cy="w.y2" r="10" 
+                            fill="white" :stroke="selectedWallId === w.id ? '#f59e0b' : '#570df8'" stroke-width="4"
+                            class="cursor-pointer shadow-sm"
+                            @mousedown.stop="handleEndPointMouseDown(w, 'end', $event)"
+                         />
+                     </g>
+                </svg>
+            </main>
         </div>
 
         <!-- Phase 2: Builder Interface -->
@@ -412,7 +749,7 @@ onUnmounted(() => {
                 </div>
                 <div class="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3 content-start">
                     <div 
-                        v-for="item in equipmentTypes" 
+                        v-for="item in equipmentList" 
                         :key="item.id"
                         draggable="true"
                         @dragstart="handleDragStartFromSidebar(item, $event)"
@@ -420,6 +757,7 @@ onUnmounted(() => {
                     >
                         <img :src="item.src" class="w-16 h-16 object-contain mb-2 pointer-events-none select-none" />
                         <span class="text-[10px] font-bold text-center uppercase">{{ item.name }}</span>
+                        <span class="text-[8px] opacity-40">{{ item.w_m }}m x {{ item.h_m }}m</span>
                     </div>
                 </div>
                 <!-- Mini controls info -->
@@ -448,16 +786,37 @@ onUnmounted(() => {
                         </pattern>
                     </defs>
 
-                    <!-- Room Floor -->
-                    <polygon 
-                        :points="selectedRoom.points" 
-                        fill="#f8fafc" 
-                        stroke="#333" 
-                        stroke-width="5"
-                        class="drop-shadow-2xl"
-                    />
-                    <!-- Grid overlay inside room -->
-                    <polygon :points="selectedRoom.points" fill="url(#grid)" pointer-events="none" opacity="0.6" />
+                    <!-- Room Floor & Walls -->
+                    <g v-if="selectedRoom?.walls">
+                        <line 
+                           v-for="w in selectedRoom.walls" 
+                           :key="w.id"
+                           :x1="w.x1" :y1="w.y1" :x2="w.x2" :y2="w.y2"
+                           stroke="#1e293b" 
+                           stroke-width="12"
+                           stroke-linecap="round"
+                        />
+                    </g>
+                    <g v-else-if="selectedRoom?.blocks">
+                        <rect 
+                           v-for="b in selectedRoom.blocks" 
+                           :key="b.id"
+                           :x="b.x" :y="b.y" :width="b.w" :height="b.h"
+                           fill="#f8fafc" stroke="#333" stroke-width="5"
+                           class="drop-shadow-2xl"
+                        />
+                        <rect v-for="b in selectedRoom.blocks" :key="'grid-'+b.id" :x="b.x" :y="b.y" :width="b.w" :height="b.h" fill="url(#grid)" pointer-events="none" opacity="0.6" />
+                    </g>
+                    <g v-else-if="selectedRoom?.points">
+                        <polygon 
+                            :points="selectedRoom.points" 
+                            fill="#f8fafc" 
+                            stroke="#333" 
+                            stroke-width="5"
+                            class="drop-shadow-2xl"
+                        />
+                        <polygon :points="selectedRoom.points" fill="url(#grid)" pointer-events="none" opacity="0.6" />
+                    </g>
 
                     <!-- Placed Items -->
                     <g 
@@ -536,6 +895,13 @@ onUnmounted(() => {
                                 </div>
                             </foreignObject>
                        </g>
+                    </g>
+                    <!-- Scale Indicator -->
+                    <g :transform="`translate(${svgViewBox.x + 20}, ${svgViewBox.y + svgViewBox.h - 40})`" class="pointer-events-none opacity-50">
+                        <line x1="0" y1="0" :x2="pixelsPerMeter" y2="0" stroke="currentColor" stroke-width="2" />
+                        <line x1="0" y1="-5" x2="0" y2="5" stroke="currentColor" stroke-width="2" />
+                        <line :x1="pixelsPerMeter" y1="-5" :x2="pixelsPerMeter" y2="5" stroke="currentColor" stroke-width="2" />
+                        <text x="0" y="20" font-size="12" fill="currentColor" font-weight="bold">1.0m</text>
                     </g>
                 </svg>
 
