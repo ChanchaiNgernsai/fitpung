@@ -69,7 +69,7 @@ const availableEquipment = computed(() => {
 
 onMounted(async () => {
     try {
-        const response = await fetch('/images/Front_body_interactive.svg');
+        const response = await fetch('/images/Front_body_interactive.svg?v=' + Date.now());
         let text = await response.text();
         svgContent.value = text;
         
@@ -239,12 +239,11 @@ const openMap = () => {
                     
                     <!-- LEFT: Floor & Plan -->
                     <div class="lg:col-span-4 space-y-8">
-                        <div class="card bg-neutral shadow-2xl rounded-[2.5rem] overflow-hidden group border-t border-white/5">
+                        <div class="card bg-white border border-base-content/5 rounded-[2.5rem] overflow-hidden group">
                             <div class="h-96 relative flex items-center justify-center p-8 bg-white">
                                 <svg 
                                     :viewBox="getViewBoxString(getInitialBounds(gym.room_config.points, gym.items, 40))" 
                                     class="w-full h-full transition-all duration-700"
-                                    style="filter: drop-shadow(0 30px 60px rgba(0,0,0,0.2));"
                                     preserveAspectRatio="xMidYMid meet"
                                 >
                                     <polygon :points="gym.room_config.points" fill="#0f172a" stroke="#0f172a" stroke-width="8" />
@@ -259,7 +258,7 @@ const openMap = () => {
                             </div>
                         </div>
 
-                        <div class="card bg-base-100 shadow-2xl border border-base-content/5 rounded-[2.5rem] p-8">
+                        <div class="card bg-base-100 border border-base-content/5 rounded-[2.5rem] p-8">
                             <h3 class="font-black italic text-xl uppercase mb-6">Your Plan</h3>
                             <div v-if="workoutPlan.length === 0" class="text-sm opacity-40 italic py-10 text-center">Empty plan. Select muscles to start.</div>
                             <ul class="space-y-4">
@@ -284,8 +283,8 @@ const openMap = () => {
 
                     <!-- CENTER: Muscle Map -->
                     <div class="lg:col-span-4">
-                        <div id="muscle-map-container" class="w-full h-[700px] bg-base-100 rounded-[3rem] shadow-3xl border border-base-content/5 p-8 relative overflow-hidden group">
-                            <div v-if="svgContent" v-html="svgContent" class="w-full h-full transform transition-transform duration-700 group-hover:scale-105"></div>
+                        <div id="muscle-map-container" class="w-full h-[700px] bg-base-100 rounded-[3rem] border border-base-content/5 relative overflow-hidden group flex items-center justify-center p-12">
+                            <div v-if="svgContent" v-html="svgContent" class="h-full w-full flex items-center justify-center"></div>
                             <div v-else class="flex items-center justify-center h-full"><span class="loading loading-spinner loading-lg"></span></div>
                         </div>
                     </div>
@@ -293,15 +292,15 @@ const openMap = () => {
                     <!-- RIGHT: Equipment -->
                     <div class="lg:col-span-4 space-y-8">
                         <div v-if="selectedMuscle" class="animate-fade-in-up space-y-8">
-                             <div class="bg-primary text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                             <div class="bg-primary text-white p-8 rounded-[2.5rem] relative overflow-hidden">
                                 <div class="text-[10px] font-black uppercase tracking-[0.4em] mb-2 opacity-60">Target Area</div>
                                 <div class="text-4xl font-black italic uppercase">{{ cleanMuscleName(selectedMuscle) }}</div>
                              </div>
                              <div v-if="availableEquipment.length > 0" class="space-y-6">
-                                 <div v-for="item in availableEquipment" :key="item.id" class="bg-white rounded-[2.5rem] border border-base-content/5 shadow-xl overflow-hidden hover:-translate-y-2 transition-all p-8 space-y-6">
+                                 <div v-for="item in availableEquipment" :key="item.id" class="bg-white rounded-[2.5rem] border border-base-content/5 overflow-hidden hover:-translate-y-2 transition-all p-8 space-y-6">
                                     <img :src="item.src" class="h-32 mx-auto object-contain" />
                                     <h4 class="font-black italic uppercase text-lg">{{ item.name }}</h4>
-                                    <button @click="addToPlan(item)" class="btn btn-primary btn-block rounded-xl font-black italic uppercase tracking-widest shadow-lg shadow-primary/20">Add to Plan</button>
+                                    <button @click="addToPlan(item)" class="btn btn-primary btn-block rounded-xl font-black italic uppercase tracking-widest">Add to Plan</button>
                                  </div>
                              </div>
                              <div v-else class="text-center py-20 opacity-30 uppercase font-black italic">No Matching Equipment</div>
@@ -333,7 +332,16 @@ const openMap = () => {
 </template>
 
 <style scoped>
-.shadow-3xl { box-shadow: 0 35px 60px -15px rgba(0,0,0,0.3); }
+#muscle-map-container :deep(svg) {
+    height: 100%;
+    width: auto;
+    margin: 0 auto;
+    filter: none !important;
+}
+#muscle-map-container :deep(svg *) {
+    filter: none !important;
+    box-shadow: none !important;
+}
 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 432 648" style="enable-background:new 0 0 432 648;" xml:space="preserve">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="85 -20 260 650" style="enable-background:new 85 -20 260 650;" xml:space="preserve">
     
     
     
@@ -18,13 +18,13 @@
     
     
     <style type="text/css">
-    svg { filter: drop-shadow(0 0 15px rgba(0,0,0,0.6)); }
+
     
     /* Disable all pointer events by default */
     path, circle, polygon, rect, g { pointer-events: none; }
 
     /* Explicitly lock body background */
-    .st0 { fill: #FFFFFF; pointer-events: none !important; } 
+    .st0 { fill: #FFFFFF !important; pointer-events: none !important; opacity: 1 !important; } 
 
     /* Main Muscle Outlines - visible */
     .st1, .st3, .st4 { 
