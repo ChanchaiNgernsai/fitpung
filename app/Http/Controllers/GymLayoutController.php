@@ -41,13 +41,24 @@ class GymLayoutController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'location' => 'nullable|string',
+            'google_map_url' => 'nullable|url|max:255',
+            'image' => 'nullable|image|max:2048', // 2MB Max
             'room_config' => 'required|array',
             'items' => 'required|array',
         ]);
 
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('gyms', 'public');
+        }
+
         $layout = GymLayout::create([
             'user_id' => Auth::id(),
             'name' => $request->name,
+            'location' => $request->location,
+            'google_map_url' => $request->google_map_url,
+            'image_path' => $imagePath,
             'room_config' => $request->room_config,
             'items' => $request->items,
         ]);
@@ -60,13 +71,12 @@ class GymLayoutController extends Controller
      */
     public function edit(GymLayout $gym_builder)
     {
-        // $gym_builder is the route param name if we stick to resource naming Convention, 
-        // or we can name it explicitly.
-        // Assuming route is /gym-builder/{id}/edit or just /gym-builder/{id}
-
         if ($gym_builder->user_id !== Auth::id()) {
             abort(403);
         }
+
+        // Add image_url for the frontend
+        $gym_builder->image_url = $gym_builder->image_path ? asset('storage/' . $gym_builder->image_path) : null;
 
         return Inertia::render('GymBuilder', [
             'layout' => $gym_builder
@@ -84,15 +94,41 @@ class GymLayoutController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'room_config' => 'required|array',
-            'items' => 'required|array',
+            'location' => 'nullable|string',
+            'google_map_url' => 'nullable|url|max:255',
+            'image' => 'nullable|image|max:2048',
+            'room_config' => 'sometimes|required|array',
+            'items' => 'sometimes|required|array',
+            'operating_hours' => 'nullable|array',
+            'holidays' => 'nullable|array',
+            'promotions' => 'nullable|array',
+            'price_list' => 'nullable|array',
         ]);
 
-        $gym_builder->update([
+        $data = [
             'name' => $request->name,
-            'room_config' => $request->room_config,
-            'items' => $request->items,
-        ]);
+            'location' => $request->location,
+            'google_map_url' => $request->google_map_url,
+            'operating_hours' => $request->operating_hours,
+            'holidays' => $request->holidays,
+            'promotions' => $request->promotions,
+            'price_list' => $request->price_list,
+        ];
+
+        if ($request->has('room_config'))
+            $data['room_config'] = $request->room_config;
+        if ($request->has('items'))
+            $data['items'] = $request->items;
+
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($gym_builder->image_path && \Storage::disk('public')->exists($gym_builder->image_path)) {
+                \Storage::disk('public')->delete($gym_builder->image_path);
+            }
+            $data['image_path'] = $request->file('image')->store('gyms', 'public');
+        }
+
+        $gym_builder->update($data);
 
         return redirect()->back()->with('success', 'Layout updated successfully!');
     }
@@ -127,6 +163,23 @@ class GymLayoutController extends Controller
         // }
 
         return Inertia::render('Gyms/Show', [
+            'gym' => $gym,
+            'equipments' => Equipment::all()
+        ]);
+    }
+
+    /**
+     * Show the interactive map page.
+     */
+    public function showMap($id)
+    {
+        $gym = GymLayout::where('id', $id)->firstOrFail();
+
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        return Inertia::render('Gyms/InteractiveMap', [
             'gym' => $gym,
             'equipments' => Equipment::all()
         ]);

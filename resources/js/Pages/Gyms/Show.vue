@@ -183,7 +183,7 @@ const getInitialBounds = (pointsStr, items = [], padding = 150) => {
 
 const getViewBoxString = (bounds) => `${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`;
 
-// Interactive Helpers (Simplified port from Builder)
+// Interactive Helpers
 const getSvgPoint = (clientX, clientY, svgId) => {
     const svg = document.getElementById(svgId);
     if (!svg) return { x: 0, y: 0 };
@@ -245,7 +245,6 @@ const handleModalMouseUp = () => {
 };
 
 const openMap = () => {
-    // Maximum possible expansion with minimal safety margin
     const bounds = getInitialBounds(props.gym.room_config.points, props.gym.items, 5);
     modalViewBox.value = bounds;
     isMapExpanded.value = true;
@@ -259,275 +258,198 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="gym.name + ' - FitPung'" />
+    <Head :title="gym.name + ' - FitPung Member View'" />
 
     <AppLayout>
+        <!-- Gym Hero Section (Clean Design) -->
+        <div class="relative bg-white pt-32 pb-20 overflow-hidden border-b border-gray-100">
+             <!-- Background Subtle Elements -->
+             <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-50 to-transparent"></div>
+             <div class="absolute -top-24 -left-24 w-96 h-96 bg-indigo-50 rounded-full blur-3xl opacity-30"></div>
 
-
-        <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid lg:grid-cols-12 gap-8">
-                
-                <!-- BOTTOM (SIDEBAR ON LG): Info & Gym Map -->
-                <div class="lg:col-span-4 space-y-6 order-2 lg:order-none">
-                    <!-- Gym Info Card -->
-                    <div class="card bg-base-100 shadow-xl border border-base-content/5">
-                        <div class="card-body">
-                            <h3 class="font-bold text-lg uppercase tracking-wider mb-2 opacity-50">About this Gym</h3>
-                            <p class="opacity-80">{{ gym.description || 'Verified fitness facility equipped with professional standard equipment.' }}</p>
+             <div class="max-w-7xl mx-auto px-6 relative z-10">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-12">
+                    <div class="space-y-8 max-w-3xl text-center md:text-left">
+                        <div class="flex items-center justify-center md:justify-start gap-3">
+                            <span class="badge bg-indigo-50 border-none text-[#4338ca] font-black italic uppercase tracking-widest px-6 py-4 shadow-sm">Member Hub</span>
+                            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Official Facility View</span>
                         </div>
-                    </div>
-
-                    <!-- Gym Floor Layout -->
-                    <div class="card bg-neutral text-neutral-content shadow-xl overflow-hidden relative group">
-                        <div class="absolute top-4 left-4 z-10 badge badge-primary font-bold shadow-lg">Gym Layout</div>
-
-                        <div class="h-80 relative flex items-center justify-center pt-8 pb-2 px-4 bg-white border-t border-base-200">
-                            <svg 
-                                :viewBox="getViewBoxString(getInitialBounds(gym.room_config.points, gym.items, 40))" 
-                                class="w-full h-full transition-all duration-500 transform translate-y-6"
-                                style="filter: drop-shadow(0 20px 40px rgba(0,0,0,0.15));"
-                                preserveAspectRatio="xMidYMid meet"
-                            >
-                                <!-- Room Shape -->
-                                <polygon 
-                                    :points="gym.room_config.points" 
-                                    fill="#111827" 
-                                    stroke="currentColor" 
-                                    stroke-width="8"
-                                    class="text-base-content/10"
-                                />
-                                
-                                <!-- Items -->
-                                <g 
-                                    v-for="item in gym.items" 
-                                    :key="item.id" 
-                                    :transform="`translate(${item.x}, ${item.y}) rotate(${item.rotation})`"
-                                    class="transition-all duration-300"
-                                    :class="isItemHighlight(item) ? 'opacity-100' : 'opacity-60'"
-                                >
-                                    <!-- Green Glow Ring -->
-                                    <circle 
-                                        v-if="isItemHighlight(item)"
-                                        r="35" 
-                                        fill="rgba(0,255,0,0.2)" 
-                                        stroke="#00ff00" 
-                                        stroke-width="5" 
-                                        class="animate-pulse"
-                                    />
-                                    
-                                     <image 
-                                        :href="item.src" 
-                                        :x="-item.width/2" 
-                                        :y="-item.height/2" 
-                                        :width="item.width" 
-                                        :height="item.height"
-                                        class="transition-all duration-500"
-                                        :style="isItemHighlight(item) ? { filter: 'drop-shadow(0 0 8px #00ff00) brightness(1.5)', transform: 'scale(1.1)' } : { filter: 'grayscale(1) brightness(0.7)' }"
-                                    />
-                                </g>
-                            </svg>
-
-                            <!-- Expand Button -->
-                            <button @click="openMap" class="absolute bottom-4 right-4 btn btn-circle btn-sm btn-ghost bg-base-100/20 hover:bg-base-100/40 backdrop-blur-sm border-none transition-all hover:scale-110">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Workout Plan Summary -->
-                     <div class="card bg-base-100 shadow-xl border border-base-content/5">
-                        <div class="card-body">
-                            <h3 class="font-bold text-lg uppercase tracking-wider mb-2 opacity-50">Your Plan</h3>
-                            <div v-if="workoutPlan.length === 0" class="text-sm opacity-50 italic">
-                                Select muscles and add equipment to build your plan.
-                            </div>
-                            <ul class="space-y-4">
-                                <li v-for="plan in workoutPlan" :key="plan.id" class="bg-base-200 p-3 rounded-lg relative group border-l-4 border-primary">
-                                    <button @click="removeFromPlan(plan.id)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">x</button>
-                                    <div class="font-bold text-base-content">{{ plan.item.name }}</div>
-                                    <div class="text-xs opacity-50 mb-2">{{ plan.muscle }}</div>
-                                    <div class="flex gap-2">
-                                        <div class="flex flex-col gap-1 w-1/2">
-                                            <span class="text-[10px] uppercase font-bold opacity-50">Sets</span>
-                                            <input type="number" v-model="plan.sets" class="input input-xs input-bordered w-full bg-base-100" />
-                                        </div>
-                                        <div class="flex flex-col gap-1 w-1/2">
-                                            <span class="text-[10px] uppercase font-bold opacity-50">Reps</span>
-                                            <input type="number" v-model="plan.reps" class="input input-xs input-bordered w-full bg-base-100" />
-                                        </div>
-                                    </div>
-                                </li>
-                            </ul>
-                            <button v-if="workoutPlan.length > 0" class="btn btn-primary btn-sm mt-4 w-full shadow-lg shadow-primary/20 animate-pulse">Start Workout</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TOP (MIDDLE ON LG): Interactive Map -->
-                <div class="lg:col-span-4 flex flex-col items-center order-1 lg:order-none">
-                    <div class="text-center mb-6">
-                        <div class="badge badge-accent badge-lg font-bold mb-2 shadow-lg shadow-accent/20">Interactive Selector</div>
-                        <h2 class="text-2xl font-black italic uppercase">TARGET YOUR MUSCLES</h2>
-                        <p class="text-sm opacity-60">คลิกที่ส่วนกล้ามเนื้อที่ต้องการฝึก</p>
-                    </div>
-
-                    <div 
-                        id="muscle-map-container"
-                        class="w-full h-[600px] bg-base-100 rounded-3xl shadow-2xl border border-base-content/5 p-4 overflow-hidden relative"
-                    >
-                        <!-- SVG Injected Here -->
-                        <div v-if="svgContent" v-html="svgContent" class="w-full h-full"></div>
                         
-                        <div v-else class="flex items-center justify-center h-full">
-                            <span class="loading loading-spinner loading-lg text-primary"></span>
+                        <div class="space-y-4">
+                            <h1 class="text-7xl md:text-9xl font-black italic uppercase text-gray-900 tracking-tighter leading-none">{{ gym.name }}</h1>
+                            <div class="flex items-center justify-center md:justify-start gap-4">
+                                <div class="h-px w-20 bg-[#4338ca]"></div>
+                                <span class="text-sm font-bold italic uppercase tracking-widest text-[#4338ca]">{{ gym.location || 'Professional Workout Space' }}</span>
+                            </div>
+                        </div>
+
+                        <p class="text-xl text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto md:mx-0">
+                            Unlock your physical potential with our state-of-the-art facility. Experience precision engineering in every piece of equipment and every square foot of our space.
+                        </p>
+
+                        <div v-if="gym.google_map_url" class="flex justify-center md:justify-start gap-4">
+                            <a :href="gym.google_map_url" target="_blank" class="btn btn-lg bg-gray-900 hover:bg-black text-white rounded-2xl font-black italic uppercase tracking-widest px-10 border-none shadow-xl">
+                                Open Route
+                            </a>
                         </div>
                     </div>
-                </div>
 
-                <!-- RIGHT: Equipment & Videos (3 cols) -->
-                <div class="lg:col-span-4 space-y-6">
-                    
-                    <div v-if="selectedMuscle" class="animate-fade-in-up">
-                         <div class="alert bg-base-100 shadow-lg border-l-4 border-primary p-4 mb-6">
-                            <div>
-                                <div class="text-xs opacity-50 uppercase font-bold">Selected Muscle Group</div>
-                                <div class="text-xl font-black italic text-primary">{{ cleanMuscleName(selectedMuscle) }}</div>
-                            </div>
-                         </div>
-                         
-                         <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                            <span>Available Equipment</span>
-                            <span class="badge badge-sm badge-ghost">{{ availableEquipment.length }}</span>
-                         </h3>
-                         
-                         <div v-if="availableEquipment.length > 0" class="space-y-4">
-                             <div 
-                                v-for="item in availableEquipment" 
-                                :key="item.id" 
-                                class="card bg-base-100 shadow-md hover:shadow-xl transition-all border border-base-content/5 overflow-hidden group hover:-translate-y-1 duration-300"
-                            >
-                                <figure class="h-32 bg-base-200 relative overflow-hidden">
-                                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 to-transparent z-0"></div>
-                                    <img :src="item.src" class="h-full object-contain p-4 relative z-10 transition-transform duration-500 group-hover:scale-110" />
-                                </figure>
-                                <div class="card-body p-4">
-                                    <h4 class="font-bold text-sm">{{ item.name }}</h4>
-                                    
-                                    <!-- Technique Details -->
-                                    <div v-if="item.dbInfo && item.dbInfo.technique[getDbMuscleKey(selectedMuscle)]" class="mt-4 space-y-3 bg-base-200/50 p-3 rounded-xl text-xs">
-                                        <div class="badge badge-outline gap-2">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].variation_name }}</div>
-                                        
-                                        <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].setup">
-                                            <span class="font-bold text-primary mr-1">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].setup.title }}:</span>
-                                            <span class="opacity-70">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].setup.description }}</span>
-                                        </div>
-                                        
-                                        <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle">
-                                            <span class="font-bold text-primary mr-1">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.title }}:</span>
-                                            <span class="opacity-70">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.description }}</span>
-                                            <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.warning" class="text-[10px] text-error mt-1 italic font-bold">
-                                                ⚠ {{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].elbow_angle.warning }}
-                                            </div>
-                                        </div>
-                                        
-                                        <div v-if="item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].breathing">
-                                            <span class="font-bold text-primary mr-1">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].breathing.title }}:</span>
-                                            <span class="opacity-70">{{ item.dbInfo.technique[getDbMuscleKey(selectedMuscle)].breathing.description }}</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="card-actions mt-4 border-t border-base-content/5 pt-3">
-                                        <button @click="addToPlan(item)" class="btn btn-sm btn-primary w-full shadow-lg shadow-primary/20">
-                                            + Add to Plan
-                                        </button>
-                                    </div>
-                                </div>
+                    <!-- Right Side: Actual Gym Photo in Stylized Frame -->
+                    <div class="hidden lg:block relative p-12">
+                         <div class="w-96 h-96 bg-gray-100 rounded-[4rem] rotate-3 relative overflow-hidden shadow-2xl border-8 border-white">
+                             <template v-if="gym.image_path">
+                                 <img :src="`/storage/${gym.image_path}`" class="w-full h-full object-cover" />
+                             </template>
+                             <div v-else class="flex items-center justify-center h-full bg-indigo-50/50">
+                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32 text-[#4338ca] opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                              </div>
+                             <div class="absolute inset-0 bg-gradient-to-br from-[#4338ca] to-transparent opacity-10"></div>
                          </div>
-                         
-                         <div v-else class="text-center py-12 px-6 bg-base-100 rounded-2xl border-2 border-dashed border-base-content/10">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <p class="font-bold opacity-60">No matching equipment found</p>
-                            <p class="text-xs opacity-40 mt-1">This gym doesn't have specific machines for {{ cleanMuscleName(selectedMuscle) }} yet.</p>
+                         <!-- Floating badges -->
+                         <div class="absolute top-0 right-0 bg-white p-6 rounded-3xl shadow-xl -rotate-6 border border-gray-50 z-20">
+                             <div class="text-[10px] font-black uppercase text-[#4338ca]">Status</div>
+                             <div class="text-lg font-black italic uppercase">Verified</div>
                          </div>
-
+                         <div class="absolute bottom-10 -left-10 bg-white p-6 rounded-3xl shadow-xl rotate-12 border border-gray-50 z-20">
+                             <div class="text-[10px] font-black uppercase text-gray-400">Layout</div>
+                             <div class="text-lg font-black italic uppercase">Certified</div>
+                         </div>
                     </div>
-                    
-                    <div v-else class="bg-base-200/50 rounded-3xl p-10 text-center border-2 border-dashed border-base-content/10 h-full flex flex-col justify-center items-center opacity-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" /></svg>
-                        <p class="font-bold text-lg">Select a Muscle</p>
-                        <p class="text-sm">Explore the interactive body map to see what you can train.</p>
-                    </div>
-
                 </div>
-            </div>
+             </div>
         </div>
 
-        <!-- Fullscreen Map Modal -->
-        <div v-if="isMapExpanded" class="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4">
-            <div class="absolute inset-0 bg-white/80 backdrop-blur-3xl animate-fade-in" @click="isMapExpanded = false"></div>
-            
-            <div class="card w-full max-w-[96vw] h-full max-h-[96vh] bg-white shadow-2xl relative animate-zoom-in overflow-hidden border border-black/5">
-                <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-white">
-                    <!-- Floating Close Button -->
-                    <button @click="isMapExpanded = false" class="absolute top-6 right-6 z-50 btn btn-circle btn-sm btn-neutral shadow-lg hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
 
-                    <svg 
-                        id="fullscreen-gym-canvas"
-                        :viewBox="getViewBoxString(modalViewBox)" 
-                        class="w-full h-full cursor-move touch-none transform translate-y-10"
-                        preserveAspectRatio="xMidYMid meet"
-                        @wheel="handleModalWheel"
-                        @mousedown="handleModalMouseDown"
-                    >
-                         <!-- Room Shape -->
-                         <polygon 
-                            :points="gym.room_config.points" 
-                            fill="#111827" 
-                            stroke="currentColor" 
-                            stroke-width="5"
-                            class="text-base-content/10"
-                        />
-                        
-                        <!-- Items -->
-                        <g 
-                            v-for="item in gym.items" 
-                            :key="'fs-'+item.id" 
-                            :transform="`translate(${item.x}, ${item.y}) rotate(${item.rotation})`"
-                        >
-                            <circle 
-                                v-if="isItemHighlight(item)"
-                                r="40" 
-                                fill="rgba(0,255,0,0.15)" 
-                                stroke="#00ff00" 
-                                stroke-width="4" 
-                                class="animate-pulse"
-                            />
-                             <image 
-                                :href="item.src" 
-                                :x="-item.width/2" 
-                                :y="-item.height/2" 
-                                :width="item.width" 
-                                :height="item.height"
-                                :style="isItemHighlight(item) ? { filter: 'drop-shadow(0 0 15px #00ff00) brightness(1.5)', transform: 'scale(1.15)' } : { filter: 'grayscale(1) opacity(0.5)' }"
-                                class="transition-all duration-300"
-                            />
-                        </g>
-                    </svg>
-                </div>
+                    <div class="max-w-7xl mx-auto px-4 py-20 space-y-32">
+
+            <div class="grid lg:grid-cols-2 gap-24 items-start pb-20 border-b border-gray-100">
+                <!-- Left: Story & Hours -->
+                <section class="space-y-12">
+                    <div class="space-y-6">
+                        <div class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-[#4338ca]">
+                            <div class="w-8 h-[2px] bg-[#4338ca]"></div>
+                            The Experience
+                        </div>
+                        <h2 class="text-6xl font-black italic uppercase tracking-tighter leading-[0.9] text-gray-900">
+                            Beyond a Gym, <br/> It's a Lifestyle
+                        </h2>
+                        <p class="text-xl text-gray-500 font-medium leading-relaxed max-w-xl">
+                            {{ gym.description || 'Verified fitness facility equipped with professional standard equipment and personalized workout environments.' }}
+                        </p>
+                    </div>
+                    
+                    <div class="grid sm:grid-cols-2 gap-12">
+                        <div v-if="gym.operating_hours" class="space-y-6">
+                            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Opening Schedule</h4>
+                            <div class="space-y-3">
+                                <div v-for="h in gym.operating_hours.slice(0, 7)" :key="h.day" class="flex justify-between items-center text-sm">
+                                    <span class="font-bold text-gray-400 w-12">{{ h.day.substring(0, 3).toUpperCase() }}</span>
+                                    <span :class="h.status === 'Open' ? 'text-gray-900' : 'text-red-400'" class="font-black italic">
+                                        {{ h.status === 'Open' ? `${h.start} - ${h.end}` : 'OFFLINE' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="gym.holidays && gym.holidays.length > 0" class="space-y-6">
+                            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Public Holidays</h4>
+                            <div class="space-y-3">
+                                <div v-for="(holiday, idx) in gym.holidays.slice(0, 3)" :key="idx" class="flex justify-between items-center text-sm">
+                                    <span class="font-bold text-gray-900">{{ holiday.name }}</span>
+                                    <span class="font-bold text-gray-400 italic text-[11px]">{{ holiday.date }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Side: Plan Your Session Call to Action -->
+                <section class="relative">
+                    <div class="absolute -inset-10 bg-indigo-50/50 rounded-[4rem] blur-3xl opacity-50"></div>
+                    <div class="relative bg-white rounded-[3.5rem] p-12 md:p-16 border border-gray-100 shadow-[0_30px_100px_rgba(0,0,0,0.08)] text-center space-y-10 group overflow-hidden">
+                        <!-- Subtle Background Pattern -->
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full translate-x-32 -translate-y-32"></div>
+
+                        <div class="space-y-4 relative z-10">
+                            <h3 class="text-xs font-black uppercase tracking-[0.4em] text-[#4338ca] italic">Interactive Hub</h3>
+                            <h2 class="text-5xl font-black italic uppercase tracking-tighter leading-tight text-gray-900">
+                                Ready to Plan <br/> Your Session?
+                            </h2>
+                            <p class="text-lg text-gray-500 font-medium leading-relaxed max-w-xs mx-auto">
+                                Build your personalized workout plan with our interactive 3D facility map.
+                            </p>
+                        </div>
+
+                        <div class="relative z-10">
+                            <Link 
+                                :href="route('gyms.map', gym.id)" 
+                                class="btn bg-[#4338ca] hover:bg-[#3730a3] text-white btn-block h-20 rounded-[1.5rem] font-black italic uppercase tracking-widest shadow-2xl transition-all hover:scale-[1.02]"
+                            >
+                                Open Session Planner
+                            </Link>
+                        </div>
+
+                        <!-- Mini Icons -->
+                        <div class="grid grid-cols-3 gap-6 pt-6 relative z-10 opacity-30 group-hover:opacity-60 transition-opacity">
+                            <div class="flex flex-col items-center gap-2">
+                                 <div class="p-3 bg-gray-50 rounded-2xl"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></div>
+                                 <span class="text-[8px] font-black uppercase tracking-widest">3D Map</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2">
+                                 <div class="p-3 bg-gray-50 rounded-2xl"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div>
+                                 <span class="text-[8px] font-black uppercase tracking-widest">Plan Builder</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2">
+                                 <div class="p-3 bg-gray-50 rounded-2xl"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
+                                 <span class="text-[8px] font-black uppercase tracking-widest">Technique</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
+
+            <!-- SECTION: Membership Plans (Gemini Style) -->
+            <section v-if="gym.price_list && gym.price_list.length > 0" class="space-y-16">
+                <div class="text-center space-y-4">
+                    <h3 class="text-xs font-black uppercase tracking-[0.4em] text-[#4338ca] italic">Membership</h3>
+                    <h2 class="text-5xl font-black italic uppercase tracking-tighter">Choose Your Strength</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div v-for="p in gym.price_list" :key="p.label" class="bg-white p-12 rounded-[2.5rem] border border-gray-100 flex flex-col items-center text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 group">
+                        <span class="text-2xl font-black text-gray-900 mb-8">{{ p.label }}</span>
+                        
+                        <div class="flex items-baseline gap-2 mb-10">
+                            <span class="text-2xl font-bold opacity-30 italic">฿</span>
+                            <span class="text-6xl font-black italic tracking-tighter">{{ p.amount }}</span>
+                            <span class="text-sm font-bold opacity-30 uppercase italic tracking-widest">/ {{ p.period }}</span>
+                        </div>
+
+                        <ul class="space-y-4 mb-12 text-sm font-medium text-gray-600 list-none p-0 text-left w-full">
+                            <li class="flex items-center gap-3">
+                                <div class="bg-indigo-50 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#4338ca]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+                                Full Equipment Access
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <div class="bg-indigo-50 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#4338ca]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+                                Personal Map Access
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <div class="bg-indigo-50 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#4338ca]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+                                Verified Plan Builder
+                            </li>
+                        </ul>
+
+                        <button class="mt-auto btn bg-[#4338ca] hover:bg-[#3730a3] text-white btn-block h-16 rounded-2xl font-bold uppercase tracking-widest border-none shadow-lg shadow-indigo-500/20 transition-all text-sm">
+                            Get Started
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+
         </div>
     </AppLayout>
 </template>
 
 <style scoped>
-.animate-zoom-in {
-    animation: zoom-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes zoom-in {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
 </style>

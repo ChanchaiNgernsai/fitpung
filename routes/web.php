@@ -21,9 +21,11 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('/gyms/{id}', [GymLayoutController::class, 'showPublic'])->name('gyms.show');
+Route::get('/gyms/{id}/map', [GymLayoutController::class, 'showMap'])->name('gyms.map');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [GymLayoutController::class, 'index'])->name('dashboard');
+    Route::post('/gym-builder/{gym_builder}', [GymLayoutController::class, 'update'])->name('gym-builder.post_update');
     Route::resource('gym-builder', GymLayoutController::class);
 });
 

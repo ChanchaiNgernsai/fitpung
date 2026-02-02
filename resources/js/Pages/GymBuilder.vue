@@ -10,6 +10,10 @@ const props = defineProps({
 // --- Form for Saving ---
 const form = useForm({
     name: props.layout?.name || '',
+    location: props.layout?.location || '',
+    google_map_url: props.layout?.google_map_url || '',
+    image: null, // For file upload
+    image_url: props.layout?.image_url || null, // For preview of existing image
     room_config: props.layout?.room_config || null,
     items: props.layout?.items || [],
 });
@@ -553,20 +557,39 @@ const clearCanvas = () => {
 };
 
 const showSuccessModal = ref(false);
+const showSaveSettingsModal = ref(false);
+const imagePreview = ref(null);
+
+const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        form.image = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
 
 const saveLayout = () => {
     if (!selectedRoom.value) return;
+    showSaveSettingsModal.value = true;
+};
 
+const submitSave = () => {
     form.room_config = selectedRoom.value;
     form.items = placedItems.value;
 
     const options = {
+        forceFormData: true, // Required for file uploads
         preserveScroll: true,
         onSuccess: () => {
+            showSaveSettingsModal.value = false;
             showSuccessModal.value = true;
             setTimeout(() => {
                 router.visit(route('dashboard'));
-            }, 1000);
+            }, 1500);
         },
         onError: () => {
             alert('Failed to save layout. Please check your connection.');
@@ -574,11 +597,8 @@ const saveLayout = () => {
     };
 
     if (props.layout) {
-        form.put(route('gym-builder.update', props.layout.id), options);
+        form.post(route('gym-builder.post_update', props.layout.id), options);
     } else {
-        const name = prompt("Name your design:", "My New Gym");
-        if (!name) return;
-        form.name = name;
         form.post(route('gym-builder.store'), options);
     }
 };
@@ -596,6 +616,13 @@ onMounted(() => {
         // Deep clone to avoid mutating props and allow distinct reactivity
         selectedRoom.value = JSON.parse(JSON.stringify(props.layout.room_config));
         placedItems.value = JSON.parse(JSON.stringify(props.layout.items));
+        
+        // Populate form with existing data
+        form.name = props.layout.name || '';
+        form.location = props.layout.location || '';
+        form.google_map_url = props.layout.google_map_url || '';
+        form.image_url = props.layout.image_url || null;
+
         step.value = 2;
         
         // Fit view
@@ -1040,6 +1067,77 @@ onUnmounted(() => {
         </div>
     </AppLayout>
 
+    <!-- Save Settings Modal -->
+    <div v-if="showSaveSettingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-fade-in p-4">
+        <div class="bg-base-100 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-base-content/10 flex flex-col md:flex-row">
+            <!-- Left Side: Image Preview/Upload -->
+            <div class="w-full md:w-5/12 bg-base-200 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-base-content/5">
+                <div class="text-center mb-6">
+                    <h3 class="text-xl font-bold">รูปยิมของคุณ</h3>
+                    <p class="text-xs opacity-50 mt-1">อัพโหลดรูปภาพจริงเพื่อให้ลูกค้าจดจำได้ง่าย</p>
+                </div>
+
+                <div 
+                    class="relative w-full aspect-square rounded-2xl border-2 border-dashed border-primary/30 flex flex-col items-center justify-center overflow-hidden bg-base-100 group cursor-pointer hover:border-primary transition-colors"
+                    @click="$refs.fileInput.click()"
+                >
+                    <img v-if="imagePreview || form.image_url" :src="imagePreview || form.image_url" class="w-full h-full object-cover" />
+                    <div v-else class="flex flex-col items-center text-primary/40 group-hover:text-primary transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span class="text-xs font-bold uppercase tracking-wider">Click to Upload</span>
+                    </div>
+                    <input type="file" ref="fileInput" class="hidden" accept="image/*" @change="handleImageChange" />
+                    
+                    <!-- Overlay on hover -->
+                    <div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity" v-if="imagePreview || form.image_url">
+                         <span class="bg-base-100 px-3 py-1 rounded-full text-xs font-bold shadow-lg">Change Photo</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Form Fields -->
+            <div class="flex-1 p-8">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 class="text-2xl font-black text-primary uppercase tracking-tight">บันทึกแบบแปลน</h2>
+                    <button class="btn btn-ghost btn-circle btn-sm" @click="showSaveSettingsModal = false">✕</button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="form-control w-full">
+                        <label class="label pb-1"><span class="label-text font-bold text-xs uppercase opacity-60">ชื่อยิม / ชื่อแปลน</span></label>
+                        <input v-model="form.name" type="text" placeholder="เช่น Fit Pung Studio" class="input input-bordered w-full focus:input-primary bg-base-200 border-none shadow-inner" />
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label pb-1"><span class="label-text font-bold text-xs uppercase opacity-60">สถานที่ตั้ง</span></label>
+                        <textarea v-model="form.location" rows="2" placeholder="กรอกที่อยู่หรือชื่อตึก..." class="textarea textarea-bordered w-full focus:textarea-primary bg-base-200 border-none shadow-inner leading-tight"></textarea>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label pb-1"><span class="label-text font-bold text-xs uppercase opacity-60">Google Map URL</span></label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            </span>
+                            <input v-model="form.google_map_url" type="text" placeholder="https://maps.google.com/..." class="input input-bordered w-full pl-10 focus:input-primary bg-base-200 border-none shadow-inner text-sm" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-3">
+                    <button class="btn btn-ghost flex-1 text-neutral" @click="showSaveSettingsModal = false">ยกเลิก</button>
+                    <button class="btn btn-primary flex-[2] shadow-lg shadow-primary/30" @click="submitSave" :disabled="form.processing || !form.name">
+                        <span v-if="form.processing" class="loading loading-spinner loading-xs"></span>
+                        <span v-else>ยืนยันการบันทึก</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
     <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
         <div class="bg-base-100 p-8 rounded-2xl shadow-2xl text-center max-w-sm mx-4 transform transition-all scale-100 border border-base-content/10">
             <div class="mb-4 text-success flex justify-center">
@@ -1048,7 +1146,7 @@ onUnmounted(() => {
                 </svg>
             </div>
             <h3 class="text-2xl font-bold mb-2">บันทึกสำเร็จ!</h3>
-            <p class="text-base-content/60 mb-6 py-2">กำลังกลับไปหน้า Dashboard...</p>
+            <p class="text-base-content/60 mb-6 py-2">ข้อมูลยิมและแบบแปลนของคุณถูกบันทึกแล้ว</p>
             <div class="loading loading-dots loading-lg text-primary"></div>
         </div>
     </div>
