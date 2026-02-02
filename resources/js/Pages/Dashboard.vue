@@ -483,38 +483,7 @@ const getViewBox = (pointsStr) => {
                             </div>
                         </section>
 
-                        <!-- Section: Promotions -->
-                        <section>
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-2 bg-warning/10 rounded-lg text-warning">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
-                                    </div>
-                                    <h3 class="text-lg md:text-xl font-bold">Promotions</h3>
-                                </div>
-                                <button class="btn btn-warning btn-sm" @click="addPromotion">+ Add Promo</button>
-                            </div>
 
-                            <div class="grid grid-cols-1 gap-4">
-                                <div v-for="(promo, index) in settingsForm.promotions" :key="index" class="bg-base-200/50 p-4 rounded-2xl border border-base-content/5 relative group">
-                                    <button @click="removePromotion(index)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">✕</button>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div class="form-control">
-                                            <input v-model="promo.title" type="text" placeholder="Promo Title (e.g. Summer Deal)" class="input input-sm input-bordered" />
-                                        </div>
-                                        <div class="form-control">
-                                            <input v-model="promo.end_date" type="text" placeholder="Valid Until" class="input input-sm input-bordered" />
-                                        </div>
-                                        <div class="form-control md:col-span-2">
-                                            <textarea v-model="promo.description" placeholder="Description..." class="textarea textarea-bordered textarea-sm leading-tight h-20"></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-if="settingsForm.promotions.length === 0" class="text-center py-8 opacity-30 italic text-sm border-2 border-dashed border-base-content/10 rounded-2xl">
-                                    No active promotions.
-                                </div>
-                            </div>
-                        </section>
 
                         <!-- Section: Membership Prices -->
                         <section>
