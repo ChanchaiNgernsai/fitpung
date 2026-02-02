@@ -20,9 +20,10 @@ const svgToDbMuscleMap = {
     'Biceps': 'biceps',
     'Brachialis': 'biceps',
     'Brachioradialis': 'forearms',
-    'Deltoides': 'anterior_deltoids',
     'Deltoid': 'anterior_deltoids',
-    'Deltoids_front': 'anterior_deltoids',
+    'Deltoids': 'anterior_deltoids',
+    'Front_traps': 'traps',
+    'Traps': 'traps',
     'Latissimus': 'latissimus_dorsi',
     'Gluteus': 'glutes',
     'Lower_abs': 'abs',
@@ -33,12 +34,30 @@ const svgToDbMuscleMap = {
     'Soleus': 'calves',
     'Calves': 'calves',
     'Scm': 'neck',
-    'Traps': 'traps',
     'Obliques': 'obliques'
 };
 
 const getDbMuscleKey = (id) => {
     if (!id) return null;
+    const lowerId = id.toLowerCase();
+    
+    // Check for explicit substrings first
+    if (lowerId.includes('pecs')) return 'pectorals';
+    if (lowerId.includes('triceps')) return 'triceps';
+    if (lowerId.includes('biceps')) return 'biceps';
+    if (lowerId.includes('deltoid')) return 'anterior_deltoids';
+    if (lowerId.includes('trap')) return 'traps';
+    if (lowerId.includes('latissimus')) return 'latissimus_dorsi';
+    if (lowerId.includes('gluteus')) return 'glutes';
+    if (lowerId.includes('abs')) return 'abs';
+    if (lowerId.includes('quad')) return 'quadriceps';
+    if (lowerId.includes('soleus')) return 'calves';
+    if (lowerId.includes('calves')) return 'calves';
+    if (lowerId.includes('flexor') || lowerId.includes('extensor') || lowerId.includes('brachioradialis')) return 'forearms';
+    if (lowerId.includes('scm')) return 'neck';
+    if (lowerId.includes('obliques')) return 'obliques';
+
+    // Fallback to prefix mapping
     const prefix = id.split('_')[0];
     return svgToDbMuscleMap[prefix] || id.toLowerCase();
 };
@@ -51,7 +70,15 @@ const availableEquipment = computed(() => {
         const itemFilename = item.src.split('/').pop().toLowerCase();
         return props.equipments.some(eq => 
             eq.filename.toLowerCase() === itemFilename &&
-            eq.target_muscles.some(m => m.key === muscleKey)
+            eq.target_muscles.some(m => {
+                if (muscleKey === 'pectorals') {
+                    return m.key === 'pectorals' || m.key === 'upper_pectorals' || m.key === 'lower_pectorals';
+                }
+                if (muscleKey === 'calves') {
+                   return m.key === 'calves' || m.key === 'soleus';
+                }
+                return m.key === muscleKey;
+            })
         );
     });
 
@@ -264,7 +291,7 @@ const openMap = () => {
                             <ul class="space-y-4">
                                 <li v-for="plan in workoutPlan" :key="plan.id" class="bg-base-200/50 p-5 rounded-2xl relative group border-l-4 border-primary">
                                     <button @click="removeFromPlan(plan.id)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">x</button>
-                                    <div class="font-black italic uppercase text-sm">{{ plan.item.name }}</div>
+                                    <div class="font-black italic uppercase text-sm">{{ plan.item.dbInfo?.name || plan.item.name }}</div>
                                     <div class="text-[10px] font-black uppercase text-primary mb-3">{{ plan.muscle }}</div>
                                     <div class="flex gap-4">
                                         <div class="flex flex-col gap-1 w-1/2">
@@ -299,7 +326,7 @@ const openMap = () => {
                              <div v-if="availableEquipment.length > 0" class="space-y-6">
                                  <div v-for="item in availableEquipment" :key="item.id" class="bg-white rounded-[2.5rem] border border-base-content/5 overflow-hidden hover:-translate-y-2 transition-all p-8 space-y-6">
                                     <img :src="item.src" class="h-32 mx-auto object-contain" />
-                                    <h4 class="font-black italic uppercase text-lg">{{ item.name }}</h4>
+                                     <h4 class="font-black italic uppercase text-lg">{{ item.dbInfo?.name || item.name }}</h4>
                                     <button @click="addToPlan(item)" class="btn btn-primary btn-block rounded-xl font-black italic uppercase tracking-widest">Add to Plan</button>
                                  </div>
                              </div>

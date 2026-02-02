@@ -18,7 +18,7 @@ class EquipmentSeeder extends Seeder
 
         $equipment = [
             [
-                "name" => "Bench Press Machine",
+                "name" => "Bench Press",
                 "filename" => "BenchPress.svg",
                 "type" => "Strength",
                 "target_muscles" => [
@@ -37,17 +37,19 @@ class EquipmentSeeder extends Seeder
                 ]
             ],
             [
-                "name" => "Elliptical Cross Trainer",
+                "name" => "Elliptical",
                 "filename" => "Elliptical.svg",
                 "type" => "Cardio",
                 "target_muscles" => [
                     ["key" => "cardio", "name_th" => "หัวใจและปอด (Cardio)"],
-                    ["key" => "quadriceps", "name_th" => "ขาด้านหน้า"],
-                    ["key" => "glutes", "name_th" => "ก้น"]
+                    ["key" => "biceps", "name_th" => "หน้าแขน (Biceps)"],
+                    ["key" => "triceps", "name_th" => "หลังแขน (Triceps)"],
+                    ["key" => "anterior_deltoids", "name_th" => "ไหล่ (Shoulders)"],
+                    ["key" => "glutes", "name_th" => "ก้น (Glutes)"]
                 ],
                 "technique" => [
                     "cardio" => [
-                        "variation_name" => "Full Body Cardio",
+                        "variation_name" => "คาดิโอทั่วร่าง",
                         "setup" => ["title" => "ท่าทาง", "description" => "ยืนตัวตรง จับที่ด้ามจับแบบเคลื่อนที่เพื่อฝึกแขนและขาพร้อมกัน"],
                         "bar_position" => ["title" => "จังหวะ", "description" => "ก้าวขาเป็นวงรีอย่างต่อเนื่อง สม่ำเสมอ"],
                         "elbow_angle" => ["title" => "โฟกัส", "description" => "พยายามกดส้นเท้าลงเพื่อกระตุ้นกล้ามเนื้อก้นและป้องกันอาการชา"],
@@ -56,13 +58,33 @@ class EquipmentSeeder extends Seeder
                 ]
             ],
             [
-                "name" => "Dumbbell Set (Full Range)",
+                "name" => "Recumbent Cycle",
+                "filename" => "RecumbentCycle.svg",
+                "type" => "Cardio",
+                "target_muscles" => [
+                    ["key" => "cardio", "name_th" => "หัวใจและปอด (Cardio)"],
+                    ["key" => "quadriceps", "name_th" => "หน้าขา (Quadriceps)"],
+                    ["key" => "glutes", "name_th" => "ก้น (Glutes)"]
+                ],
+                "technique" => [
+                    "cardio" => [
+                        "variation_name" => "การปั่นจักรยานแบบนั่งพิง",
+                        "setup" => ["title" => "การจัดท่า", "description" => "นั่งลงบนเบาะ ปรับระยะให้ขางอเล็กน้อยขณะเหยียดสุด"],
+                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ปั่นเป็นวงกลมอย่างสม่ำเสมอ จับด้ามจับด้านข้างเพื่อความมั่นคง"],
+                        "elbow_angle" => ["title" => "ความชัน/ความต้านทาน", "description" => "ปรับระดับความหนืดให้เหมาะสมกับระดับหัวใจที่ต้องการ"],
+                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจเข้า-ออกลึกๆ สม่ำเสมอ"]
+                    ]
+                ]
+            ],
+            [
+                "name" => "Dumbbells",
                 "filename" => "Dumbbells.svg",
                 "type" => "Strength",
                 "target_muscles" => [
                     ["key" => "biceps", "name_th" => "หน้าแขน (Biceps)"],
                     ["key" => "anterior_deltoids", "name_th" => "หัวไหล่ (Shoulders)"],
                     ["key" => "triceps", "name_th" => "หลังแขน (Triceps)"],
+                    ["key" => "traps", "name_th" => "บ่า (Traps)"],
                     ["key" => "forearms", "name_th" => "แขนท่อนล่าง (Forearms)"]
                 ],
                 "technique" => [
@@ -83,13 +105,13 @@ class EquipmentSeeder extends Seeder
                 ]
             ],
             [
-                "name" => "Smith Machine Multi-Rack",
+                "name" => "Smith Machine",
                 "filename" => "SmithMachine.svg",
                 "type" => "Strength",
                 "target_muscles" => [
                     ["key" => "anterior_deltoids", "name_th" => "ไหล่ (Shoulders)"],
                     ["key" => "pectorals", "name_th" => "หน้าอก (Chest)"],
-                    ["key" => "quadriceps", "name_th" => "ขา (Legs)"]
+                    ["key" => "traps", "name_th" => "บ่า (Traps)"]
                 ],
                 "technique" => [
                     "anterior_deltoids" => [
@@ -109,26 +131,28 @@ class EquipmentSeeder extends Seeder
                 ]
             ],
             [
-                "name" => "Decline Bench Press",
+                "name" => "Incline Bench Press",
                 "filename" => "DeclineBenchPress.svg",
                 "type" => "Strength",
                 "target_muscles" => [
-                    ["key" => "lower_pectorals", "name_th" => "หน้าอกส่วนล่าง (Lower Chest)"],
+                    ["key" => "upper_pectorals", "name_th" => "หน้าอกส่วนบน (Upper Chest)"],
                     ["key" => "triceps", "name_th" => "หลังแขน (Triceps)"],
-                    ["key" => "anterior_deltoids", "name_th" => "ไหล่ด้านหน้า (Front Delts)"]
+                    ["key" => "biceps", "name_th" => "หน้าแขน (Biceps)"],
+                    ["key" => "anterior_deltoids", "name_th" => "ไหล่ด้านหน้า (Front Delts)"],
+                    ["key" => "forearms", "name_th" => "แขนท่อนล่าง (Forearms)"]
                 ],
                 "technique" => [
-                    "lower_pectorals" => [
-                        "variation_name" => "Decline Press Focus",
-                        "setup" => ["title" => "การจัดท่า", "description" => "นอนบนม้านั่งแบบลาดเอียงลง ล็อกขาให้แน่น จับบาร์กว้างกว่าแขนเล็กน้อย"],
-                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ลดบาร์ลงมาที่ระดับอกส่วนล่าง แล้วดันขึ้นจนสุดแขน"],
+                    "upper_pectorals" => [
+                        "variation_name" => "Incline Press Focus",
+                        "setup" => ["title" => "การจัดท่า", "description" => "นอนบนม้านั่งแบบลาดชันขึ้น จับบาร์กว้างกว่าแขนเล็กน้อย"],
+                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ลดบาร์ลงมาที่ระดับอกส่วนบน แล้วดันขึ้นจนสุดแขน"],
                         "elbow_angle" => ["title" => "มุมศอก", "description" => "รักษาแนวศอกให้อยู่ใต้บาร์และไม่กางกว้างเกินไป"],
                         "breathing" => ["title" => "การหายใจ", "description" => "หายใจเข้าตอนผ่อน หายใจออกตอนดัน"]
                     ]
                 ]
             ],
             [
-                "name" => "Leg Press Machine",
+                "name" => "Leg Press",
                 "filename" => "LegPress.svg",
                 "type" => "Strength",
                 "target_muscles" => [
@@ -147,13 +171,13 @@ class EquipmentSeeder extends Seeder
                 ]
             ],
             [
-                "name" => "Professional Treadmill",
+                "name" => "Treadmill",
                 "filename" => "Treadmill.svg",
                 "type" => "Cardio",
                 "target_muscles" => [
                     ["key" => "cardio", "name_th" => "หัวใจและปอด (Cardio)"],
                     ["key" => "calves", "name_th" => "น่อง (Calves)"],
-                    ["key" => "quadriceps", "name_th" => "ขา (Legs)"]
+                    ["key" => "quadriceps", "name_th" => "หน้าขา (Quadriceps)"]
                 ],
                 "technique" => [
                     "cardio" => [
