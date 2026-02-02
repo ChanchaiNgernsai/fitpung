@@ -37,28 +37,21 @@ class EquipmentSeeder extends Seeder
                 ]
             ],
             [
-                "name" => "Lat Pulldown Machine",
-                "filename" => "LatPulldown.svg",
-                "type" => "Strength",
+                "name" => "Elliptical Cross Trainer",
+                "filename" => "Elliptical.svg",
+                "type" => "Cardio",
                 "target_muscles" => [
-                    ["key" => "latissimus_dorsi", "name_th" => "กล้ามเนื้อปีก (Lat)"],
-                    ["key" => "biceps", "name_th" => "หน้าแขน (Biceps)"],
-                    ["key" => "traps", "name_th" => "หลังส่วนบน (Upper Back)"]
+                    ["key" => "cardio", "name_th" => "หัวใจและปอด (Cardio)"],
+                    ["key" => "quadriceps", "name_th" => "ขาด้านหน้า"],
+                    ["key" => "glutes", "name_th" => "ก้น"]
                 ],
                 "technique" => [
-                    "latissimus_dorsi" => [
-                        "variation_name" => "Standard Lat Pulldown",
-                        "setup" => ["title" => "การจัดท่า", "description" => "ปรับเบาะล็อกขาให้แน่น จับบาร์กว้างกว่าไหล่เล็กน้อย แอ่นอกขึ้น"],
-                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ดึงบาร์ลงมาที่ระดับอกส่วนบน โฟกัสการบีบสะบักเข้าหากัน"],
-                        "elbow_angle" => ["title" => "ตำแหน่งศอก", "description" => "ดึงศอกลงหาพื้นและไปทางด้านข้างลำตัว", "warning" => "อย่าห่อไหล่หรือโน้มตัวไปข้างหลังมากเกินไป"],
-                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจออกตอนดึงลง หายใจเข้าตอนปล่อยบาร์ขึ้น"]
-                    ],
-                    "biceps" => [
-                        "variation_name" => "Reverse Grip Pulldown",
-                        "setup" => ["title" => "การจัดท่า", "description" => "หงายมือจับบาร์ความกว้างเท่าไหล่"],
-                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ดึงบาร์ลงมาหาอก โฟกัสแรงที่หน้าแขน"],
-                        "elbow_angle" => ["title" => "มุมศอก", "description" => "หนีบศอกให้ชิดลำตัวตลอดเวลา", "warning" => "ระวังอย่าเหวี่ยงตัวช่วยดึง"],
-                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจออกตอนดึง หายใจเข้าตอนผ่อน"]
+                    "cardio" => [
+                        "variation_name" => "Full Body Cardio",
+                        "setup" => ["title" => "ท่าทาง", "description" => "ยืนตัวตรง จับที่ด้ามจับแบบเคลื่อนที่เพื่อฝึกแขนและขาพร้อมกัน"],
+                        "bar_position" => ["title" => "จังหวะ", "description" => "ก้าวขาเป็นวงรีอย่างต่อเนื่อง สม่ำเสมอ"],
+                        "elbow_angle" => ["title" => "โฟกัส", "description" => "พยายามกดส้นเท้าลงเพื่อกระตุ้นกล้ามเนื้อก้นและป้องกันอาการชา"],
+                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจเข้า-ออกลึกๆ สม่ำเสมอตามจังหวะก้าว"]
                     ]
                 ]
             ],
@@ -116,39 +109,40 @@ class EquipmentSeeder extends Seeder
                 ]
             ],
             [
-                "name" => "Elliptical Cross Trainer",
-                "filename" => "Elliptical.svg",
-                "type" => "Cardio",
+                "name" => "Decline Bench Press",
+                "filename" => "DeclineBenchPress.svg",
+                "type" => "Strength",
                 "target_muscles" => [
-                    ["key" => "cardio", "name_th" => "หัวใจและปอด (Cardio)"],
-                    ["key" => "quadriceps", "name_th" => "ขาด้านหน้า"],
-                    ["key" => "glutes", "name_th" => "ก้น"]
+                    ["key" => "lower_pectorals", "name_th" => "หน้าอกส่วนล่าง (Lower Chest)"],
+                    ["key" => "triceps", "name_th" => "หลังแขน (Triceps)"],
+                    ["key" => "anterior_deltoids", "name_th" => "ไหล่ด้านหน้า (Front Delts)"]
                 ],
                 "technique" => [
-                    "cardio" => [
-                        "variation_name" => "Full Body Cardio",
-                        "setup" => ["title" => "ท่าทาง", "description" => "ยืนตัวตรง จับที่ด้ามจับแบบเคลื่อนที่เพื่อฝึกแขนและขาพร้อมกัน"],
-                        "bar_position" => ["title" => "จังหวะ", "description" => "ก้าวขาเป็นวงรีอย่างต่อเนื่อง สม่ำเสมอ"],
-                        "elbow_angle" => ["title" => "โฟกัส", "description" => "พยายามกดส้นเท้าลงเพื่อกระตุ้นกล้ามเนื้อก้นและป้องกันอาการชา"],
-                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจเข้า-ออกลึกๆ สม่ำเสมอตามจังหวะก้าว"]
+                    "lower_pectorals" => [
+                        "variation_name" => "Decline Press Focus",
+                        "setup" => ["title" => "การจัดท่า", "description" => "นอนบนม้านั่งแบบลาดเอียงลง ล็อกขาให้แน่น จับบาร์กว้างกว่าแขนเล็กน้อย"],
+                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ลดบาร์ลงมาที่ระดับอกส่วนล่าง แล้วดันขึ้นจนสุดแขน"],
+                        "elbow_angle" => ["title" => "มุมศอก", "description" => "รักษาแนวศอกให้อยู่ใต้บาร์และไม่กางกว้างเกินไป"],
+                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจเข้าตอนผ่อน หายใจออกตอนดัน"]
                     ]
                 ]
             ],
             [
-                "name" => "Recumbent Bike",
-                "filename" => "RecumbentCycle.svg",
-                "type" => "Cardio",
+                "name" => "Leg Press Machine",
+                "filename" => "LegPress.svg",
+                "type" => "Strength",
                 "target_muscles" => [
-                    ["key" => "cardio", "name_th" => "หัวใจและปอด (Cardio)"],
-                    ["key" => "quadriceps", "name_th" => "ต้นขา (Quads)"]
+                    ["key" => "quadriceps", "name_th" => "หน้าขา (Quadriceps)"],
+                    ["key" => "glutes", "name_th" => "ก้น (Glutes)"],
+                    ["key" => "hamstrings", "name_th" => "หลังขา (Hamstrings)"]
                 ],
                 "technique" => [
-                    "cardio" => [
-                        "variation_name" => "Low Impact Cycling",
-                        "setup" => ["title" => "การจัดท่า", "description" => "ปรับระยะเบาะให้เข่างอเล็กน้อยเมื่อขาถีบออกไปไกลที่สุด"],
-                        "bar_position" => ["title" => "จังหวะ", "description" => "ปั่นด้วยรอบขาคงที่ (RPM 60-80)"],
-                        "elbow_angle" => ["title" => "ท่าทาง", "description" => "เอนหลังพิงเบาะ ผ่อนคลายไหล่และมือจับด้านข้าง", "warning" => "ไม่ควรปรับเบาะไกลเกินไปจนต้องเอื้อมเท้า"],
-                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจปกติ ไม่กลั้นหายใจ"]
+                    "quadriceps" => [
+                        "variation_name" => "Standard Leg Press",
+                        "setup" => ["title" => "การจัดท่า", "description" => "นั่งพิงเบาะให้แน่น วางเท้ากว้างเท่าช่วงไหล่บนแผ่นเหยียบ"],
+                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ปลดล็อกเซฟตี้ ลดแผ่นเหยียบลงจนเข่าทำมุม 90 องศา แล้วดันกลับขึ้นไป"],
+                        "elbow_angle" => ["title" => "ตำแหน่งเข่า", "description" => "ไม่ล็อกหัวเข่าเมื่อดันขึ้นสุด และระวังอย่าให้เข่าหุบเข้าหากัน"],
+                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจเข้าตอนผ่อน หายใจออกตอนดัน"]
                     ]
                 ]
             ],

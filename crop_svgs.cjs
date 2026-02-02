@@ -5,11 +5,11 @@ const svgPathBbox = require('svg-path-bounding-box');
 
 const EQUIPMENT_MAP = {
     "Layer_4": "Treadmill",
-    "Layer_5": "Elliptical",
+    "Layer_5": "DeclineBenchPress",
     "Layer_6": "BenchPress",
     "Layer_7": "SmithMachine",
-    "Layer_8": "RecumbentCycle",
-    "Layer_9": "LatPulldown",
+    "Layer_8": "LegPress",
+    "Layer_9": "Elliptical",
     "Layer_10": "LegPress"
 };
 

@@ -24,11 +24,11 @@ const pixelsPerMeter = ref(100); // 100px = 1m
 
 const equipmentTypes = [
     { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', w_m: 1.4, h_m: 3.2 },
-    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', w_m: 1.8, h_m: 3.8 },
+    { id: 'decline_bench', name: 'Decline Bench Press', src: '/images/equipment/DeclineBenchPress.svg', w_m: 1.5, h_m: 1.8 },
     { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', w_m: 1.5, h_m: 1.8 },
     { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', w_m: 1.6, h_m: 1.2 },
-    { id: 'cycle', name: 'Bike', src: '/images/equipment/RecumbentCycle.svg', w_m: 1, h_m: 1.8 },
-    { id: 'lat', name: 'Lat Pulldown', src: '/images/equipment/LatPulldown.svg', w_m: 1.8, h_m: 1.8 },
+    { id: 'leg_press', name: 'Leg Press', src: '/images/equipment/LegPress.svg', w_m: 1.2, h_m: 2.2 },
+    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', w_m: 1.8, h_m: 3.8 },
     { id: 'dumbbells', name: 'Dumbbells', src: '/images/equipment/Dumbbells.svg', w_m: 5.5, h_m: 1.2 },
 ];
 
