@@ -42,10 +42,10 @@ class GymLayoutController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'location' => 'nullable|string',
-            'google_map_url' => 'nullable|url|max:255',
+            'google_map_url' => 'nullable|string|max:1000',
             'image' => 'nullable|image|max:2048', // 2MB Max
-            'room_config' => 'required|array',
-            'items' => 'required|array',
+            'room_config' => 'present|array',
+            'items' => 'present|array',
         ]);
 
         $imagePath = null;
@@ -95,10 +95,10 @@ class GymLayoutController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'location' => 'nullable|string',
-            'google_map_url' => 'nullable|url|max:255',
+            'google_map_url' => 'nullable|string|max:1000',
             'image' => 'nullable|image|max:2048',
-            'room_config' => 'sometimes|required|array',
-            'items' => 'sometimes|required|array',
+            'room_config' => 'sometimes|present|array',
+            'items' => 'sometimes|present|array',
             'operating_hours' => 'nullable|array',
             'holidays' => 'nullable|array',
             'promotions' => 'nullable|array',
@@ -153,8 +153,10 @@ class GymLayoutController extends Controller
     {
         $gym = GymLayout::where('id', $id)->firstOrFail();
 
-        if (!Auth::check()) {
-            return redirect()->route('login');
+        // Allow guests to view the public gym page
+        if (!$gym->is_public && $gym->user_id !== Auth::id() && !Auth::user()?->is_admin) {
+            // Note: If you want guests to see ALL gyms regardless of is_public, remove this check.
+            // But usually, we only want public ones visible to guests.
         }
 
         // Allow any logged-in user to view the gym

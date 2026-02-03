@@ -55,11 +55,17 @@ const roomShapes = [
 ];
 
 // --- State ---
+// --- State ---
 const step = ref(1); // 1: Shape Select, 1.5: Drawing, 2: Builder
 const selectedRoom = ref(null);
 const placedItems = ref([]);
-const selectedItemId = ref(null);
-const selectedItem = computed(() => placedItems.value.find(i => i.id === selectedItemId.value));
+
+// Multi-selection state
+const selectedItemIds = ref(new Set());
+const selectedItems = computed(() => placedItems.value.filter(i => selectedItemIds.value.has(i.id)));
+// Primary item for resizing/rotating context (usually the last selected or the one clicked)
+const primarySelectedItem = computed(() => selectedItems.value.length > 0 ? selectedItems.value[selectedItems.value.length - 1] : null);
+
 const draggingNewItem = ref(null);
 const drawingPoints = ref([]); 
 const floorWalls = ref([]);   // New Wall-based system
@@ -119,11 +125,90 @@ const isPanning = ref(false);
 const lastMousePos = ref({ x: 0, y: 0 });
 
 // --- Interaction State ---
+const activeTool = ref('select'); // 'select' or 'hand'
 const isDraggingItem = ref(false);
 const isRotatingItem = ref(false);
-const dragOffset = ref({ x: 0, y: 0 });
+const isResizingItem = ref(false);
+const isBoxSelecting = ref(false);
+
+const dragOffsets = ref(new Map()); // Map<itemId, {dx, dy}>
 const initialRotation = ref(0);
 const initialMouseAngle = ref(0);
+const initialSizes = ref(new Map()); // Map<itemId, {w, h}>
+const initialPositions = ref(new Map()); // Map<itemId, {x, y}> (For group scaling pivot)
+const clipboard = ref([]); // Store copied item data
+
+// --- Copy/Paste Logic ---
+
+const copySelected = () => {
+    if (selectedItemIds.value.size === 0) return;
+    clipboard.value = selectedItems.value.map(item => ({
+        ...item,
+        id: null // Will generate new ID on paste
+    }));
+};
+
+const pasteSelected = () => {
+    if (clipboard.value.length === 0) return;
+    
+    const newItems = clipboard.value.map((item, index) => ({
+        ...item,
+        id: Date.now() + index,
+        x: item.x + 30, // Offset to show it was pasted
+        y: item.y + 30
+    }));
+    
+    placedItems.value = [...placedItems.value, ...newItems];
+    
+    // Select the newly pasted items
+    selectedItemIds.value.clear();
+    newItems.forEach(item => selectedItemIds.value.add(item.id));
+    
+    // Update clipboard to the new items (so subsequent pastes offset from the last one)
+    clipboard.value = newItems;
+};
+
+const handleKeyDown = (event) => {
+    // Prevent shortcuts if user is typing in an input or textarea
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+    // Shortcuts for step 2 (Builder)
+    if (step.value === 2) {
+        const isMod = event.ctrlKey || event.metaKey;
+        
+        if (isMod && event.key === 'c') {
+            event.preventDefault();
+            copySelected();
+        }
+        if (isMod && event.key === 'v') {
+            event.preventDefault();
+            pasteSelected();
+        }
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+            deleteSelected(); 
+        }
+    }
+};
+
+onMounted(() => {
+    loadMyLayouts();
+    window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+});
+// Box Selection logic
+const selectionBoxStart = ref({ x: 0, y: 0 });
+const selectionBoxCurrent = ref({ x: 0, y: 0 });
+const selectionBox = computed(() => {
+    if (!isBoxSelecting.value) return null;
+    const x = Math.min(selectionBoxStart.value.x, selectionBoxCurrent.value.x);
+    const y = Math.min(selectionBoxStart.value.y, selectionBoxCurrent.value.y);
+    const w = Math.abs(selectionBoxCurrent.value.x - selectionBoxStart.value.x);
+    const h = Math.abs(selectionBoxCurrent.value.y - selectionBoxStart.value.y);
+    return { x, y, w, h };
+});
 
 // --- Actions ---
 
@@ -358,7 +443,11 @@ const handleDropOnCanvas = (event) => {
         };
         
         placedItems.value = [...placedItems.value, newItem];
-        selectedItemId.value = newItem.id;
+        
+        // Select the new item
+        selectedItemIds.value.clear();
+        selectedItemIds.value.add(newItem.id);
+        
         draggingNewItem.value = null;
     }
 };
@@ -369,21 +458,13 @@ const handleWheel = (event) => {
     const svg = document.getElementById('gym-canvas');
     if (!svg) return;
 
-    // Get mouse position in SVG coordinates BEFORE zoom
     const svgP = getSvgPoint(event.clientX, event.clientY);
-
-    // Calculate new width/height
     const direction = event.deltaY > 0 ? 1 : -1;
     const newW = svgViewBox.value.w * (1 + direction * zoomIntensity);
     const newH = svgViewBox.value.h * (1 + direction * zoomIntensity);
 
-    // Limit zoom
-    if (newW < 100 || newW > 5000) return;
+    if (newW < 100 || newW > 10000) return; 
 
-    // We want to zoom towards the mouse pointer.
-    // The relative position of the mouse inside the viewbox should stay the same.
-    // (mouse_x - viewBox_x) / viewBox_w  ==  (mouse_x - new_viewBox_x) / new_w
-    
     const mouseRelX = (svgP.x - svgViewBox.value.x) / svgViewBox.value.w;
     const mouseRelY = (svgP.y - svgViewBox.value.y) / svgViewBox.value.h;
 
@@ -396,30 +477,72 @@ const handleWheel = (event) => {
 // --- Mouse Interaction Handler ---
 
 const handleMouseDown = (event) => {
-    // If we clicked an item, we handle select in startDragItem (mousedown on group)
-    // But if we clicked empty space, we pan and deselect
-    
-    // Check if we clicked on an item or the background
+    // Check handles first
+    const isResizeHandle = event.target.closest('.cursor-se-resize');
+    const isRotateHandle = event.target.closest('.cursor-ew-resize');
+    if (isResizeHandle || isRotateHandle) return;
+
     const isItemClick = event.target.closest('.cursor-move');
     
-    if (!isItemClick) {
-        selectedItemId.value = null; // Deselect if clicking background
+    // 1. Pan: Hand Tool Active OR Right Click OR Middle Click OR Space+Left
+    if (activeTool.value === 'hand' || event.button === 2 || event.button === 1 || (event.code === 'Space' && event.button === 0)) {
         isPanning.value = true;
         lastMousePos.value = { x: event.clientX, y: event.clientY };
+        return;
+    }
+
+    // 2. Box Selection: Left Click on BG
+    if (!isItemClick && event.button === 0) {
+        isBoxSelecting.value = true;
+        const svgP = getSvgPoint(event.clientX, event.clientY);
+        selectionBoxStart.value = { x: svgP.x, y: svgP.y };
+        selectionBoxCurrent.value = { x: svgP.x, y: svgP.y };
+        
+        // Clear previous selection if this is a new box select (unless holding Shift/Ctrl)
+        if (!event.shiftKey && !event.ctrlKey && !event.metaKey) {
+            selectedItemIds.value.clear();
+        }
+        return;
     }
 };
 
 const startDragItem = (event, item) => {
+    // Prevent dragging items if Hand tool is active
+    if (activeTool.value === 'hand') return;
+
     if (event.button !== 0) return; 
     event.stopPropagation();
-    selectedItemId.value = item.id;
+    
+    // Multi-Select Logic
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+        // Toggle selection
+        if (selectedItemIds.value.has(item.id)) {
+            selectedItemIds.value.delete(item.id);
+        } else {
+            selectedItemIds.value.add(item.id);
+        }
+    } else {
+        // Single select logic:
+        // If the item is NOT part of the current selection, select ONLY it.
+        // If it IS part of the selection, keep the selection (so we can drag the whole group).
+        if (!selectedItemIds.value.has(item.id)) {
+            selectedItemIds.value.clear();
+            selectedItemIds.value.add(item.id);
+        }
+    }
+
     isDraggingItem.value = true;
     
+    // Calculate offsets for ALL selected items
     const svgP = getSvgPoint(event.clientX, event.clientY);
-    dragOffset.value = {
-        x: svgP.x - item.x,
-        y: svgP.y - item.y
-    };
+    dragOffsets.value.clear();
+    
+    selectedItems.value.forEach(selItem => {
+        dragOffsets.value.set(selItem.id, {
+            dx: svgP.x - selItem.x,
+            dy: svgP.y - selItem.y
+        });
+    });
 };
 
 const startRotateItem = (event, item) => {
@@ -434,15 +557,30 @@ const startRotateItem = (event, item) => {
     initialRotation.value = item.rotation;
 };
 
+const startResizeItem = (event, item) => {
+    event.stopPropagation();
+    isResizingItem.value = true;
+    const svgP = getSvgPoint(event.clientX, event.clientY);
+    
+    // Capture initial sizes for all selected items
+    initialSizes.value.clear();
+    initialPositions.value.clear();
+    selectedItems.value.forEach(it => {
+        initialSizes.value.set(it.id, { w: it.width, h: it.height });
+        initialPositions.value.set(it.id, { x: it.x, y: it.y });
+    });
+
+    lastMousePos.value = { x: svgP.x, y: svgP.y }; // This is our anchor point
+};
+
 const handleMouseMove = (event) => {
+    // 1. Pan
     if (isPanning.value) {
         const dx = event.clientX - lastMousePos.value.x;
         const dy = event.clientY - lastMousePos.value.y;
         
-        // Convert screen pixels to SVG units
         const svg = document.getElementById('gym-canvas');
-        const ctm = svg?.getScreenCTM();
-        if (!svg || !ctm) return;
+        if (!svg) return;
         
         const scaleX = svgViewBox.value.w / svg.clientWidth;
         const scaleY = svgViewBox.value.h / svg.clientHeight;
@@ -452,26 +590,82 @@ const handleMouseMove = (event) => {
 
         lastMousePos.value = { x: event.clientX, y: event.clientY };
     } 
-    else if (isDraggingItem.value && selectedItemId.value) {
+    // 2. Box Select
+    else if (isBoxSelecting.value) {
         const svgP = getSvgPoint(event.clientX, event.clientY);
-        const item = placedItems.value.find(i => i.id === selectedItemId.value);
-        if (item) {
-            item.x = svgP.x - dragOffset.value.x;
-            item.y = svgP.y - dragOffset.value.y;
-        }
-    } 
-    else if (isRotatingItem.value && selectedItemId.value) {
-        const svgP = getSvgPoint(event.clientX, event.clientY);
-        const item = placedItems.value.find(i => i.id === selectedItemId.value);
-        if (item) {
-            const cx = item.x;
-            const cy = item.y;
-            const currentAngle = Math.atan2(svgP.y - cy, svgP.x - cx) * (180 / Math.PI);
-            const delta = currentAngle - initialMouseAngle.value;
-            item.rotation = initialRotation.value + delta;
+        selectionBoxCurrent.value = { x: svgP.x, y: svgP.y };
+        
+        const box = selectionBox.value;
+        if (box) {
+            const bx = box.x, by = box.y, bw = box.w, bh = box.h;
+            const newSelection = new Set();
+            
+            placedItems.value.forEach(item => {
+                const ix = item.x - item.width/2;
+                const iy = item.y - item.height/2;
+                const iw = item.width;
+                const ih = item.height;
+                
+                if (ix < bx + bw && ix + iw > bx && iy < by + bh && iy + ih > by) {
+                    newSelection.add(item.id);
+                }
+            });
+            
+            if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                 newSelection.forEach(id => selectedItemIds.value.add(id));
+            } else {
+                 selectedItemIds.value = newSelection;
+            }
         }
     }
+    // 3. Drag Items (Multi)
+    else if (isDraggingItem.value && selectedItemIds.value.size > 0) {
+        const svgP = getSvgPoint(event.clientX, event.clientY);
+        
+        selectedItems.value.forEach(item => {
+            const offset = dragOffsets.value.get(item.id);
+            if (offset) {
+                item.x = svgP.x - offset.dx;
+                item.y = svgP.y - offset.dy;
+            }
+        });
+    } 
+    // 4. Rotate Items (Single - on the handle clicked)
+    else if (isRotatingItem.value && primarySelectedItem.value) {
+        const svgP = getSvgPoint(event.clientX, event.clientY);
+        const item = primarySelectedItem.value; 
+        if (item) {
+             const cx = item.x;
+             const cy = item.y;
+             const currentAngle = Math.atan2(svgP.y - cy, svgP.x - cx) * (180 / Math.PI);
+             const delta = currentAngle - initialMouseAngle.value;
+             item.rotation = initialRotation.value + delta;
+        }
+    }
+    // 5. Resize Items (Multi)
+    else if (isResizingItem.value && selectedItemIds.value.size > 0) {
+        const svgP = getSvgPoint(event.clientX, event.clientY);
+        const dx = svgP.x - lastMousePos.value.x; // Delta from start of resize
+        const dy = svgP.y - lastMousePos.value.y;
+        
+        // Apply delta to ALL selected items based on their individual starting sizes
+        selectedItems.value.forEach(item => {
+            const initial = initialSizes.value.get(item.id);
+            if (initial) {
+                let newW = initial.w + dx;
+                let newH = initial.h + dy;
+                
+                // Constraints
+                if (newW < 20) newW = 20;
+                if (newH < 20) newH = 20;
+                
+                item.width = newW;
+                item.height = newH;
+            }
+        });
+    }
     
+    // Wall Building Logic
     if (step.value === 1.5) {
         const svgP = getSvgPoint(event.clientX, event.clientY);
         mousePos.value = {
@@ -481,36 +675,15 @@ const handleMouseMove = (event) => {
 
         if (draggingWallId.value !== null && initialWallPos.value) {
             const wall = floorWalls.value.find(w => w.id === draggingWallId.value);
-            
-            // Calculate absolute distance moved by mouse since click
             const dx_raw = svgP.x - initialWallPos.value.mx;
             const dy_raw = svgP.y - initialWallPos.value.my;
 
-            // Apply movement based on drag mode
             if (draggingEndPoint.value === 'start') {
                 wall.x1 = initialWallPos.value.x1 + dx_raw;
                 wall.y1 = initialWallPos.value.y1 + dy_raw;
-                for (const other of floorWalls.value) {
-                    if (other.id === wall.id) continue;
-                    const targets = [{x: other.x1, y: other.y1}, {x: other.x2, y: other.y2}];
-                    for (const t of targets) {
-                         if (Math.sqrt(Math.pow(t.x - wall.x1, 2) + Math.pow(t.y - wall.y1, 2)) < 20) {
-                             wall.x1 = t.x; wall.y1 = t.y; break;
-                         }
-                    }
-                }
             } else if (draggingEndPoint.value === 'end') {
                 wall.x2 = initialWallPos.value.x2 + dx_raw;
                 wall.y2 = initialWallPos.value.y2 + dy_raw;
-                for (const other of floorWalls.value) {
-                    if (other.id === wall.id) continue;
-                    const targets = [{x: other.x1, y: other.y1}, {x: other.x2, y: other.y2}];
-                    for (const t of targets) {
-                         if (Math.sqrt(Math.pow(t.x - wall.x2, 2) + Math.pow(t.y - wall.y2, 2)) < 20) {
-                             wall.x2 = t.x; wall.y2 = t.y; break;
-                         }
-                    }
-                }
             } else if (draggingEndPoint.value === 'both') {
                 wall.x1 = initialWallPos.value.x1 + dx_raw;
                 wall.y1 = initialWallPos.value.y1 + dy_raw;
@@ -523,36 +696,32 @@ const handleMouseMove = (event) => {
 
 const handleMouseUp = () => {
     isPanning.value = false;
+    isBoxSelecting.value = false;
     isDraggingItem.value = false;
     isRotatingItem.value = false;
+    isResizingItem.value = false;
     draggingVertexIndex.value = null;
     draggingWallId.value = null;
     draggingEndPoint.value = null;
 };
 
 const rotateSelected = () => {
-    if (selectedItemId.value) {
-        const item = placedItems.value.find(i => i.id === selectedItemId.value);
-        if (item) {
-            item.rotation = (item.rotation || 0) + 90;
-        }
-    }
+    selectedItems.value.forEach(item => {
+        item.rotation = (item.rotation || 0) + 90;
+    });
 };
 
 const deleteSelected = () => {
-    if (selectedItemId.value) {
-        const index = placedItems.value.findIndex(i => i.id === selectedItemId.value);
-        if (index !== -1) {
-            placedItems.value.splice(index, 1);
-            selectedItemId.value = null;
-        }
+    if (selectedItemIds.value.size > 0) {
+        placedItems.value = placedItems.value.filter(i => !selectedItemIds.value.has(i.id));
+        selectedItemIds.value.clear();
     }
 };
 
 const clearCanvas = () => {
     if(confirm("Clear all items?")) {
         placedItems.value = [];
-        selectedItemId.value = null;
+        selectedItemIds.value.clear();
     }
 };
 
@@ -560,15 +729,52 @@ const showSuccessModal = ref(false);
 const showSaveSettingsModal = ref(false);
 const imagePreview = ref(null);
 
-const handleImageChange = (e) => {
+const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], file.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now(),
+                    }));
+                }, 'image/jpeg', quality);
+            };
+        };
+    });
+};
+
+const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-        form.image = file;
+        // Show loading preview immediately
         const reader = new FileReader();
         reader.onload = (e) => {
             imagePreview.value = e.target.result;
         };
         reader.readAsDataURL(file);
+
+        // Compress in background
+        const compressedFile = await compressImage(file);
+        form.image = compressedFile;
     }
 };
 
@@ -593,12 +799,11 @@ const submitSave = () => {
         preserveScroll: true,
         onSuccess: () => {
             showSaveSettingsModal.value = false;
-            // The backend should handle the redirect to Dashboard with the flash message.
-            // If we manually visit here again, we might clear the flash message.
-            // router.visit(route('dashboard')); 
         },
-        onError: () => {
-            alert('Failed to save layout. Please check your connection.');
+        onError: (errors) => {
+            console.error('Save failed:', errors);
+            const errorMsg = Object.values(errors).flat().join('\n');
+            alert('บันทึกไม่สำเร็จ:\n' + (errorMsg || 'เกิดข้อผิดพลาดในการเชื่อมต่อ'));
         }
     };
 
@@ -913,7 +1118,8 @@ onUnmounted(() => {
                 <!-- Mini controls info -->
                 <div class="p-4 bg-base-200 text-xs opacity-60">
                     <p>🖱️ Scroll to Zoom</p>
-                    <p>✋ Click & Drag BG to Pan</p>
+                    <p>✋ Drag to Pan</p>
+                    <p>⌨️ Ctrl+C / Ctrl+V to Copy/Paste</p>
                 </div>
             </aside>
 
@@ -924,12 +1130,21 @@ onUnmounted(() => {
                 <svg 
                     id="gym-canvas"
                     :viewBox="`${svgViewBox.x} ${svgViewBox.y} ${svgViewBox.w} ${svgViewBox.h}`"
-                    class="w-full h-full cursor-crosshair touch-none"
+                    :class="[
+                        'w-full h-full touch-none',
+                        activeTool === 'hand' 
+                            ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') 
+                            : 'cursor-crosshair'
+                    ]"
                     @dragover.prevent
                     @dragenter.prevent
                     @drop="handleDropOnCanvas"
                     @wheel="handleWheel"
                     @mousedown="handleMouseDown"
+                    @mousemove="handleMouseMove"
+                    @mouseup="handleMouseUp"
+                    @mouseleave="handleMouseUp"
+                    @contextmenu.prevent
                 >
                     <defs>
                         <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
@@ -986,79 +1201,108 @@ onUnmounted(() => {
                     <g 
                         v-for="item in placedItems" 
                         :key="item.id"
-                        :transform="`translate(${item.x}, ${item.y}) rotate(${item.rotation})`"
+                        :transform="`translate(${item.x}, ${item.y})`"
+                        class="cursor-move"
                         @mousedown="startDragItem($event, item)"
-                        class="cursor-move group"
                     >
-                        <!-- The Equipment Image -->
-                        <image 
-                            :href="item.src" 
-                            :x="-item.width/2" 
-                            :y="-item.height/2" 
-                            :width="item.width" 
-                            :height="item.height"
-                            class="drop-shadow-md filter hover:brightness-110 transition-all"
-                        />
-                    </g>
-                    
-                    <!-- Selection Overlay Layer (Rendered on top) -->
-                    <g v-if="selectedItem">
-                       <!-- Primary container: follows item X/Y -->
-                       <g :transform="`translate(${selectedItem.x}, ${selectedItem.y})`">
+                        <!-- Rotated Content (Image + Selection Border) -->
+                        <g :transform="`rotate(${item.rotation})`">
+                             <image 
+                                :href="item.src" 
+                                :x="-item.width/2" 
+                                :y="-item.height/2" 
+                                :width="item.width" 
+                                :height="item.height"
+                                class="drop-shadow-md filter hover:brightness-110 transition-all"
+                                draggable="false"
+                            />
                             
-                            <!-- Rotated Controls (Halo & Handle) -->
-                            <!-- These MATCH item rotation to surround it correctly -->
-                            <g :transform="`rotate(${selectedItem.rotation})`">
+                            <!-- Selection Overlay (Rotates with item) -->
+                            <g v-if="selectedItemIds.has(item.id)">
                                 <rect 
-                                    :x="-selectedItem.width/2 - 10" 
-                                    :y="-selectedItem.height/2 - 10" 
-                                    :width="selectedItem.width + 20" 
-                                    :height="selectedItem.height + 20" 
+                                    :x="-item.width/2 - 10" 
+                                    :y="-item.height/2 - 10" 
+                                    :width="item.width + 20" 
+                                    :height="item.height + 20" 
                                     fill="none" 
                                     stroke="#570df8" 
                                     stroke-width="2" 
                                     stroke-dasharray="6,4" 
                                     class="animate-pulse"
                                 />
-                                <!-- Rotation Handle -->
-                                <g 
-                                    :transform="`translate(0, ${-selectedItem.height/2 - 40})`"
-                                    class="cursor-ew-resize"
-                                    @mousedown.stop="startRotateItem($event, selectedItem)"
-                                >
-                                    <line x1="0" y1="0" x2="0" y2="35" stroke="#570df8" stroke-width="2" />
-                                    <circle r="6" fill="#570df8" stroke="white" stroke-width="2" />
+                                
+                                <!-- Handles (Only show if this is the primary selected item) -->
+                                <g v-if="primarySelectedItem && primarySelectedItem.id === item.id">
+                                    <!-- Resize Handle (Bottom Right) -->
+                                    <g 
+                                        :transform="`translate(${item.width/2 + 10}, ${item.height/2 + 10})`"
+                                        class="cursor-se-resize hover:scale-125 transition-transform"
+                                        @mousedown.stop="startResizeItem($event, item)"
+                                    >
+                                        <circle r="6" fill="#06b6d4" stroke="white" stroke-width="2" />
+                                    </g>
+                                    
+                                    <!-- Rotate Handle (Top) -->
+                                    <g 
+                                        :transform="`translate(0, ${-item.height/2 - 30})`"
+                                        class="cursor-ew-resize hover:scale-125 transition-transform"
+                                        @mousedown.stop="startRotateItem($event, item)"
+                                    >
+                                        <line x1="0" y1="0" x2="0" y2="20" stroke="#570df8" stroke-width="2" />
+                                        <circle r="6" fill="#570df8" stroke="white" stroke-width="2" />
+                                    </g>
                                 </g>
                             </g>
+                        </g>
 
-                            <!-- Non-Rotated Controls (Floating Menu) -->
-                            <!-- Positioned to the right of the item -->
-                            <foreignObject 
-                                :x="Math.max(selectedItem.width, selectedItem.height)/2 + 10" 
-                                :y="-50" 
-                                width="60" 
-                                height="100"
-                                class="overflow-visible"
-                            >
-                                <div class="flex flex-col gap-2" xmlns="http://www.w3.org/1999/xhtml" @mousedown.stop>
-                                    <button 
-                                        class="btn btn-circle btn-sm btn-info text-white shadow-xl hover:scale-110 transition-transform" 
-                                        @click.stop="rotateSelected"
-                                        title="Rotate 90°"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                    </button>
-                                    <button 
-                                        class="btn btn-circle btn-sm btn-error text-white shadow-xl hover:scale-110 transition-transform" 
-                                        @click.stop="deleteSelected"
-                                        title="Delete"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                </div>
-                            </foreignObject>
-                       </g>
+                        <!-- Non-Rotated Controls (Floating Buttons) - Only for Primary -->
+                        <foreignObject 
+                            v-if="primarySelectedItem && primarySelectedItem.id === item.id"
+                            :x="Math.max(item.width, item.height)/2 + 20" 
+                            :y="-50" 
+                            width="60" 
+                            height="100"
+                            class="overflow-visible"
+                        >
+                            <div class="flex flex-col gap-2" xmlns="http://www.w3.org/1999/xhtml" @mousedown.stop>
+                                <button 
+                                    class="btn btn-circle btn-sm btn-info text-white shadow-xl hover:scale-110 transition-transform" 
+                                    @click.stop="rotateSelected"
+                                    title="Rotate 90°"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                                <button 
+                                    class="btn btn-circle btn-sm bg-blue-500 text-white shadow-xl hover:scale-110 transition-transform border-none" 
+                                    @click.stop="copySelected(); pasteSelected();"
+                                    title="Duplicate (Copy & Paste)"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+                                </button>
+                                <button 
+                                    class="btn btn-circle btn-sm btn-error text-white shadow-xl hover:scale-110 transition-transform" 
+                                    @click.stop="deleteSelected"
+                                    title="Delete"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                            </div>
+                        </foreignObject>
                     </g>
+
+                    <!-- Selection Box -->
+                    <rect
+                        v-if="selectionBox"
+                        :x="selectionBox.x"
+                        :y="selectionBox.y"
+                        :width="selectionBox.w"
+                        :height="selectionBox.h"
+                        fill="rgba(87, 13, 248, 0.1)"
+                        stroke="#570df8"
+                        stroke-width="1"
+                        stroke-dasharray="4,2"
+                        class="pointer-events-none"
+                    />
                     <!-- Scale Indicator -->
                     <g :transform="`translate(${svgViewBox.x + 20}, ${svgViewBox.y + svgViewBox.h - 40})`" class="pointer-events-none opacity-50">
                         <line x1="0" y1="0" :x2="pixelsPerMeter" y2="0" stroke="currentColor" stroke-width="2" />
@@ -1068,18 +1312,52 @@ onUnmounted(() => {
                     </g>
                 </svg>
 
-                <!-- Zoom & Edit Controls Overlay -->
-                <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-2">
-                    <button class="btn btn-circle btn-success text-white shadow-xl" @click="svgViewBox.w *= 0.9; svgViewBox.h *= 0.9" title="Zoom In">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                    </button>
-                    <button class="btn btn-circle btn-warning text-white shadow-xl" @click="svgViewBox.w *= 1.1; svgViewBox.h *= 1.1" title="Zoom Out">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
-                    </button>
-                    <button class="btn btn-circle btn-neutral shadow-xl" @click="selectRoom(selectedRoom)" title="Fit to Screen">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                        </svg>
+                <!-- Floating Navigation Tools (Center-Right) -->
+                <div class="fixed bottom-10 right-10 flex flex-col gap-3 z-50">
+                    <!-- Tool Selection (Select vs Hand) -->
+                    <div class="flex flex-col gap-1 bg-base-100 p-1.5 rounded-2xl shadow-2xl border border-primary/20">
+                        <button 
+                            @click="activeTool = 'select'"
+                            class="btn btn-circle btn-sm transition-all duration-300"
+                            :class="activeTool === 'select' ? 'btn-primary shadow-lg scale-110' : 'bg-slate-700'"
+                            title="เครื่องมือเลือก (Select Tool)"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
+                            </svg>
+                        </button>
+                        <button 
+                            @click="activeTool = 'hand'"
+                            class="btn btn-circle btn-sm transition-all duration-300"
+                            :class="activeTool === 'hand' ? 'btn-primary shadow-lg scale-110' : 'bg-slate-700'"
+                            title="เครื่องมือรูปมือ (Hand Tool - เลื่อนหน้าจอ)"
+                        >
+                            <span class="text-base select-none" style="filter: brightness(0) invert(1)">✋</span>
+                        </button>
+                    </div>
+
+                    <!-- Zoom Controls -->
+                    <div class="flex flex-col gap-1 bg-base-100 p-1.5 rounded-2xl shadow-2xl border border-primary/20">
+                        <button 
+                            @click="handleWheel({ deltaY: -100, preventDefault: () => {}, clientX: window?.innerWidth/2 || 0, clientY: window?.innerHeight/2 || 0 })" 
+                            class="btn btn-circle btn-sm btn-primary text-white shadow-lg hover:scale-110 transition-all duration-300"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        </button>
+                        <button 
+                            @click="handleWheel({ deltaY: 100, preventDefault: () => {}, clientX: window?.innerWidth/2 || 0, clientY: window?.innerHeight/2 || 0 })" 
+                            class="btn btn-circle btn-sm btn-warning text-white shadow-lg hover:scale-110 transition-all duration-300"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
+                        </button>
+                    </div>
+
+                    <button 
+                        @click="svgViewBox = { x: 0, y: 0, w: 1000, h: 800 }"
+                        class="btn btn-circle btn-sm bg-slate-800 text-white border-none shadow-lg hover:scale-110 transition-all duration-300"
+                        title="Reset View"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                     </button>
                 </div>
             </main>
@@ -1127,12 +1405,14 @@ onUnmounted(() => {
                 <div class="space-y-4">
                     <div class="form-control w-full">
                         <label class="label pb-1"><span class="label-text font-bold text-xs uppercase opacity-60">ชื่อยิม / ชื่อแปลน</span></label>
-                        <input v-model="form.name" type="text" placeholder="เช่น Fit Pung Studio" class="input input-bordered w-full focus:input-primary bg-base-200 border-none shadow-inner" />
+                        <input v-model="form.name" type="text" placeholder="เช่น Fit Pung Studio" class="input input-bordered w-full focus:input-primary bg-base-200 border-none shadow-inner" :class="{'input-error': form.errors.name}" />
+                        <label v-if="form.errors.name" class="label pb-0"><span class="label-text-alt text-error font-bold">{{ form.errors.name }}</span></label>
                     </div>
 
                     <div class="form-control w-full">
                         <label class="label pb-1"><span class="label-text font-bold text-xs uppercase opacity-60">สถานที่ตั้ง</span></label>
-                        <textarea v-model="form.location" rows="2" placeholder="กรอกที่อยู่หรือชื่อตึก..." class="textarea textarea-bordered w-full focus:textarea-primary bg-base-200 border-none shadow-inner leading-tight"></textarea>
+                        <textarea v-model="form.location" rows="2" placeholder="กรอกที่อยู่หรือชื่อตึก..." class="textarea textarea-bordered w-full focus:textarea-primary bg-base-200 border-none shadow-inner leading-tight" :class="{'textarea-error': form.errors.location}"></textarea>
+                        <label v-if="form.errors.location" class="label pb-0"><span class="label-text-alt text-error font-bold">{{ form.errors.location }}</span></label>
                     </div>
 
                     <div class="form-control w-full">
@@ -1141,8 +1421,9 @@ onUnmounted(() => {
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-primary/40">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             </span>
-                            <input v-model="form.google_map_url" type="text" placeholder="https://maps.google.com/..." class="input input-bordered w-full pl-10 focus:input-primary bg-base-200 border-none shadow-inner text-sm" />
+                            <input v-model="form.google_map_url" type="text" placeholder="https://maps.google.com/..." class="input input-bordered w-full pl-10 focus:input-primary bg-base-200 border-none shadow-inner text-sm" :class="{'input-error': form.errors.google_map_url}" />
                         </div>
+                        <label v-if="form.errors.google_map_url" class="label pb-0"><span class="label-text-alt text-error font-bold">{{ form.errors.google_map_url }}</span></label>
                     </div>
                 </div>
 
@@ -1180,4 +1461,7 @@ onUnmounted(() => {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+.cursor-crosshair { cursor: crosshair; }
+.cursor-grab { cursor: grab; }
+.cursor-grabbing { cursor: grabbing; }
 </style>

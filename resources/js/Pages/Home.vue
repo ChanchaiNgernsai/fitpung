@@ -23,6 +23,13 @@ const getViewBox = (pointsStr) => {
     const h = maxY - minY + (padding * 2);
     return `${minX - padding} ${minY - padding} ${w} ${h}`;
 };
+
+const scrollToGyms = () => {
+    const el = document.getElementById('featured-gyms');
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
+};
 </script>
 
 <template>
@@ -51,9 +58,9 @@ const getViewBox = (pointsStr) => {
                     </p>
                     
                     <div class="flex flex-col sm:flex-row gap-6 justify-center">
-                        <Link :href="route('dashboard')" class="btn btn-lg px-8 py-3 h-auto font-bold border-0 bg-gradient-to-r from-indigo-500 to-teal-400 text-white hover:scale-105 transition-transform shadow-lg shadow-indigo-500/30 rounded-lg uppercase tracking-wide">
+                        <button @click="scrollToGyms" class="btn btn-lg px-8 py-3 h-auto font-bold border-0 bg-gradient-to-r from-indigo-500 to-teal-400 text-white hover:scale-105 transition-transform shadow-lg shadow-indigo-500/30 rounded-lg uppercase tracking-wide">
                             New Gym
-                        </Link>
+                        </button>
                         <Link :href="route('register')" class="btn btn-outline btn-lg px-8 py-3 h-auto border-base-content/20 hover:bg-base-content hover:text-base-100 rounded-lg uppercase tracking-wide">
                             Open Gym Builder
                         </Link>

@@ -206,7 +206,7 @@ const getInitialBounds = (pointsStr, items = [], padding = 200) => {
     if (w <= 1 || h <= 1) return defaultBounds;
 
     return { 
-        x: minX - padding - 120, 
+        x: minX - padding, 
         y: minY - padding, 
         w: w + (padding * 2), 
         h: h + (padding * 2) 
@@ -265,7 +265,7 @@ onMounted(() => {
 });
 
 const openMap = () => {
-    modalViewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 5);
+    modalViewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 60);
     isMapExpanded.value = true;
 };
 
@@ -298,7 +298,7 @@ const openMap = () => {
                         <div class="card bg-white border border-base-content/5 rounded-[2.5rem] overflow-hidden group">
                             <div class="h-96 relative flex items-center justify-center bg-white">
                                 <svg 
-                                    :viewBox="getViewBoxString(getInitialBounds(gym.room_config.points, gym.items, 20))" 
+                                    :viewBox="getViewBoxString(getInitialBounds(gym.room_config.points, gym.items, 50))" 
                                     class="w-full h-full transition-all duration-700"
                                     preserveAspectRatio="xMidYMid meet"
                                 >
