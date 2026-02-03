@@ -163,25 +163,54 @@ const modalViewBox = ref({ x: 0, y: 0, w: 1000, h: 800 });
 const isPanning = ref(false);
 const lastMousePos = ref({ x: 0, y: 0 });
 
-const getInitialBounds = (pointsStr, items = [], padding = 150) => {
-    if (!pointsStr) return { x: 0, y: 0, w: 1000, h: 800 };
-    const points = pointsStr.split(' ').map(p => { 
-        const [x, y] = p.split(',').map(Number); 
-        return { x, y }; 
-    });
+const getInitialBounds = (pointsStr, items = [], padding = 200) => {
+    // Default fallback
+    const defaultBounds = { x: 0, y: 0, w: 1000, h: 800 };
+    if (!pointsStr) return defaultBounds;
+
+    // Parse floor points
+    const points = pointsStr.trim().split(/\s+/).map(p => { 
+        const parts = p.split(',').map(n => parseFloat(n));
+        if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+        return { x: parts[0], y: parts[1] }; 
+    }).filter(p => p !== null);
+
+    if (points.length === 0) return defaultBounds;
+
     let minX = Math.min(...points.map(p => p.x));
     let maxX = Math.max(...points.map(p => p.x));
     let minY = Math.min(...points.map(p => p.y));
     let maxY = Math.max(...points.map(p => p.y));
-    if (items.length > 0) {
+
+    // Expand bounds to include all items
+    if (items && items.length > 0) {
         items.forEach(item => {
-            minX = Math.min(minX, item.x - item.width/2);
-            maxX = Math.max(maxX, item.x + item.width/2);
-            minY = Math.min(minY, item.y - item.height/2);
-            maxY = Math.max(maxY, item.y + item.height/2);
+            const ix = parseFloat(item.x);
+            const iy = parseFloat(item.y);
+            const iw = parseFloat(item.width) || 100;
+            const ih = parseFloat(item.height) || 100;
+            
+            if (!isNaN(ix) && !isNaN(iy)) {
+                minX = Math.min(minX, ix - iw/2);
+                maxX = Math.max(maxX, ix + iw/2);
+                minY = Math.min(minY, iy - ih/2);
+                maxY = Math.max(maxY, iy + ih/2);
+            }
         });
     }
-    return { x: minX - padding, y: minY - padding, w: (maxX - minX) + (padding * 2), h: (maxY - minY) + (padding * 2) };
+
+    const w = maxX - minX;
+    const h = maxY - minY;
+
+    // Safety check for collapsed bounds
+    if (w <= 1 || h <= 1) return defaultBounds;
+
+    return { 
+        x: minX - padding - 120, 
+        y: minY - padding, 
+        w: w + (padding * 2), 
+        h: h + (padding * 2) 
+    };
 };
 
 const getViewBoxString = (bounds) => `${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`;
@@ -267,9 +296,9 @@ const openMap = () => {
                     <!-- LEFT: Floor & Plan -->
                     <div class="lg:col-span-4 space-y-8">
                         <div class="card bg-white border border-base-content/5 rounded-[2.5rem] overflow-hidden group">
-                            <div class="h-96 relative flex items-center justify-center p-8 bg-white">
+                            <div class="h-96 relative flex items-center justify-center bg-white">
                                 <svg 
-                                    :viewBox="getViewBoxString(getInitialBounds(gym.room_config.points, gym.items, 40))" 
+                                    :viewBox="getViewBoxString(getInitialBounds(gym.room_config.points, gym.items, 20))" 
                                     class="w-full h-full transition-all duration-700"
                                     preserveAspectRatio="xMidYMid meet"
                                 >
@@ -326,7 +355,7 @@ const openMap = () => {
                              <div v-if="availableEquipment.length > 0" class="space-y-6">
                                  <div v-for="item in availableEquipment" :key="item.id" class="bg-white rounded-[2.5rem] border border-base-content/5 overflow-hidden hover:-translate-y-2 transition-all p-8 space-y-6">
                                     <img :src="item.src" class="h-32 mx-auto object-contain" />
-                                     <h4 class="font-black italic uppercase text-lg">{{ item.dbInfo?.name || item.name }}</h4>
+                                     <h4 class="font-black italic uppercase text-lg text-black">{{ item.dbInfo?.name || item.name }}</h4>
                                     <button @click="addToPlan(item)" class="btn btn-primary btn-block rounded-xl font-black italic uppercase tracking-widest">Add to Plan</button>
                                  </div>
                              </div>

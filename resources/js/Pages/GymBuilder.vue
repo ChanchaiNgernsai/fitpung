@@ -23,15 +23,13 @@ const form = useForm({
 const pixelsPerMeter = ref(100); // 100px = 1m
 
 const equipmentTypes = [
-    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', w_m: 1.4, h_m: 3.2 },
-    { id: 'incline_bench', name: 'Incline Bench Press', src: '/images/equipment/DeclineBenchPress.svg', w_m: 1.5, h_m: 1.8 },
-    { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', w_m: 1.5, h_m: 1.8 },
-    { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', w_m: 1.6, h_m: 1.2 },
-    { id: 'leg_press', name: 'Leg Press', src: '/images/equipment/LegPress.svg', w_m: 1.2, h_m: 2.2 },
-    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', w_m: 1.8, h_m: 3.8 },
-    { id: 'cycle', name: 'Recumbent Cycle', src: '/images/equipment/LegPress.svg', w_m: 1.2, h_m: 1.8 },
-    { id: 'lat', name: 'Lat Pulldown', src: '/images/equipment/LatPulldown.svg', w_m: 1.4, h_m: 1.8 },
-    { id: 'dumbbells', name: 'Dumbbells', src: '/images/equipment/Dumbbells.svg', w_m: 5.5, h_m: 1.2 },
+    { id: 'treadmill', name: 'Treadmill', src: '/images/equipment/Treadmill.svg', w_m: 1.0, h_m: 2.0 },
+    { id: 'incline_bench', name: 'Incline Bench Press', src: '/images/equipment/DeclineBenchPress.svg', w_m: 1.2, h_m: 1.5 },
+    { id: 'bench', name: 'Bench Press', src: '/images/equipment/BenchPress.svg', w_m: 1.2, h_m: 1.5 },
+    { id: 'smith', name: 'Smith Machine', src: '/images/equipment/SmithMachine.svg', w_m: 1.5, h_m: 1.2 },
+    { id: 'leg_press', name: 'Leg Press', src: '/images/equipment/LegPress.svg', w_m: 1.2, h_m: 1.8 },
+    { id: 'elliptical', name: 'Elliptical', src: '/images/equipment/Elliptical.svg', w_m: 0.8, h_m: 2.0 },
+    { id: 'dumbbells', name: 'Dumbbells', src: '/images/equipment/Dumbbells.svg', w_m: 2.5, h_m: 0.8 },
 ];
 
 // Combine equipment types with scale
@@ -576,6 +574,13 @@ const handleImageChange = (e) => {
 
 const saveLayout = () => {
     if (!selectedRoom.value) return;
+    
+    // Direct save if editing an existing layout that already has a name
+    if (props.layout && form.name) {
+        submitSave();
+        return;
+    }
+    
     showSaveSettingsModal.value = true;
 };
 
@@ -588,10 +593,9 @@ const submitSave = () => {
         preserveScroll: true,
         onSuccess: () => {
             showSaveSettingsModal.value = false;
-            showSuccessModal.value = true;
-            setTimeout(() => {
-                router.visit(route('dashboard'));
-            }, 1500);
+            // The backend should handle the redirect to Dashboard with the flash message.
+            // If we manually visit here again, we might clear the flash message.
+            // router.visit(route('dashboard')); 
         },
         onError: () => {
             alert('Failed to save layout. Please check your connection.');
@@ -617,7 +621,18 @@ onMounted(() => {
     if (props.layout) {
         // Deep clone to avoid mutating props and allow distinct reactivity
         selectedRoom.value = JSON.parse(JSON.stringify(props.layout.room_config));
-        placedItems.value = JSON.parse(JSON.stringify(props.layout.items));
+        
+        // Load and Repair items: Ensure dimensions match current equipment types
+        const loadedItems = JSON.parse(JSON.stringify(props.layout.items));
+        loadedItems.forEach(item => {
+             // Find definition by type (fallback to name if type missing for legacy support)
+             const def = equipmentTypes.find(e => e.id === item.type);
+             if (def) {
+                 item.width = def.w_m * pixelsPerMeter.value;
+                 item.height = def.h_m * pixelsPerMeter.value;
+             }
+        });
+        placedItems.value = loadedItems;
         
         // Populate form with existing data
         form.name = props.layout.name || '';
@@ -659,6 +674,10 @@ onUnmounted(() => {
                 <div v-if="step === 2" class="flex gap-2">
                     <button class="btn btn-sm btn-ghost" @click="step = 1">Change Layout</button>
                     <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
+                    <!-- Settings Button for Edit Mode -->
+                    <button v-if="props.layout" class="btn btn-sm btn-square btn-ghost" @click="showSaveSettingsModal = true" title="Gym Settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </button>
                     <button 
                         class="btn btn-primary btn-sm shadow-lg shadow-primary/30 min-w-[100px]" 
                         @click="saveLayout" 
@@ -884,7 +903,7 @@ onUnmounted(() => {
                         :key="item.id"
                         draggable="true"
                         @dragstart="handleDragStartFromSidebar(item, $event)"
-                        class="card bg-base-200 hover:bg-neutral cursor-grab active:cursor-grabbing p-2 flex flex-col items-center transition-all hover:shadow-md border border-transparent hover:border-primary/20"
+                        class="card bg-base-200 hover:bg-neutral hover:text-neutral-content cursor-grab active:cursor-grabbing p-2 flex flex-col items-center transition-all hover:shadow-md border border-transparent hover:border-primary/20"
                     >
                         <img :src="item.src" class="w-16 h-16 object-contain mb-2 pointer-events-none select-none" />
                         <span class="text-[10px] font-bold text-center uppercase">{{ item.name }}</span>
@@ -1000,7 +1019,6 @@ onUnmounted(() => {
                                     stroke-width="2" 
                                     stroke-dasharray="6,4" 
                                     class="animate-pulse"
-                                    vector-effect="non-scaling-stroke"
                                 />
                                 <!-- Rotation Handle -->
                                 <g 

@@ -63,7 +63,7 @@ class GymLayoutController extends Controller
             'items' => $request->items,
         ]);
 
-        return redirect()->route('gym-builder.edit', $layout->id)->with('success', 'Layout saved successfully!');
+        return redirect()->route('dashboard')->with('success', 'Layout saved successfully!');
     }
 
     /**
@@ -130,7 +130,7 @@ class GymLayoutController extends Controller
 
         $gym_builder->update($data);
 
-        return redirect()->back()->with('success', 'Layout updated successfully!');
+        return redirect()->route('dashboard')->with('success', 'Layout updated successfully!');
     }
 
     /**

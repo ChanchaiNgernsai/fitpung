@@ -57,25 +57,7 @@ class EquipmentSeeder extends Seeder
                     ]
                 ]
             ],
-            [
-                "name" => "Recumbent Cycle",
-                "filename" => "RecumbentCycle.svg",
-                "type" => "Cardio",
-                "target_muscles" => [
-                    ["key" => "cardio", "name_th" => "หัวใจและปอด (Cardio)"],
-                    ["key" => "quadriceps", "name_th" => "หน้าขา (Quadriceps)"],
-                    ["key" => "glutes", "name_th" => "ก้น (Glutes)"]
-                ],
-                "technique" => [
-                    "cardio" => [
-                        "variation_name" => "การปั่นจักรยานแบบนั่งพิง",
-                        "setup" => ["title" => "การจัดท่า", "description" => "นั่งลงบนเบาะ ปรับระยะให้ขางอเล็กน้อยขณะเหยียดสุด"],
-                        "bar_position" => ["title" => "การเคลื่อนไหว", "description" => "ปั่นเป็นวงกลมอย่างสม่ำเสมอ จับด้ามจับด้านข้างเพื่อความมั่นคง"],
-                        "elbow_angle" => ["title" => "ความชัน/ความต้านทาน", "description" => "ปรับระดับความหนืดให้เหมาะสมกับระดับหัวใจที่ต้องการ"],
-                        "breathing" => ["title" => "การหายใจ", "description" => "หายใจเข้า-ออกลึกๆ สม่ำเสมอ"]
-                    ]
-                ]
-            ],
+
             [
                 "name" => "Dumbbells",
                 "filename" => "Dumbbells.svg",
