@@ -161,11 +161,32 @@ const handleFileUpload = (event) => {
                             <input type="range" min="0" max="1" step="0.01" v-model="traceImage.opacity" class="range range-xs range-primary" />
                         </div>
 
-                        <div class="space-y-1">
+                        <div class="space-y-2">
                             <label class="text-[10px] font-bold opacity-50 uppercase flex justify-between">
-                                Rotate <span>{{ Math.round(traceImage.rotation) }}°</span>
+                                Rotate (หมุนรูป)
                             </label>
-                            <input type="range" min="-180" max="180" step="1" v-model="traceImage.rotation" class="range range-xs range-primary" />
+                            <div class="grid grid-cols-2 gap-2">
+                                <button 
+                                    class="btn btn-sm btn-ghost bg-base-200 hover:bg-base-300 rounded-xl transition-all h-12 flex items-center justify-center"
+                                    @click="traceImage.rotation = (Math.round((traceImage.rotation - 90) / 90) * 90)"
+                                    title="หมุนทวนเข็มนาฬิกา"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M2.5 2v6h6"/>
+                                        <path d="M2.66 15.57a10 10 0 1 0 .57-8.38"/>
+                                    </svg>
+                                </button>
+                                <button 
+                                   class="btn btn-sm btn-ghost bg-base-200 hover:bg-base-300 rounded-xl transition-all h-12 flex items-center justify-center"
+                                    @click="traceImage.rotation = (Math.round((traceImage.rotation + 90) / 90) * 90)"
+                                    title="หมุนตามเข็มนาฬิกา"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21.5 2v6h-6"/>
+                                        <path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
 
                         <div v-if="!traceImage.locked" class="p-2 bg-info/10 rounded-lg text-[10px] text-info-content/70">
@@ -211,7 +232,7 @@ const handleFileUpload = (event) => {
                 @mousemove="handleMouseMove"
             >
                  <!-- Background Tracing Image -->
-                 <g v-if="traceImage.url" :style="`transform: translate(${traceImage.x}px, ${traceImage.y}px) scale(${traceImage.scale}) rotate(${traceImage.rotation}deg); transform-origin: center;`" class="transition-none">
+                 <g v-if="traceImage.url" :transform="`translate(${traceImage.x}, ${traceImage.y}) scale(${traceImage.scale}) rotate(${traceImage.rotation}, ${traceImage.width/2}, ${traceImage.height/2})`" class="transition-none">
                     <image 
                         :href="traceImage.url"
                         x="0"
@@ -235,6 +256,8 @@ const handleFileUpload = (event) => {
                         class="cursor-se-resize hover:fill-primary"
                         @mousedown="handleTraceMouseDown('resize', $event)"
                     />
+
+
 
                     <!-- Rotate Handle (Top) -->
                     <g v-if="!traceImage.locked" :transform="`translate(${traceImage.width / 2}, -40)`">
