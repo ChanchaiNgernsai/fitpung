@@ -73,10 +73,11 @@ const primarySelectedItem = computed(() => selectedItems.value.length > 0 ? sele
 const draggingNewItem = ref(null);
 const drawingPoints = ref([]); 
 const floorWalls = ref([]);   // New Wall-based system
-const selectedWallId = ref(null);
+const selectedWallIds = ref(new Set());
 const draggingWallId = ref(null);
 const draggingEndPoint = ref(null); // 'start', 'end', or 'both'
-const initialWallPos = ref(null); // Store stating coords to prevent jumping
+const initialWallPositions = ref(new Map()); // Map<wallId, {x1, y1, x2, y2}>
+const dragWallOffsets = ref(new Map()); // Map<wallId, {dx1, dy1, dx2, dy2}>
 const mousePos = ref({ x: 0, y: 0 });
 const snapGrid = 1; // 1px grid = Free movement
 const draggingVertexIndex = ref(null);
@@ -141,6 +142,79 @@ const initialMouseAngle = ref(0);
 const initialSizes = ref(new Map()); // Map<itemId, {w, h}>
 const initialPositions = ref(new Map()); // Map<itemId, {x, y}> (For group scaling pivot)
 const clipboard = ref([]); // Store copied item data
+const isNavigatingAfterSave = ref(null);
+const showUnsavedChangesModal = ref(false);
+const pendingNavigationAction = ref(null);
+
+const hasUnsavedChanges = computed(() => {
+    if (step.value !== 2) return false;
+    
+    // Compare current placedItems with initial state
+    const originalItems = props.layout?.items || [];
+    if (placedItems.value.length !== originalItems.length) return true;
+    
+    // Simple deep comparison for items
+    return JSON.stringify(placedItems.value) !== JSON.stringify(originalItems);
+});
+
+const confirmNavigation = (action) => {
+    if (hasUnsavedChanges.value) {
+        pendingNavigationAction.value = action;
+        showUnsavedChangesModal.value = true;
+    } else {
+        action();
+    }
+};
+
+const handleDiscardChanges = () => {
+    placedItems.value = props.layout?.items ? JSON.parse(JSON.stringify(props.layout.items)) : [];
+    showUnsavedChangesModal.value = false;
+    if (pendingNavigationAction.value) {
+        pendingNavigationAction.value();
+        pendingNavigationAction.value = null;
+    }
+};
+
+const handleSaveAndContinue = () => {
+    showUnsavedChangesModal.value = false;
+    isNavigatingAfterSave.value = pendingNavigationAction.value;
+    saveLayout();
+    pendingNavigationAction.value = null;
+};
+
+
+// --- Background Tracing Image ---
+const traceImage = ref({
+    url: null,
+    x: 0,
+    y: 0,
+    scale: 1,
+    opacity: 0.5,
+    locked: false,
+    rotation: 0
+});
+
+const handleTraceImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                traceImage.value.url = e.target.result;
+                traceImage.value.width = img.width;
+                traceImage.value.height = img.height;
+                // Center the image
+                traceImage.value.x = svgViewBox.value.x + (svgViewBox.value.w - img.width) / 2;
+                traceImage.value.y = svgViewBox.value.y + (svgViewBox.value.h - img.height) / 2;
+                traceImage.value.scale = 1;
+                traceImage.value.locked = false;
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
 
 // --- Copy/Paste Logic ---
 
@@ -148,8 +222,15 @@ const copySelected = () => {
     if (selectedItemIds.value.size === 0) return;
     clipboard.value = selectedItems.value.map(item => ({
         ...item,
-        id: null // Will generate new ID on paste
+        id: null
     }));
+};
+
+const deleteSelected = () => {
+    if (selectedItemIds.value.size > 0) {
+        placedItems.value = placedItems.value.filter(i => !selectedItemIds.value.has(i.id));
+        selectedItemIds.value.clear();
+    }
 };
 
 const pasteSelected = () => {
@@ -168,18 +249,58 @@ const pasteSelected = () => {
     selectedItemIds.value.clear();
     newItems.forEach(item => selectedItemIds.value.add(item.id));
     
-    // Update clipboard to the new items (so subsequent pastes offset from the last one)
+// Update clipboard to the new items (so subsequent pastes offset from the last one)
     clipboard.value = newItems;
+};
+
+// --- Wall Copy/Paste ---
+const wallClipboard = ref([]);
+const copyWall = () => {
+    if (selectedWallIds.value.size === 0) return;
+    wallClipboard.value = floorWalls.value
+        .filter(w => selectedWallIds.value.has(w.id))
+        .map(w => ({ ...w, id: null }));
+};
+
+const pasteWall = () => {
+    if (wallClipboard.value.length === 0) return;
+    const newWalls = wallClipboard.value.map((wall, index) => ({
+        ...wall,
+        id: Date.now() + index,
+        x1: wall.x1 + 30,
+        y1: wall.y1 + 30,
+        x2: wall.x2 + 30,
+        y2: wall.y2 + 30,
+    }));
+    floorWalls.value.push(...newWalls);
+    selectedWallIds.value.clear();
+    newWalls.forEach(w => selectedWallIds.value.add(w.id));
+    wallClipboard.value = newWalls; // For subsequent pastes
 };
 
 const handleKeyDown = (event) => {
     // Prevent shortcuts if user is typing in an input or textarea
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
+    const isMod = event.ctrlKey || event.metaKey;
+
+    // Shortcuts for step 1.5 (Wall Designer)
+    if (step.value === 1.5) {
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+            deleteWall();
+        }
+        if (isMod && event.key === 'c') {
+            event.preventDefault();
+            copyWall();
+        }
+        if (isMod && event.key === 'v') {
+            event.preventDefault();
+            pasteWall();
+        }
+    }
+
     // Shortcuts for step 2 (Builder)
     if (step.value === 2) {
-        const isMod = event.ctrlKey || event.metaKey;
-        
         if (isMod && event.key === 'c') {
             event.preventDefault();
             copySelected();
@@ -250,7 +371,8 @@ const selectRoom = (room) => {
             { id: 3, x1: 800, y1: 600, x2: 200, y2: 600 },
             { id: 4, x1: 200, y1: 600, x2: 200, y2: 200 }
         ];
-        selectedWallId.value = 1;
+        selectedWallIds.value.clear();
+        selectedWallIds.value.add(1);
         svgViewBox.value = { x: 0, y: 0, w: 1000, h: 800 };
         return;
     }
@@ -307,15 +429,33 @@ const handleCanvasMouseDown = (event) => {
             if (hDistS < 20) {
                 draggingWallId.value = wall.id;
                 draggingEndPoint.value = 'start';
-                selectedWallId.value = wall.id;
-                initialWallPos.value = { x1: wall.x1, y1: wall.y1, mx: svgP.x, my: svgP.y };
+                if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !selectedWallIds.value.has(wall.id)) {
+                    selectedWallIds.value = new Set();
+                }
+                const newSet = new Set(selectedWallIds.value);
+                newSet.add(wall.id);
+                selectedWallIds.value = newSet;
+                dragWallOffsets.value.clear();
+                dragWallOffsets.value.set(wall.id, {
+                    dx: svgP.x - wall.x1,
+                    dy: svgP.y - wall.y1
+                });
                 return;
             }
             if (hDistE < 20) {
                 draggingWallId.value = wall.id;
                 draggingEndPoint.value = 'end';
-                selectedWallId.value = wall.id;
-                initialWallPos.value = { x2: wall.x2, y2: wall.y2, mx: svgP.x, my: svgP.y };
+                if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !selectedWallIds.value.has(wall.id)) {
+                    selectedWallIds.value = new Set();
+                }
+                const newSet = new Set(selectedWallIds.value);
+                newSet.add(wall.id);
+                selectedWallIds.value = newSet;
+                dragWallOffsets.value.clear();
+                dragWallOffsets.value.set(wall.id, {
+                    dx: svgP.x - wall.x2,
+                    dy: svgP.y - wall.y2
+                });
                 return;
             }
         }
@@ -331,33 +471,61 @@ const handleCanvasMouseDown = (event) => {
             return;
         }
 
-        selectedWallId.value = null;
+        if (!event.shiftKey && !event.ctrlKey && !event.metaKey) {
+            selectedWallIds.value = new Set();
+        }
     }
     handleMouseDown(event);
 };
 
 const handleWallMouseDown = (wall, event) => {
     const svgP = getSvgPoint(event.clientX, event.clientY);
-    selectedWallId.value = wall.id;
+    
+    const nextSet = new Set(selectedWallIds.value);
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+        if (nextSet.has(wall.id)) {
+            nextSet.delete(wall.id);
+        } else {
+            nextSet.add(wall.id);
+        }
+    } else {
+        if (!nextSet.has(wall.id)) {
+            nextSet.clear();
+            nextSet.add(wall.id);
+        }
+    }
+    selectedWallIds.value = nextSet;
+    
     draggingWallId.value = wall.id;
     draggingEndPoint.value = 'both';
-    initialWallPos.value = { 
-        x1: wall.x1, y1: wall.y1, 
-        x2: wall.x2, y2: wall.y2,
-        mx: svgP.x, my: svgP.y 
-    };
+    
+    dragWallOffsets.value.clear();
+    floorWalls.value.filter(w => selectedWallIds.value.has(w.id)).forEach(w => {
+        dragWallOffsets.value.set(w.id, {
+            dx1: svgP.x - w.x1,
+            dy1: svgP.y - w.y1,
+            dx2: svgP.x - w.x2,
+            dy2: svgP.y - w.y2
+        });
+    });
 };
 
 const handleEndPointMouseDown = (wall, point, event) => {
     const svgP = getSvgPoint(event.clientX, event.clientY);
     draggingWallId.value = wall.id;
     draggingEndPoint.value = point; // 'start' or 'end'
-    selectedWallId.value = wall.id;
-    initialWallPos.value = { 
-        x1: wall.x1, y1: wall.y1, 
-        x2: wall.x2, y2: wall.y2,
-        mx: svgP.x, my: svgP.y 
-    };
+    if (!selectedWallIds.value.has(wall.id)) {
+        const nextSet = new Set();
+        nextSet.add(wall.id);
+        selectedWallIds.value = nextSet;
+    }
+    
+
+    dragWallOffsets.value.clear();
+    dragWallOffsets.value.set(wall.id, {
+        dx: svgP.x - (point === 'start' ? wall.x1 : wall.x2),
+        dy: svgP.y - (point === 'start' ? wall.y1 : wall.y2)
+    });
 };
 
 // Math helpers for walls
@@ -372,13 +540,13 @@ const distToSegment = (p, v, w) => {
 const addWall = () => {
     const newWall = { id: Date.now(), x1: 400, y1: 300, x2: 600, y2: 300 };
     floorWalls.value.push(newWall);
-    selectedWallId.value = newWall.id;
+    selectedWallIds.value = new Set([newWall.id]);
 };
 
 const deleteWall = () => {
-    if (selectedWallId.value) {
-        floorWalls.value = floorWalls.value.filter(w => w.id !== selectedWallId.value);
-        selectedWallId.value = null;
+    if (selectedWallIds.value.size > 0) {
+        floorWalls.value = floorWalls.value.filter(w => !selectedWallIds.value.has(w.id));
+        selectedWallIds.value = new Set();
     }
 };
 
@@ -505,6 +673,7 @@ const handleMouseDown = (event) => {
         // Clear previous selection if this is a new box select (unless holding Shift/Ctrl)
         if (!event.shiftKey && !event.ctrlKey && !event.metaKey) {
             selectedItemIds.value.clear();
+            selectedWallIds.value.clear();
         }
         return;
     }
@@ -602,23 +771,39 @@ const handleMouseMove = (event) => {
         const box = selectionBox.value;
         if (box) {
             const bx = box.x, by = box.y, bw = box.w, bh = box.h;
-            const newSelection = new Set();
+            const newItemSelection = new Set();
+            const newWallSelection = new Set();
             
-            placedItems.value.forEach(item => {
-                const ix = item.x - item.width/2;
-                const iy = item.y - item.height/2;
-                const iw = item.width;
-                const ih = item.height;
-                
-                if (ix < bx + bw && ix + iw > bx && iy < by + bh && iy + ih > by) {
-                    newSelection.add(item.id);
-                }
-            });
+            if (step.value === 2) {
+                placedItems.value.forEach(item => {
+                    const ix = item.x - item.width/2;
+                    const iy = item.y - item.height/2;
+                    const iw = item.width;
+                    const ih = item.height;
+                    
+                    if (ix < bx + bw && ix + iw > bx && iy < by + bh && iy + ih > by) {
+                        newItemSelection.add(item.id);
+                    }
+                });
+            } else if (step.value === 1.5) {
+                floorWalls.value.forEach(w => {
+                    const wxMin = Math.min(w.x1, w.x2);
+                    const wxMax = Math.max(w.x1, w.x2);
+                    const wyMin = Math.min(w.y1, w.y2);
+                    const wyMax = Math.max(w.y1, w.y2);
+                    
+                    if (wxMin < bx + bw && wxMax > bx && wyMin < by + bh && wyMax > by) {
+                        newWallSelection.add(w.id);
+                    }
+                });
+            }
             
             if (event.shiftKey || event.ctrlKey || event.metaKey) {
-                 newSelection.forEach(id => selectedItemIds.value.add(id));
+                 newItemSelection.forEach(id => selectedItemIds.value.add(id));
+                 newWallSelection.forEach(id => selectedWallIds.value.add(id));
             } else {
-                 selectedItemIds.value = newSelection;
+                 selectedItemIds.value = newItemSelection;
+                 selectedWallIds.value = newWallSelection;
             }
         }
     }
@@ -677,42 +862,49 @@ const handleMouseMove = (event) => {
             y: Math.round(svgP.y / snapGrid) * snapGrid
         };
 
-        if (draggingWallId.value !== null && initialWallPos.value) {
-            const wall = floorWalls.value.find(w => w.id === draggingWallId.value);
-            const dx_raw = svgP.x - initialWallPos.value.mx;
-            const dy_raw = svgP.y - initialWallPos.value.my;
+        if (draggingWallId.value !== null) {
+            if (draggingEndPoint.value === 'both') {
+                // Moving multiple walls
+                floorWalls.value.forEach(wall => {
+                    const offset = dragWallOffsets.value.get(wall.id);
+                    if (offset) {
+                        wall.x1 = svgP.x - offset.dx1;
+                        wall.y1 = svgP.y - offset.dy1;
+                        wall.x2 = svgP.x - offset.dx2;
+                        wall.y2 = svgP.y - offset.dy2;
+                    }
+                });
+            } else {
+                // Moving single endpoint
+                const wall = floorWalls.value.find(w => w.id === draggingWallId.value);
+                const offset = dragWallOffsets.value.get(wall.id);
+                if (wall && offset) {
+                    if (draggingEndPoint.value === 'start') {
+                        wall.x1 = svgP.x - offset.dx;
+                        wall.y1 = svgP.y - offset.dy;
+                    } else {
+                        wall.x2 = svgP.x - offset.dx;
+                        wall.y2 = svgP.y - offset.dy;
+                    }
 
-            if (draggingEndPoint.value === 'start') {
-                wall.x1 = initialWallPos.value.x1 + dx_raw;
-                wall.y1 = initialWallPos.value.y1 + dy_raw;
-            } else if (draggingEndPoint.value === 'end') {
-                wall.x2 = initialWallPos.value.x2 + dx_raw;
-                wall.y2 = initialWallPos.value.y2 + dy_raw;
-            } else if (draggingEndPoint.value === 'both') {
-                wall.x1 = initialWallPos.value.x1 + dx_raw;
-                wall.y1 = initialWallPos.value.y1 + dy_raw;
-                wall.x2 = initialWallPos.value.x2 + dx_raw;
-                wall.y2 = initialWallPos.value.y2 + dy_raw;
-            }
-
-            // --- Magnet / Snapping Logic ---
-            if (draggingEndPoint.value !== 'both' && draggingEndPoint.value !== null) {
-                const snapDist = 20;
-                for (const other of floorWalls.value) {
-                    if (other.id === wall.id) continue;
-                    const targets = [
-                        { x: other.x1, y: other.y1 },
-                        { x: other.x2, y: other.y2 }
-                    ];
-                    for (const p of targets) {
-                         const curX = draggingEndPoint.value === 'start' ? wall.x1 : wall.x2;
-                         const curY = draggingEndPoint.value === 'start' ? wall.y1 : wall.y2;
-                         const dist = Math.sqrt(Math.pow(curX - p.x, 2) + Math.pow(curY - p.y, 2));
-                         if (dist < snapDist) {
-                             if (draggingEndPoint.value === 'start') { wall.x1 = p.x; wall.y1 = p.y; }
-                             else { wall.x2 = p.x; wall.y2 = p.y; }
-                             break;
-                         }
+                    // --- Magnet / Snapping Logic ---
+                    const snapDist = 20;
+                    for (const other of floorWalls.value) {
+                        if (other.id === wall.id) continue;
+                        const targets = [
+                            { x: other.x1, y: other.y1 },
+                            { x: other.x2, y: other.y2 }
+                        ];
+                        for (const p of targets) {
+                             const curX = draggingEndPoint.value === 'start' ? wall.x1 : wall.x2;
+                             const curY = draggingEndPoint.value === 'start' ? wall.y1 : wall.y2;
+                             const dist = Math.sqrt(Math.pow(curX - p.x, 2) + Math.pow(curY - p.y, 2));
+                             if (dist < snapDist) {
+                                 if (draggingEndPoint.value === 'start') { wall.x1 = p.x; wall.y1 = p.y; }
+                                 else { wall.x2 = p.x; wall.y2 = p.y; }
+                                 break;
+                             }
+                        }
                     }
                 }
             }
@@ -737,12 +929,7 @@ const rotateSelected = () => {
     });
 };
 
-const deleteSelected = () => {
-    if (selectedItemIds.value.size > 0) {
-        placedItems.value = placedItems.value.filter(i => !selectedItemIds.value.has(i.id));
-        selectedItemIds.value.clear();
-    }
-};
+
 
 const clearCanvas = () => {
     if(confirm("Clear all items?")) {
@@ -825,6 +1012,10 @@ const submitSave = () => {
         preserveScroll: true,
         onSuccess: () => {
             showSaveSettingsModal.value = false;
+            if (isNavigatingAfterSave.value) {
+                isNavigatingAfterSave.value();
+                isNavigatingAfterSave.value = null;
+            }
         },
         onError: (errors) => {
             console.error('Save failed:', errors);
@@ -844,8 +1035,11 @@ onMounted(() => {
     loadMyLayouts();
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    window.addEventListener('beforeunload', (e) => {
+        if (hasUnsavedChanges.value) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
     });
 
     // Initialize from props if editing
@@ -898,7 +1092,7 @@ onUnmounted(() => {
     <AppLayout>
         <template #header-actions>
             <div class="flex gap-2 items-center">
-                <button v-if="step !== 1" @click="step = 1" class="btn btn-sm btn-neutral gap-1 mr-2 hidden md:flex">
+                <button v-if="step !== 1" @click="confirmNavigation(() => step = 1)" class="btn btn-sm btn-neutral gap-1 mr-2 hidden md:flex">
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                      ย้อนกลับ
                 </button>
@@ -907,7 +1101,7 @@ onUnmounted(() => {
                      Dashboard
                 </Link>
                 <div v-if="step === 2" class="flex gap-2">
-                    <button class="btn btn-sm btn-ghost" @click="step = 1">Change Layout</button>
+                    <button class="btn btn-sm btn-ghost" @click="confirmNavigation(() => step = 1)">Change Layout</button>
                     <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
                     <!-- Settings Button for Edit Mode -->
                     <button v-if="props.layout" class="btn btn-sm btn-square btn-ghost" @click="showSaveSettingsModal = true" title="Gym Settings">
@@ -941,10 +1135,12 @@ onUnmounted(() => {
         <WallDesigner 
             v-if="step === 1.5"
             :floorWalls="floorWalls"
-            :selectedWallId="selectedWallId"
+            :selectedWallIds="selectedWallIds"
             :svgViewBox="svgViewBox"
             :pixelsPerMeter="pixelsPerMeter"
             :activeTool="activeTool"
+            :traceImage="traceImage"
+            :selectionBox="selectionBox"
             @addWall="addWall"
             @deleteWall="deleteWall"
             @saveTemplate="saveTemplate"
@@ -954,6 +1150,7 @@ onUnmounted(() => {
             @onMouseMove="handleMouseMove"
             @onWheel="handleWheel"
             @onEndPointMouseDown="handleEndPointMouseDown"
+            @onTraceImageUpload="handleTraceImageUpload"
         />
 
         <!-- Phase 2: Builder Interface -->
@@ -1080,6 +1277,49 @@ onUnmounted(() => {
             <h3 class="text-2xl font-bold mb-2">บันทึกสำเร็จ!</h3>
             <p class="text-base-content/60 mb-6 py-2">ข้อมูลยิมและแบบแปลนของคุณถูกบันทึกแล้ว</p>
             <div class="loading loading-dots loading-lg text-primary"></div>
+        </div>
+    </div>
+
+    <!-- Unsaved Changes Modal (Elegant & Brand-Consistent) -->
+    <div v-if="showUnsavedChangesModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div class="bg-base-100 w-full max-w-sm rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] overflow-hidden border border-base-content/5 flex flex-col animate-in zoom-in-95 duration-300">
+            <!-- Subtle Header -->
+            <div class="pt-10 pb-4 flex flex-col items-center">
+                <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-base-content">บันทึกแปลนยิม?</h3>
+                <p class="text-sm text-base-content/50 mt-2 text-center px-8 leading-relaxed">
+                    คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก <br/>
+                    ต้องการจัดเก็บข้อมูลไว้ก่อนหรือไม่?
+                </p>
+            </div>
+
+            <!-- Actions (Stacked List Style) -->
+            <div class="p-6 pt-4 flex flex-col gap-2">
+                <button 
+                    class="btn btn-primary btn-lg rounded-2xl h-14 shadow-lg shadow-primary/20 text-sm font-bold"
+                    @click="handleSaveAndContinue"
+                >
+                    บันทึกและดำเนินการต่อ
+                </button>
+                
+                <button 
+                    class="btn btn-ghost btn-lg rounded-2xl h-14 text-sm font-medium hover:bg-error/5 hover:text-error transition-colors"
+                    @click="handleDiscardChanges"
+                >
+                    ไม่บันทึก (ล้างรายการใหม่)
+                </button>
+
+                <button 
+                    class="btn btn-ghost btn-lg rounded-2xl h-14 text-sm font-medium hover:bg-base-200 transition-colors"
+                    @click="showUnsavedChangesModal = false"
+                >
+                    ย้อนกลับไปแก้ไขต่อ
+                </button>
+            </div>
         </div>
     </div>
 </template>

@@ -50,12 +50,15 @@ const setActiveTool = (tool) => {
             </button>
         </div>
 
-        <button 
-            @click="emit('resetView')"
-            class="btn btn-circle btn-sm bg-slate-800 text-white border-none shadow-lg hover:scale-110 transition-all duration-300"
-            title="Reset View"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-        </button>
+        <!-- Reset View Group -->
+        <div class="flex flex-col gap-1 bg-base-100 p-1.5 rounded-2xl shadow-2xl border border-primary/20">
+            <button 
+                @click="emit('resetView')"
+                class="btn btn-circle btn-sm bg-slate-800 hover:bg-slate-700 text-white border-none transition-all duration-300 hover:scale-110"
+                title="Reset View"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+            </button>
+        </div>
     </div>
 </template>
