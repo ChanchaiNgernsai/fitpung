@@ -145,16 +145,27 @@ const clipboard = ref([]); // Store copied item data
 const isNavigatingAfterSave = ref(null);
 const showUnsavedChangesModal = ref(false);
 const pendingNavigationAction = ref(null);
+const showSaveTemplateModal = ref(false);
+const newTemplateName = ref('');
 
 const hasUnsavedChanges = computed(() => {
-    if (step.value !== 2) return false;
+    if (step.value === 1.5) {
+        // Compare current floorWalls with initial state (from existing layout)
+        const originalWalls = props.layout?.room_config?.walls || [];
+        if (floorWalls.value.length !== originalWalls.length) return true;
+        return JSON.stringify(floorWalls.value) !== JSON.stringify(originalWalls);
+    }
+
+    if (step.value === 2) {
+        // Compare current placedItems with initial state
+        const originalItems = props.layout?.items || [];
+        if (placedItems.value.length !== originalItems.length) return true;
+        
+        // Simple deep comparison for items
+        return JSON.stringify(placedItems.value) !== JSON.stringify(originalItems);
+    }
     
-    // Compare current placedItems with initial state
-    const originalItems = props.layout?.items || [];
-    if (placedItems.value.length !== originalItems.length) return true;
-    
-    // Simple deep comparison for items
-    return JSON.stringify(placedItems.value) !== JSON.stringify(originalItems);
+    return false;
 });
 
 const confirmNavigation = (action) => {
@@ -167,7 +178,12 @@ const confirmNavigation = (action) => {
 };
 
 const handleDiscardChanges = () => {
-    placedItems.value = props.layout?.items ? JSON.parse(JSON.stringify(props.layout.items)) : [];
+    if (step.value === 1.5) {
+        floorWalls.value = props.layout?.room_config?.walls ? JSON.parse(JSON.stringify(props.layout.room_config.walls)) : [];
+    } else if (step.value === 2) {
+        placedItems.value = props.layout?.items ? JSON.parse(JSON.stringify(props.layout.items)) : [];
+    }
+    
     showUnsavedChangesModal.value = false;
     if (pendingNavigationAction.value) {
         pendingNavigationAction.value();
@@ -177,6 +193,13 @@ const handleDiscardChanges = () => {
 
 const handleSaveAndContinue = () => {
     showUnsavedChangesModal.value = false;
+    
+    if (step.value === 1.5) {
+        // For wall designer, they must provide a name, so open the naming modal
+        saveTemplate();
+        return;
+    }
+
     isNavigatingAfterSave.value = pendingNavigationAction.value;
     saveLayout();
     pendingNavigationAction.value = null;
@@ -563,22 +586,48 @@ const finishWalls = () => {
 };
 
 const saveTemplate = () => {
-    const name = prompt("ชื่อแบบแปลนของคุณ:", "แบบแปลนใหม่ " + (myLayouts.value.length + 1));
-    if (name) {
-        myLayouts.value.push({ 
-            id: 'user-' + Date.now(), 
-            name, 
-            creatorName: currentUser.value?.name || 'Unknown',
-            creatorEmail: currentUser.value?.email || '',
-            creatorId: currentUser.value?.id,
-            walls: JSON.parse(JSON.stringify(floorWalls.value)) 
-        });
-        if (storageKey.value) {
-            localStorage.setItem(storageKey.value, JSON.stringify(myLayouts.value));
-            alert("บันทึกเรียบร้อย!");
-        } else {
-            alert("กรุณาเข้าสู่ระบบเพื่อบันทึกแบบแปลน");
-        }
+    newTemplateName.value = "แบบแปลนใหม่ " + (myLayouts.value.length + 1);
+    showSaveTemplateModal.value = true;
+};
+
+const submitTemplateSave = () => {
+    if (!newTemplateName.value.trim()) return;
+    
+    myLayouts.value.push({ 
+        id: 'user-' + Date.now(), 
+        name: newTemplateName.value, 
+        creatorName: currentUser.value?.name || 'Unknown',
+        creatorEmail: currentUser.value?.email || '',
+        creatorId: currentUser.value?.id,
+        walls: JSON.parse(JSON.stringify(floorWalls.value)),
+        points: wallsToPoints(floorWalls.value)
+    });
+    
+    if (storageKey.value) {
+        localStorage.setItem(storageKey.value, JSON.stringify(myLayouts.value));
+        showSaveTemplateModal.value = false;
+        showSuccessModal.value = true;
+        
+        setTimeout(() => {
+            showSuccessModal.value = false;
+            
+            // Navigate back to Step 1 and scroll to My Layouts
+            step.value = 1;
+            nextTick(() => {
+                const element = document.getElementById('my-layouts-section');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+
+            // Execute pending navigation if it came from the unsaved changes warning
+            if (pendingNavigationAction.value) {
+                pendingNavigationAction.value();
+                pendingNavigationAction.value = null;
+            }
+        }, 2000);
+    } else {
+        alert("กรุณาเข้าสู่ระบบเพื่อบันทึกแบบแปลน");
     }
 };
 
@@ -991,7 +1040,19 @@ const handleImageChange = async (e) => {
     }
 };
 
+const ensureRoomConfigIsSynced = () => {
+    if (step.value === 1.5 && floorWalls.value.length >= 3) {
+        selectedRoom.value = {
+            id: selectedRoom.value?.id || ('custom-' + Date.now()),
+            name: selectedRoom.value?.name || 'Custom Room',
+            walls: JSON.parse(JSON.stringify(floorWalls.value)),
+            points: getCustomPoints(floorWalls.value)
+        };
+    }
+};
+
 const saveLayout = () => {
+    ensureRoomConfigIsSynced();
     if (!selectedRoom.value) return;
     
     // Direct save if editing an existing layout that already has a name
@@ -1012,10 +1073,14 @@ const submitSave = () => {
         preserveScroll: true,
         onSuccess: () => {
             showSaveSettingsModal.value = false;
-            if (isNavigatingAfterSave.value) {
-                isNavigatingAfterSave.value();
-                isNavigatingAfterSave.value = null;
-            }
+            showSuccessModal.value = true;
+            setTimeout(() => {
+                showSuccessModal.value = false;
+                if (isNavigatingAfterSave.value) {
+                    isNavigatingAfterSave.value();
+                    isNavigatingAfterSave.value = null;
+                }
+            }, 2000);
         },
         onError: (errors) => {
             console.error('Save failed:', errors);
@@ -1100,6 +1165,20 @@ onUnmounted(() => {
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                      Dashboard
                 </Link>
+
+                <!-- Header Actions for Wall Designer (Step 1.5) -->
+                <div v-if="step === 1.5" class="flex gap-2">
+                    <button class="btn btn-sm btn-ghost" @click="confirmNavigation(() => step = 1)">ยกเลิก</button>
+                    <button class="btn btn-sm btn-neutral btn-outline" @click="saveTemplate">บันทึกเป็นแบบของฉัน</button>
+                    <button 
+                        class="btn btn-primary btn-sm shadow-lg shadow-primary/30 min-w-[120px]" 
+                        @click="finishWalls"
+                    >
+                        เสร็จสิ้น และวางเครื่อง
+                    </button>
+                </div>
+
+                <!-- Header Actions for Equipment Placer (Step 2) -->
                 <div v-if="step === 2" class="flex gap-2">
                     <button class="btn btn-sm btn-ghost" @click="confirmNavigation(() => step = 1)">Change Layout</button>
                     <button class="btn btn-sm btn-error btn-outline" @click="clearCanvas">Clear All</button>
@@ -1193,6 +1272,36 @@ onUnmounted(() => {
         />
     </AppLayout>
 
+    <!-- Save Template Modal (Simpler for Step 1.5) -->
+    <div v-if="showSaveTemplateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in p-4">
+        <div class="bg-base-100 w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden border border-base-content/10 animate-in zoom-in-95 duration-200">
+            <div class="p-8 pb-4">
+                <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-black text-base-content uppercase tracking-tight">บันทึกแบบแปลน</h3>
+                <p class="text-xs text-base-content/40 font-medium mt-1 uppercase tracking-wider">Save this structure as my template</p>
+                
+                <div class="mt-8 form-control w-full">
+                    <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-40">ชื่อแบบแปลนของคุณ</span></label>
+                    <input 
+                        v-model="newTemplateName" 
+                        type="text" 
+                        class="input input-bordered w-full bg-base-200 border-none focus:ring-2 focus:ring-primary h-14 font-bold text-lg"
+                        placeholder="เช่น แบบแปลนห้องสี่เหลี่ยม"
+                        @keyup.enter="submitTemplateSave"
+                    />
+                </div>
+            </div>
+            <div class="p-8 pt-4 flex gap-3">
+                <button class="btn btn-ghost flex-1 rounded-2xl h-14 font-bold text-sm" @click="showSaveTemplateModal = false">ยกเลิก</button>
+                <button class="btn btn-primary flex-[2] rounded-2xl h-14 shadow-lg shadow-primary/20 font-bold text-sm" @click="submitTemplateSave">บันทึกข้อมูล</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Save Settings Modal -->
     <div v-if="showSaveSettingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-fade-in p-4">
         <div class="bg-base-100 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-base-content/10 flex flex-col md:flex-row">
@@ -1226,13 +1335,15 @@ onUnmounted(() => {
             <!-- Right Side: Form Fields -->
             <div class="flex-1 p-8">
                 <div class="flex justify-between items-start mb-6">
-                    <h2 class="text-2xl font-black text-primary uppercase tracking-tight">บันทึกแบบแปลน</h2>
+                    <h2 class="text-2xl font-black text-primary uppercase tracking-tight">
+                        {{ step === 1.5 ? 'บันทึกโครงสร้างอาคาร' : 'บันทึกแบบแปลน' }}
+                    </h2>
                     <button class="btn btn-ghost btn-circle btn-sm" @click="showSaveSettingsModal = false">✕</button>
                 </div>
 
                 <div class="space-y-4">
                     <div class="form-control w-full">
-                        <label class="label pb-1"><span class="label-text font-bold text-xs uppercase opacity-60">ชื่อยิม / ชื่อแปลน</span></label>
+                        <label class="label pb-1"><span class="label-text font-bold text-xs uppercase opacity-60">ชื่อ{{ step === 1.5 ? 'โครงสร้าง / ชื่อแปรน' : 'ยิม / ชื่อแปลน' }}</span></label>
                         <input v-model="form.name" type="text" placeholder="เช่น Fit Pung Studio" class="input input-bordered w-full focus:input-primary bg-base-200 border-none shadow-inner" :class="{'input-error': form.errors.name}" />
                         <label v-if="form.errors.name" class="label pb-0"><span class="label-text-alt text-error font-bold">{{ form.errors.name }}</span></label>
                     </div>
@@ -1286,14 +1397,21 @@ onUnmounted(() => {
             <!-- Subtle Header -->
             <div class="pt-10 pb-4 flex flex-col items-center">
                 <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <!-- Blueprint Icon for Walls -->
+                    <svg v-if="step === 1.5" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <!-- Save Icon for Layout -->
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-base-content">บันทึกแปลนยิม?</h3>
+                <h3 class="text-xl font-bold text-base-content">{{ step === 1.5 ? 'คุณยังไม่ได้บันทึกเส้นที่วาด' : 'บันทึกแปลนยิม?' }}</h3>
                 <p class="text-sm text-base-content/50 mt-2 text-center px-8 leading-relaxed">
-                    คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก <br/>
-                    ต้องการจัดเก็บข้อมูลไว้ก่อนหรือไม่?
+                    {{ step === 1.5 
+                        ? 'ต้องกดบันทึก หรือ ไม่บันทึก หากไม่บันทึกระบบทำการล้างเส้นที่วาดทิ้งทั้งหมด' 
+                        : 'คุณมีการเปลี่ยนแปลงการจัดวางเครื่องที่ยังไม่ได้บันทึก ต้องการจัดเก็บข้อมูลไว้ก่อนหรือไม่?' 
+                    }}
                 </p>
             </div>
 
@@ -1303,14 +1421,14 @@ onUnmounted(() => {
                     class="btn btn-primary btn-lg rounded-2xl h-14 shadow-lg shadow-primary/20 text-sm font-bold"
                     @click="handleSaveAndContinue"
                 >
-                    บันทึกและดำเนินการต่อ
+                    {{ step === 1.5 ? 'ยืนยันและดำเนินการต่อ' : 'บันทึกและดำเนินการต่อ' }}
                 </button>
                 
                 <button 
                     class="btn btn-ghost btn-lg rounded-2xl h-14 text-sm font-medium hover:bg-error/5 hover:text-error transition-colors"
                     @click="handleDiscardChanges"
                 >
-                    ไม่บันทึก (ล้างรายการใหม่)
+                    {{ step === 1.5 ? 'ไม่บันทึก (ล้างโครงสร้างที่วาด)' : 'ไม่บันทึก (ล้างรายการใหม่)' }}
                 </button>
 
                 <button 

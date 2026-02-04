@@ -66,7 +66,7 @@ const deleteTemplate = (id, event) => {
         </div>
 
         <!-- User Saved Layouts Section -->
-        <div class="w-full max-w-6xl px-4 relative z-10 mt-8 mb-4 border-t border-white/10 pt-12">
+        <div id="my-layouts-section" class="w-full max-w-6xl px-4 relative z-10 mt-8 mb-4 border-t border-white/10 pt-12">
             <div class="flex items-center gap-4 mb-8">
                 <h2 class="text-3xl font-bold">แบบของฉัน</h2>
                 <div class="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>

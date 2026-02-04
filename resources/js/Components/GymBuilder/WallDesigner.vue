@@ -108,9 +108,18 @@ const handleFileUpload = (event) => {
 <template>
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden p-0 relative h-full">
         <aside class="w-full md:w-80 bg-base-100 border-r border-base-content/10 flex flex-col z-20 p-6 shadow-2xl shrink-0 overflow-y-auto h-full">
-            <div class="mb-6">
-                <h2 class="text-2xl font-black text-primary">Wall Designer</h2>
-                <p class="text-xs opacity-50 uppercase tracking-widest mt-1">ประกอบโครงสร้างยิมของคุณ</p>
+            <div class="mb-8">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-black tracking-wider uppercase">Structural Phase</span>
+                    <div class="h-px flex-1 bg-base-content/5"></div>
+                </div>
+                <h2 class="text-3xl font-black text-base-content uppercase tracking-tighter">
+                    Wall <span class="text-primary">Designer</span>
+                </h2>
+                <p class="text-[11px] text-base-content/50 font-medium leading-relaxed mt-1">
+                    วางโครงสร้างและกำหนดพื้นที่การใช้งาน <br/>
+                    เพื่อให้การจัดวางอุปกรณ์ของคุณออกมาสมบูรณ์แบบที่สุด
+                </p>
             </div>
             
             <div class="flex flex-col gap-4">
@@ -209,16 +218,46 @@ const handleFileUpload = (event) => {
                 <div class="divider"></div>
                 
                 <div class="space-y-3">
-                    <button class="btn btn-outline btn-block" @click="emit('saveTemplate')">บันทึกเป็นแบบของฉัน</button>
-                    <button class="btn btn-primary btn-block shadow-xl text-lg h-14" @click="emit('finishWalls')">เสร็จสิ้น และวางเครื่อง</button>
                     <button class="btn btn-ghost btn-block btn-sm opacity-50" @click="emit('cancel')">ยกเลิก</button>
                 </div>
             </div>
 
-            <div class="mt-auto p-4 bg-primary/5 rounded-2xl border border-primary/10 text-[11px] space-y-2">
-                <p class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> ลากจุดปลายเพื่อยืด/หด หรือหมุนกำแพง</p>
-                <p class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> ลากกลางเส้นเพื่อย้ายตำแหน่ง</p>
-                <p class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> จุดปลายจะ "ดูด" ติดกันเมื่อเข้าใกล้</p>
+            <!-- Quick Guide Script -->
+            <div class="mt-auto pt-6 border-t border-base-content/5">
+                <h4 class="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mb-4">Quick Guide</h4>
+                <div class="space-y-4">
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                            </svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold text-base-content/80">การปรับแก้รูปทรง</span>
+                            <span class="text-[10px] text-base-content/40 leading-tight">ลากจุดสีขาวที่ปลายเพื่อยืดหด หรือหมุนกำแพงได้อิสระ</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold text-base-content/80">ย้ายตำแหน่งชิ้นงาน</span>
+                            <span class="text-[10px] text-base-content/40 leading-tight">ลากที่เส้นกำแพงเพื่อย้ายตำแหน่งของทั้งกำแพง</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-base-200/50 rounded-2xl border border-base-content/5">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                            <span class="text-[10px] font-bold text-success/80 uppercase">Smart Snapping Active</span>
+                        </div>
+                        <p class="text-[10px] text-base-content/40 leading-tight">กำแพงจะเชื่อมต่อกันเองเมื่อลากจุดไปใกล้กัน</p>
+                    </div>
+                </div>
             </div>
         </aside>
 
