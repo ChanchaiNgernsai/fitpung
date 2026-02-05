@@ -6,9 +6,9 @@ const props = defineProps({
     selectedWallIds: Object,
     svgViewBox: Object,
     pixelsPerMeter: Number,
-    activeTool: String,
     traceImage: Object,
-    selectionBox: Object
+    selectionBox: Object,
+    snappedPoint: Object
 });
 
 const emit = defineEmits([
@@ -367,6 +367,12 @@ const handleFileUpload = (event) => {
                     stroke-dasharray="4"
                     class="pointer-events-none"
                  />
+
+                  <!-- Snap Indicator -->
+                  <g v-if="snappedPoint" :transform="`translate(${snappedPoint.x}, ${snappedPoint.y})`" class="pointer-events-none">
+                      <circle r="20" fill="rgba(245, 158, 11, 0.2)" class="animate-ping" />
+                      <circle r="8" fill="#f59e0b" stroke="white" stroke-width="2" shadow-lg />
+                  </g>
             </svg>
         </main>
     </div>

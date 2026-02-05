@@ -81,17 +81,20 @@ const dragWallOffsets = ref(new Map()); // Map<wallId, {dx1, dy1, dx2, dy2}>
 const mousePos = ref({ x: 0, y: 0 });
 const snapGrid = 1; // 1px grid = Free movement
 const draggingVertexIndex = ref(null);
+const snappedPoint = ref(null); // {x, y} or null
 
 // Construct a list of points from discrete walls for the 'Floor' effect
 const computedRoomPoints = computed(() => {
     const room = selectedRoom.value;
-    if (!room || !room.walls || room.walls.length === 0) return "";
-    return room.walls.map(w => `${w.x1},${w.y1} ${w.x2},${w.y2}`).join(' ');
+    if (!room) return "";
+    if (room.walls && room.walls.length > 0) {
+        return wallsToPoints(room.walls);
+    }
+    return room.points || "";
 });
 
 const getCustomPoints = (walls) => {
-    if (!walls || walls.length === 0) return "";
-    return walls.map(w => `${w.x1},${w.y1} ${w.x2},${w.y2}`).join(' ');
+    return wallsToPoints(walls);
 };
 
 // --- User-Specific Persistence ---
@@ -379,9 +382,70 @@ const getBoundingBox = (pointsStr) => {
 
 const wallsToPoints = (walls) => {
     if (!walls || walls.length === 0) return "";
-    // Collect all unique points. Since walls are connected, 
-    // we can try to follow the sequence. For simplicity in a closed loop:
-    return walls.map(w => `${w.x1},${w.y1}`).join(' ');
+    
+    // Sort walls into a continuous sequence
+    const remaining = [...walls];
+    const sequence = [];
+    
+    // Start with the first wall in the array
+    let current = remaining.shift();
+    sequence.push({ x: current.x1, y: current.y1 });
+    let lastX = current.x2;
+    let lastY = current.y2;
+
+    while (remaining.length > 0) {
+        let found = false;
+        for (let i = 0; i < remaining.length; i++) {
+            const w = remaining[i];
+            // Check start point of wall
+            if (Math.sqrt(Math.pow(w.x1 - lastX, 2) + Math.pow(w.y1 - lastY, 2)) < 5) {
+                sequence.push({ x: lastX, y: lastY });
+                lastX = w.x2;
+                lastY = w.y2;
+                remaining.splice(i, 1);
+                found = true;
+                break;
+            }
+            // Check end point of wall
+            if (Math.sqrt(Math.pow(w.x2 - lastX, 2) + Math.pow(w.y2 - lastY, 2)) < 5) {
+                sequence.push({ x: lastX, y: lastY });
+                lastX = w.x1;
+                lastY = w.y1;
+                remaining.splice(i, 1);
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            // No more connected walls found
+            sequence.push({ x: lastX, y: lastY });
+            
+            // If still remaining walls, they might be part of a separate loop or path.
+            // For a single room, we take the next remaining wall and start over or just append.
+            if (remaining.length > 0) {
+                let next = remaining.shift();
+                sequence.push({ x: next.x1, y: next.y1 });
+                lastX = next.x2;
+                lastY = next.y2;
+                // loop continues
+            } else {
+                break;
+            }
+        }
+    }
+    
+    // Final point
+    sequence.push({ x: lastX, y: lastY });
+
+    // Clean up duplicate points
+    const cleanSequence = sequence.filter((p, index) => {
+        if (index === 0) return true;
+        const prev = sequence[index - 1];
+        return Math.sqrt(Math.pow(p.x - prev.x, 2) + Math.pow(p.y - prev.y, 2)) > 1;
+    });
+
+    return cleanSequence.map(p => `${p.x},${p.y}`).join(' ');
 };
 
 const selectRoom = (room) => {
@@ -449,36 +513,45 @@ const handleCanvasMouseDown = (event) => {
             const hDistS = Math.sqrt(Math.pow(wall.x1 - svgP.x, 2) + Math.pow(wall.y1 - svgP.y, 2));
             const hDistE = Math.sqrt(Math.pow(wall.x2 - svgP.x, 2) + Math.pow(wall.y2 - svgP.y, 2));
             
-            if (hDistS < 20) {
+            if (hDistS < 20 || hDistE < 20) {
+                const targetX = hDistS < 20 ? wall.x1 : wall.x2;
+                const targetY = hDistS < 20 ? wall.y1 : wall.y2;
+
                 draggingWallId.value = wall.id;
-                draggingEndPoint.value = 'start';
+                draggingEndPoint.value = 'multiple'; // We'll move all connected points
+                
                 if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !selectedWallIds.value.has(wall.id)) {
                     selectedWallIds.value = new Set();
                 }
                 const newSet = new Set(selectedWallIds.value);
-                newSet.add(wall.id);
-                selectedWallIds.value = newSet;
+                
                 dragWallOffsets.value.clear();
-                dragWallOffsets.value.set(wall.id, {
-                    dx: svgP.x - wall.x1,
-                    dy: svgP.y - wall.y1
-                });
-                return;
-            }
-            if (hDistE < 20) {
-                draggingWallId.value = wall.id;
-                draggingEndPoint.value = 'end';
-                if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !selectedWallIds.value.has(wall.id)) {
-                    selectedWallIds.value = new Set();
+                // Find all walls with an endpoint at this location
+                for (const w of floorWalls.value) {
+                    const dS = Math.sqrt(Math.pow(w.x1 - targetX, 2) + Math.pow(w.y1 - targetY, 2));
+                    const dE = Math.sqrt(Math.pow(w.x2 - targetX, 2) + Math.pow(w.y2 - targetY, 2));
+                    
+                    if (dS < 10) {
+                        dragWallOffsets.value.set(`${w.id}-start`, { 
+                            wallId: w.id, 
+                            point: 'start', 
+                            dx: svgP.x - w.x1, 
+                            dy: svgP.y - w.y1 
+                        });
+                        newSet.add(w.id);
+                    }
+                    if (dE < 10) {
+                        dragWallOffsets.value.set(`${w.id}-end`, { 
+                            wallId: w.id, 
+                            point: 'end', 
+                            dx: svgP.x - w.x2, 
+                            dy: svgP.y - w.y2 
+                        });
+                        newSet.add(w.id);
+                    }
                 }
-                const newSet = new Set(selectedWallIds.value);
-                newSet.add(wall.id);
+                
                 selectedWallIds.value = newSet;
-                dragWallOffsets.value.clear();
-                dragWallOffsets.value.set(wall.id, {
-                    dx: svgP.x - wall.x2,
-                    dy: svgP.y - wall.y2
-                });
                 return;
             }
         }
@@ -912,6 +985,7 @@ const handleMouseMove = (event) => {
         };
 
         if (draggingWallId.value !== null) {
+            snappedPoint.value = null; // Clear initially
             if (draggingEndPoint.value === 'both') {
                 // Moving multiple walls
                 floorWalls.value.forEach(wall => {
@@ -923,8 +997,60 @@ const handleMouseMove = (event) => {
                         wall.y2 = svgP.y - offset.dy2;
                     }
                 });
-            } else {
-                // Moving single endpoint
+            } else if (draggingEndPoint.value === 'multiple') {
+                // Moving multiple connected points
+                dragWallOffsets.value.forEach(offset => {
+                    const wall = floorWalls.value.find(w => w.id === offset.wallId);
+                    if (wall) {
+                        if (offset.point === 'start') {
+                            wall.x1 = svgP.x - offset.dx;
+                            wall.y1 = svgP.y - offset.dy;
+                        } else {
+                            wall.x2 = svgP.x - offset.dx;
+                            wall.y2 = svgP.y - offset.dy;
+                        }
+                    }
+                });
+
+                // Magnet Snapping Logic for the group
+                const snapDist = 20;
+                let primaryWall = floorWalls.value.find(w => w.id === draggingWallId.value);
+                if (primaryWall) {
+                    // Use a more generic approach: check any point in dragWallOffsets
+                    const offsetsArray = Array.from(dragWallOffsets.value.values());
+                    const firstOffset = offsetsArray[0];
+                    if (firstOffset) {
+                        const wall = floorWalls.value.find(w => w.id === firstOffset.wallId);
+                        const curX = firstOffset.point === 'start' ? wall.x1 : wall.x2;
+                        const curY = firstOffset.point === 'start' ? wall.y1 : wall.y2;
+
+                        for (const other of floorWalls.value) {
+                            if (dragWallOffsets.value.has(`${other.id}-start`) || dragWallOffsets.value.has(`${other.id}-end`)) continue;
+                            
+                            const targets = [
+                                { x: other.x1, y: other.y1 },
+                                { x: other.x2, y: other.y2 }
+                            ];
+                            for (const p of targets) {
+                                const dist = Math.sqrt(Math.pow(curX - p.x, 2) + Math.pow(curY - p.y, 2));
+                                if (dist < snapDist) {
+                                    // Snap ALL points being dragged to this target
+                                    const dx = p.x - curX;
+                                    const dy = p.y - curY;
+                                    offsetsArray.forEach(o => {
+                                        const w = floorWalls.value.find(wall => wall.id === o.wallId);
+                                        if (o.point === 'start') { w.x1 += dx; w.y1 += dy; }
+                                        else { w.x2 += dx; w.y2 += dy; }
+                                    });
+                                    snappedPoint.value = { x: p.x, y: p.y };
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (draggingEndPoint.value === 'start' || draggingEndPoint.value === 'end') {
+                // Moving single endpoint (legacy fallback, multi should handle this now)
                 const wall = floorWalls.value.find(w => w.id === draggingWallId.value);
                 const offset = dragWallOffsets.value.get(wall.id);
                 if (wall && offset) {
@@ -951,6 +1077,7 @@ const handleMouseMove = (event) => {
                              if (dist < snapDist) {
                                  if (draggingEndPoint.value === 'start') { wall.x1 = p.x; wall.y1 = p.y; }
                                  else { wall.x2 = p.x; wall.y2 = p.y; }
+                                 snappedPoint.value = { x: p.x, y: p.y };
                                  break;
                              }
                         }
@@ -968,6 +1095,7 @@ const handleMouseUp = () => {
     isRotatingItem.value = false;
     isResizingItem.value = false;
     draggingVertexIndex.value = null;
+    snappedPoint.value = null;
     draggingWallId.value = null;
     draggingEndPoint.value = null;
 };
@@ -1046,7 +1174,7 @@ const ensureRoomConfigIsSynced = () => {
             id: selectedRoom.value?.id || ('custom-' + Date.now()),
             name: selectedRoom.value?.name || 'Custom Room',
             walls: JSON.parse(JSON.stringify(floorWalls.value)),
-            points: getCustomPoints(floorWalls.value)
+            points: wallsToPoints(floorWalls.value)
         };
     }
 };
@@ -1220,6 +1348,7 @@ onUnmounted(() => {
             :activeTool="activeTool"
             :traceImage="traceImage"
             :selectionBox="selectionBox"
+            :snappedPoint="snappedPoint"
             @addWall="addWall"
             @deleteWall="deleteWall"
             @saveTemplate="saveTemplate"
