@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, onMounted, computed, nextTick } from 'vue';
 
@@ -7,6 +7,12 @@ const props = defineProps({
     gym: Object,
     equipments: Array,
 });
+
+const startWorkout = () => {
+    router.post(route('workouts.run'), {
+        plan: JSON.stringify(workoutPlan.value)
+    });
+};
 
 const svgContent = ref('');
 const selectedMuscle = ref(null);
@@ -268,7 +274,6 @@ const openMap = () => {
     modalViewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 60);
     isMapExpanded.value = true;
 };
-
 </script>
 
 <template>
@@ -315,7 +320,15 @@ const openMap = () => {
                         </div>
 
                         <div class="card bg-base-100 border border-base-content/5 rounded-[2.5rem] p-8">
-                            <h3 class="font-black italic text-xl uppercase mb-6">Your Plan</h3>
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="font-black italic text-xl uppercase">Your Plan</h3>
+                                <!-- Workout Button Location 1 -->
+                                <button v-if="workoutPlan.length > 0" 
+                                      @click="startWorkout"
+                                      class="btn btn-primary btn-sm rounded-xl px-8 font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-500/30 animate-fade-in-up">
+                                    Workout
+                                </button>
+                            </div>
                             <div v-if="workoutPlan.length === 0" class="text-sm opacity-40 italic py-10 text-center">Empty plan. Select muscles to start.</div>
                             <ul class="space-y-4">
                                 <li v-for="plan in workoutPlan" :key="plan.id" class="bg-base-200/50 p-5 rounded-2xl relative group border-l-4 border-primary">
@@ -338,25 +351,30 @@ const openMap = () => {
                     </div>
 
                     <!-- CENTER: Muscle Map -->
-                    <div class="lg:col-span-4">
-                        <div id="muscle-map-container" class="w-full h-[700px] bg-base-100 rounded-[3rem] border border-base-content/5 relative overflow-hidden group flex items-center justify-center p-12">
-                            <div v-if="svgContent" v-html="svgContent" class="h-full w-full flex items-center justify-center"></div>
+                    <div class="lg:col-span-4 flex flex-col gap-8">
+                        <div id="muscle-map-container" class="w-full h-[600px] bg-base-100 rounded-[3rem] border border-base-content/5 relative overflow-hidden group flex flex-col items-center justify-center shadow-[inset_0_0_50px_rgba(0,0,0,0.02)]">
+                            <div v-if="svgContent" v-html="svgContent" class="h-full w-full flex items-center justify-center p-4"></div>
                             <div v-else class="flex items-center justify-center h-full"><span class="loading loading-spinner loading-lg"></span></div>
                         </div>
+                        
                     </div>
 
                     <!-- RIGHT: Equipment -->
                     <div class="lg:col-span-4 space-y-8">
-                        <div v-if="selectedMuscle" class="animate-fade-in-up space-y-8">
-                             <div class="bg-primary text-white p-8 rounded-[2.5rem] relative overflow-hidden">
-                                <div class="text-[10px] font-black uppercase tracking-[0.4em] mb-2 opacity-60">Target Area</div>
-                                <div class="text-4xl font-black italic uppercase">{{ cleanMuscleName(selectedMuscle) }}</div>
+                        <div v-if="selectedMuscle" class="animate-fade-in-up space-y-4">
+                             <div class="bg-primary text-white p-6 rounded-[2rem] relative overflow-hidden shadow-xl shadow-primary/20">
+                                <div class="text-[10px] font-black uppercase tracking-[0.4em] mb-1 opacity-80">Target Area</div>
+                                <div class="text-2xl md:text-3xl font-black italic uppercase leading-tight">{{ cleanMuscleName(selectedMuscle) }}</div>
                              </div>
-                             <div v-if="availableEquipment.length > 0" class="space-y-6">
-                                 <div v-for="item in availableEquipment" :key="item.id" class="bg-white rounded-[2.5rem] border border-base-content/5 overflow-hidden hover:-translate-y-2 transition-all p-8 space-y-6">
-                                    <img :src="item.src" class="h-32 mx-auto object-contain" />
-                                     <h4 class="font-black italic uppercase text-lg text-black">{{ item.dbInfo?.name || item.name }}</h4>
-                                    <button @click="addToPlan(item)" class="btn btn-primary btn-block rounded-xl font-black italic uppercase tracking-widest">Add to Plan</button>
+                             <div v-if="availableEquipment.length > 0" class="grid grid-cols-2 gap-4">
+                                 <div v-for="item in availableEquipment" :key="item.id" class="bg-white rounded-[2rem] border border-base-content/5 overflow-hidden hover:-translate-y-1 transition-all p-4 flex flex-col gap-3 group">
+                                    <div class="h-24 w-full flex items-center justify-center bg-base-100/30 rounded-xl">
+                                        <img :src="item.src" class="h-full w-full object-contain p-2" />
+                                    </div>
+                                     <div class="flex-1 flex flex-col justify-between text-center gap-2">
+                                         <h4 class="font-black italic uppercase text-xs md:text-sm text-base-content/80 leading-tight">{{ item.dbInfo?.name || item.name }}</h4>
+                                         <button @click="addToPlan(item)" class="btn btn-primary btn-sm w-full rounded-xl font-black italic uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">Add</button>
+                                     </div>
                                  </div>
                              </div>
                              <div v-else class="text-center py-20 opacity-30 uppercase font-black italic">No Matching Equipment</div>
@@ -391,12 +409,12 @@ const openMap = () => {
 #muscle-map-container :deep(svg) {
     height: 100%;
     width: auto;
-    margin: 0 auto;
-    filter: none !important;
+    max-width: 100%;
+    display: block;
+    margin: auto;
 }
 #muscle-map-container :deep(svg *) {
     filter: none !important;
-    box-shadow: none !important;
 }
 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

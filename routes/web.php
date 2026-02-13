@@ -27,6 +27,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [GymLayoutController::class, 'index'])->name('dashboard');
     Route::post('/gym-builder/{gym_builder}', [GymLayoutController::class, 'update'])->name('gym-builder.post_update');
     Route::resource('gym-builder', GymLayoutController::class);
+
+    // Workouts
+    Route::get('/workouts', function () {
+        return Inertia::render('Workouts/Index');
+    })->name('workouts.index');
+
+    Route::get('/workouts/run', function () {
+        return Inertia::render('Workouts/Run', [
+            'plan' => request()->query('plan')
+        ]);
+    })->name('workouts.run');
+
+    Route::post('/workouts/run', function () {
+        return Inertia::render('Workouts/Run', [
+            'plan' => request()->input('plan')
+        ]);
+    });
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
