@@ -22,6 +22,7 @@ Route::get('/', function () {
 
 Route::get('/gyms/{id}', [GymLayoutController::class, 'showPublic'])->name('gyms.show');
 Route::get('/gyms/{id}/map', [GymLayoutController::class, 'showMap'])->name('gyms.map');
+Route::get('/gyms/{id}/technique', [GymLayoutController::class, 'showTechnique'])->name('gyms.technique');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [GymLayoutController::class, 'index'])->name('dashboard');

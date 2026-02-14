@@ -186,4 +186,21 @@ class GymLayoutController extends Controller
             'equipments' => Equipment::all()
         ]);
     }
+
+    /**
+     * Show the technique map page.
+     */
+    public function showTechnique($id)
+    {
+        $gym = GymLayout::where('id', $id)->firstOrFail();
+
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        return Inertia::render('Gyms/TechniqueMap', [
+            'gym' => $gym,
+            'equipments' => Equipment::all()
+        ]);
+    }
 }

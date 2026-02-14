@@ -64,6 +64,7 @@ const user = computed(() => usePage().props.auth.user);
                     <Link href="/" class="btn btn-ghost text-2xl font-black italic tracking-tighter p-0 hover:bg-transparent">
                         <span class="text-indigo-600">FIT</span>PUNG
                     </Link>
+                    <slot name="navbar-left" />
                 </div>
 
                 <!-- Right: Actions, Theme, User -->

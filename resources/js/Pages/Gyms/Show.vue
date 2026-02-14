@@ -380,12 +380,18 @@ onMounted(() => {
                             </p>
                         </div>
 
-                        <div class="relative z-10">
+                        <div class="relative z-10 flex flex-col gap-4">
                             <Link 
                                 :href="route('gyms.map', gym.id)" 
                                 class="btn bg-[#4338ca] hover:bg-[#3730a3] text-white btn-block h-20 rounded-[1.5rem] font-black italic uppercase tracking-widest shadow-2xl transition-all hover:scale-[1.02]"
                             >
                                 Open Session Planner
+                            </Link>
+                            <Link 
+                                :href="route('gyms.technique', gym.id)" 
+                                class="btn btn-outline border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white btn-block h-20 rounded-[1.5rem] font-black italic uppercase tracking-widest transition-all hover:scale-[1.02]"
+                            >
+                                Explore Techniques
                             </Link>
                         </div>
 
