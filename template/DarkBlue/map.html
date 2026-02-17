@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung Gym Map</title>
+    <!-- Google Fonts: Lexend & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a2b3d",
+                        "cream": "#FFFDD0",
+                        "crimson": "#DC143C",
+                        "background-light": "#f6f7f7",
+                        "background-dark": "#15191d",
+                        "navy-muted": "#2a3b4d",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scroll-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Custom map markers styling */
+        .map-marker {
+            box-shadow: 0 0 15px rgba(220, 20, 60, 0.4);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-primary text-cream antialiased">
+    <!-- Main Container -->
+    <div class="relative flex h-screen w-full flex-col overflow-hidden max-w-md mx-auto border-x border-white/10">
+        <!-- Header -->
+        <header class="flex items-center justify-between p-4 bg-primary/95 backdrop-blur-md z-20">
+            <div class="flex items-center gap-3">
+                <div
+                    class="size-10 rounded-full border-2 border-cream overflow-hidden bg-white/5 flex items-center justify-center">
+                    <img alt="FitPung Mascot" class="w-full h-full object-cover"
+                        data-alt="FitPung Mascot Brand Icon Image 16"
+                        src="../../public/images/gorila/ConcentrationCurl.png" />
+                </div>
+                <div>
+                    <h1 class="text-cream text-lg font-bold leading-tight">Downtown</h1>
+                    <p class="text-cream/60 text-xs font-medium">Gym Floor Map</p>
+                </div>
+            </div>
+            <button
+                class="flex items-center justify-center size-10 rounded-full bg-navy-muted text-cream transition-colors hover:bg-navy-muted/80">
+                <span class="material-symbols-outlined text-2xl">search</span>
+            </button>
+        </header>
+        <!-- Category Filter Chips -->
+        <div class="flex gap-2 px-4 py-3 overflow-x-auto scroll-hide bg-primary/95 z-20">
+            <button
+                class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-cream text-primary px-5 font-semibold text-sm transition-all shadow-lg shadow-black/20">
+                <span class="material-symbols-outlined text-lg">fitness_center</span>
+                Chest
+            </button>
+            <button
+                class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-navy-muted border border-cream/20 text-cream/80 px-5 font-medium text-sm">
+                <span class="material-symbols-outlined text-lg">exercise</span>
+                Back
+            </button>
+            <button
+                class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-navy-muted border border-cream/20 text-cream/80 px-5 font-medium text-sm">
+                <span class="material-symbols-outlined text-lg">humerus</span>
+                Arms
+            </button>
+            <button
+                class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-navy-muted border border-cream/20 text-cream/80 px-5 font-medium text-sm">
+                <span class="material-symbols-outlined text-lg">foot_bones</span>
+                Legs
+            </button>
+            <button
+                class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-navy-muted border border-cream/20 text-cream/80 px-5 font-medium text-sm">
+                <span class="material-symbols-outlined text-lg">directions_run</span>
+                Cardio
+            </button>
+        </div>
+        <!-- Interactive Map Area -->
+        <div class="relative flex-1 bg-[#121b26] overflow-hidden">
+            <!-- Simulated Floor Plan Map -->
+            <div class="absolute inset-0 opacity-40"
+                style="background-image: radial-gradient(circle at 2px 2px, #2a3b4d 1px, transparent 0); background-size: 24px 24px;">
+            </div>
+            <!-- Map Content (Visual Representation) -->
+            <div class="relative w-full h-full p-6 flex items-center justify-center">
+                <div class="w-full h-[80%] border-2 border-white/10 rounded-xl relative overflow-hidden bg-[#0f172a]"
+                    data-location="Downtown Gym Floor Plan">
+                    <!-- Grid Lines (Clean) -->
+                    <div class="absolute top-1/2 left-0 w-full h-px bg-white/5"></div>
+                    <div class="absolute top-0 left-1/3 w-px h-full bg-white/5"></div>
+                    <!-- Machine Markers -->
+                    <!-- Marker 1 (Selected) -->
+                    <div class="absolute top-[20%] left-[20%] flex flex-col items-center">
+                        <div
+                            class="map-marker size-8 rounded-full bg-crimson flex items-center justify-center ring-4 ring-crimson/20 animate-pulse cursor-pointer">
+                            <span class="material-symbols-outlined text-white text-lg">fitness_center</span>
+                        </div>
+                        <span class="mt-1 text-[10px] text-cream bg-primary/80 px-1 rounded">Chest Press</span>
+                    </div>
+                    <!-- Marker 2 -->
+                    <div class="absolute top-[25%] left-[55%] flex flex-col items-center">
+                        <div
+                            class="size-6 rounded-full bg-cream/40 flex items-center justify-center cursor-pointer hover:bg-cream/60 transition-colors">
+                            <span class="material-symbols-outlined text-primary text-sm">fitness_center</span>
+                        </div>
+                    </div>
+                    <!-- Marker 3 -->
+                    <div class="absolute top-[60%] left-[15%] flex flex-col items-center">
+                        <div
+                            class="size-6 rounded-full bg-cream/40 flex items-center justify-center cursor-pointer hover:bg-cream/60 transition-colors">
+                            <span class="material-symbols-outlined text-primary text-sm">fitness_center</span>
+                        </div>
+                    </div>
+                    <!-- Marker 4 -->
+                    <div class="absolute top-[75%] left-[65%] flex flex-col items-center">
+                        <div
+                            class="size-6 rounded-full bg-cream/20 flex items-center justify-center cursor-pointer border border-crimson/50">
+                            <span class="material-symbols-outlined text-crimson text-sm">block</span>
+                        </div>
+                        <span class="mt-1 text-[8px] text-crimson font-bold uppercase">Repair</span>
+                    </div>
+                    <!-- Legend/Scale (Optional Visual Decor) -->
+                    <div
+                        class="absolute bottom-4 right-4 text-[10px] text-cream/30 uppercase tracking-widest font-bold">
+                        Floor Level 01
+                    </div>
+                </div>
+            </div>
+            <!-- Zoom Controls -->
+            <div class="absolute bottom-40 right-4 flex flex-col gap-2">
+                <button
+                    class="size-10 rounded-full bg-primary/90 border border-cream/20 flex items-center justify-center shadow-lg backdrop-blur-sm">
+                    <span class="material-symbols-outlined">add</span>
+                </button>
+                <button
+                    class="size-10 rounded-full bg-primary/90 border border-cream/20 flex items-center justify-center shadow-lg backdrop-blur-sm">
+                    <span class="material-symbols-outlined">remove</span>
+                </button>
+            </div>
+        </div>
+        <!-- Selected Machine Details Card (Floating Bottom Sheet) -->
+        <div class="absolute bottom-[80px] left-4 right-4 z-30">
+            <div class="bg-primary border border-cream/10 rounded-xl shadow-2xl p-4 @container overflow-hidden">
+                <div class="flex items-start gap-4">
+                    <div class="size-20 bg-navy-muted rounded-lg overflow-hidden flex-shrink-0 border border-cream/5">
+                        <img class="w-full h-full object-cover" data-alt="Hammer Strength Chest Press Machine closeup"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA71uo57K5ZG7eSK-XAekjaRxhtyBfRa7Bla7eVd13wsqM2nBXzmnl1Smlo13_CLNRWLVsLMhJsW8JRhZR6wPx3y2cQBzivfG_Kd3Fv_azVfxgGlfp3_ELgpx6-uVVKT5hZe5o6mBuKkF3khBr9zGj9i9mBEO90ghYhMNbwtEEkvQZC4A2DNfbfv87EWfVyD-HcQF9uPH27M4xYgT2VPP65P9gJ07x9I7dm7Rmd6aA2imJoxZSLbAxblKNoqGIh_Hd2RlV-NpodQkY" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span
+                                class="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded-full tracking-wide">Available</span>
+                            <span class="text-cream/40 text-[10px]">• 3 min ago</span>
+                        </div>
+                        <h3 class="text-cream text-base font-bold truncate">Hammer Strength Chest Press</h3>
+                        <p class="text-cream/60 text-xs font-medium">Primary: Pectorals, Triceps</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-3">
+                    <button
+                        class="flex-1 bg-crimson text-white font-bold py-3 rounded-full flex items-center justify-center gap-2 shadow-lg shadow-crimson/20 active:scale-[0.98] transition-all">
+                        <span class="material-symbols-outlined text-xl">play_circle</span>
+                        Begin Exercise
+                    </button>
+                    <button
+                        class="size-12 rounded-full border border-cream/20 flex items-center justify-center text-cream bg-navy-muted/50">
+                        <span class="material-symbols-outlined">info</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Bottom Navigation Bar -->
+        <nav
+            class="fixed bottom-0 left-0 right-0 bg-primary/95 backdrop-blur-md border-t border-cream/5 px-6 py-4 pb-8 z-50">
+            <div class="flex items-center justify-between max-w-md mx-auto">
+                <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                    href="home.html">
+                    <div class="p-2.5 rounded-full">
+                        <span class="material-symbols-outlined">home</span>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+                </a>
+                <a class="flex flex-col items-center gap-1 text-accent-crimson group" href="map.html">
+                    <div class="bg-accent-crimson p-2.5 rounded-full shadow-lg shadow-accent-crimson/20">
+                        <span class="material-symbols-outlined filled-icon text-white">explore</span>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">Map</span>
+                </a>
+                <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                    href="workout.html">
+                    <div class="p-2.5 rounded-full">
+                        <span class="material-symbols-outlined">calendar_today</span>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">Plan</span>
+                </a>
+                <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                    href="progress.html">
+                    <div class="p-2.5 rounded-full">
+                        <span class="material-symbols-outlined">monitoring</span>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">Stats</span>
+                </a>
+                <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                    href="profile.html">
+                    <div class="p-2.5 rounded-full">
+                        <span class="material-symbols-outlined">person</span>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+</body>
+
+</html>

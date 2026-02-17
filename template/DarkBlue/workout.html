@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung Workout Plan</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a2b3d", // Dark Navy Blue-Gray
+                        "accent-crimson": "#dc2626", // Crimson Red
+                        "cream": "#fdfbf7", // Cream text
+                        "background-light": "#f6f7f7",
+                        "background-dark": "#15191d",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #1a2b3d;
+            color: #fdfbf7;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-primary text-cream min-h-screen flex flex-col font-display">
+    <!-- Header Section -->
+    <header class="pt-8 px-6 pb-4 flex flex-col items-center">
+        <div
+            class="w-24 h-24 mb-4 rounded-full bg-primary/40 flex items-center justify-center border-2 border-cream/10 overflow-hidden">
+            <img class="w-full h-full object-cover" data-alt="FitPung mascot character flexing muscles"
+                src="../../public/images/gorila/ConcentrationCurl.png" />
+        </div>
+        <div class="text-center">
+            <h1 class="text-3xl font-extrabold tracking-tight uppercase italic">Welcome back!</h1>
+            <p class="text-cream/70 text-sm font-medium">Ready to crush your goals today?</p>
+        </div>
+    </header>
+    <!-- Goal Selection Section -->
+    <section class="px-6 py-6">
+        <h2 class="text-xl font-bold mb-4 uppercase tracking-wider">Select Your Focus</h2>
+        <div class="grid grid-cols-3 gap-3">
+            <!-- Goal Card: Build Muscle -->
+            <button
+                class="flex flex-col items-center gap-3 p-4 rounded-xl bg-primary/50 border border-cream/10 hover:border-accent-crimson transition-colors group">
+                <div
+                    class="w-12 h-12 rounded-full bg-cream/10 flex items-center justify-center group-hover:bg-accent-crimson transition-colors">
+                    <span class="material-symbols-outlined text-cream">fitness_center</span>
+                </div>
+                <span class="text-xs font-bold uppercase text-center">Build Muscle</span>
+            </button>
+            <!-- Goal Card: Fat Loss -->
+            <button
+                class="flex flex-col items-center gap-3 p-4 rounded-xl bg-primary/50 border border-cream/10 hover:border-accent-crimson transition-colors group">
+                <div
+                    class="w-12 h-12 rounded-full bg-cream/10 flex items-center justify-center group-hover:bg-accent-crimson transition-colors">
+                    <span class="material-symbols-outlined text-cream">local_fire_department</span>
+                </div>
+                <span class="text-xs font-bold uppercase text-center">Fat Loss</span>
+            </button>
+            <!-- Goal Card: Strength -->
+            <button
+                class="flex flex-col items-center gap-3 p-4 rounded-xl bg-primary/50 border border-cream/10 hover:border-accent-crimson transition-colors group">
+                <div
+                    class="w-12 h-12 rounded-full bg-cream/10 flex items-center justify-center group-hover:bg-accent-crimson transition-colors">
+                    <span class="material-symbols-outlined text-cream">bolt</span>
+                </div>
+                <span class="text-xs font-bold uppercase text-center">Strength</span>
+            </button>
+        </div>
+    </section>
+    <!-- Weekly Schedule Section -->
+    <section class="flex-1 px-6 py-4 overflow-hidden flex flex-col">
+        <div class="flex justify-between items-end mb-4">
+            <h2 class="text-xl font-bold uppercase tracking-wider">Weekly Schedule</h2>
+            <span class="text-accent-crimson text-xs font-bold uppercase">October 2023</span>
+        </div>
+        <!-- Vertical Calendar -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar space-y-3 pb-24">
+            <!-- Monday -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-primary/30 border border-cream/5">
+                <div class="flex flex-col items-center justify-center w-12 h-12">
+                    <span class="text-[10px] uppercase font-bold text-cream/50">Mon</span>
+                    <span class="text-lg font-extrabold">14</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold uppercase tracking-tight">Rest Day</p>
+                    <p class="text-[10px] text-cream/40 uppercase">Recovery &amp; Mobility</p>
+                </div>
+                <span class="material-symbols-outlined text-cream/20">check_circle</span>
+            </div>
+            <!-- Tuesday (Active Day) -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-accent-crimson shadow-lg shadow-accent-crimson/20">
+                <div class="flex flex-col items-center justify-center w-12 h-12">
+                    <span class="text-[10px] uppercase font-bold text-white/80">Tue</span>
+                    <span class="text-lg font-extrabold text-white">15</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-black uppercase tracking-tight text-white italic">Upper Body Power</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[10px] bg-black/20 px-2 py-0.5 rounded-full text-white font-bold uppercase">60
+                            Min</span>
+                        <span
+                            class="text-[10px] bg-black/20 px-2 py-0.5 rounded-full text-white font-bold uppercase">High
+                            Intensity</span>
+                    </div>
+                </div>
+                <span class="material-symbols-outlined text-white">play_circle</span>
+            </div>
+            <!-- Wednesday -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-primary/30 border border-cream/5">
+                <div class="flex flex-col items-center justify-center w-12 h-12">
+                    <span class="text-[10px] uppercase font-bold text-cream/50">Wed</span>
+                    <span class="text-lg font-extrabold">16</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold uppercase tracking-tight">Lower Body Core</p>
+                    <p class="text-[10px] text-cream/40 uppercase">Squats &amp; Deadlifts</p>
+                </div>
+                <span class="material-symbols-outlined text-cream/20">lock</span>
+            </div>
+            <!-- Thursday -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-primary/30 border border-cream/5 opacity-80">
+                <div class="flex flex-col items-center justify-center w-12 h-12">
+                    <span class="text-[10px] uppercase font-bold text-cream/50">Thu</span>
+                    <span class="text-lg font-extrabold">17</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold uppercase tracking-tight">Active Recovery</p>
+                    <p class="text-[10px] text-cream/40 uppercase">Yoga &amp; Stretching</p>
+                </div>
+                <span class="material-symbols-outlined text-cream/20">lock</span>
+            </div>
+            <!-- Friday -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-primary/30 border border-cream/5 opacity-60">
+                <div class="flex flex-col items-center justify-center w-12 h-12">
+                    <span class="text-[10px] uppercase font-bold text-cream/50">Fri</span>
+                    <span class="text-lg font-extrabold">18</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold uppercase tracking-tight">Full Body Blast</p>
+                    <p class="text-[10px] text-cream/40 uppercase">Functional Strength</p>
+                </div>
+                <span class="material-symbols-outlined text-cream/20">lock</span>
+            </div>
+        </div>
+    </section>
+    <nav
+        class="fixed bottom-0 left-0 right-0 bg-primary/95 backdrop-blur-md border-t border-cream/5 px-6 py-4 pb-8 z-50">
+        <div class="flex items-center justify-between max-w-md mx-auto">
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="home.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">home</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="map.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">explore</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Map</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-accent-crimson group" href="workout.html">
+                <div class="bg-accent-crimson p-2.5 rounded-full shadow-lg shadow-accent-crimson/20">
+                    <span class="material-symbols-outlined filled-icon text-white">calendar_today</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Plan</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="progress.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">monitoring</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Stats</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="profile.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">person</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+            </a>
+        </div>
+    </nav>
+    <!-- Quick Action Button -->
+    <button
+        class="fixed bottom-24 right-6 w-14 h-14 bg-accent-crimson rounded-full shadow-2xl shadow-accent-crimson/40 flex items-center justify-center text-white active:scale-95 transition-transform">
+        <span class="material-symbols-outlined text-3xl">add</span>
+    </button>
+</body>
+
+</html>

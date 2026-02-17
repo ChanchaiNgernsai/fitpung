@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung - Home Screen</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a2b3d", // Dark Navy Blue-Gray
+                        "accent-crimson": "#DC143C", // Crimson Red
+                        "cream": "#FFFDD0", // Cream highlights
+                        "background-light": "#f6f7f7",
+                        "background-dark": "#1a2b3d",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #1a2b3d;
+            color: #FFFDD0;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-primary text-cream min-h-screen flex flex-col">
+    <!-- Top Profile Bar -->
+    <header class="flex items-center justify-between px-6 py-6 sticky top-0 bg-primary/95 backdrop-blur-md z-50">
+        <div class="flex items-center gap-3">
+            <div class="size-12 rounded-full border-2 border-accent-crimson overflow-hidden bg-primary/40">
+                <img class="w-full h-full object-cover" data-alt="User profile icon"
+                    src="../../public/images/gorila/ConcentrationCurl.png" />
+            </div>
+            <div>
+                <p class="text-cream/60 text-xs font-medium uppercase tracking-widest">Welcome back</p>
+                <h2 class="text-cream text-lg font-bold leading-tight">Alex</h2>
+            </div>
+        </div>
+        <button class="bg-primary/50 p-2 rounded-full border border-cream/10 text-cream">
+            <span class="material-symbols-outlined">notifications</span>
+        </button>
+    </header>
+    <main class="flex-1 overflow-y-auto px-4 pb-24">
+        <!-- Hero Mascot Section -->
+        <section class="relative mt-2 mb-8 @container">
+            <div
+                class="bg-white/5 rounded-2xl overflow-hidden min-h-[300px] flex flex-col items-center justify-center border border-white/10 shadow-2xl relative">
+                <!-- Light glow behind gorilla -->
+                <div
+                    class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_0%,_transparent_70%)]">
+                </div>
+
+                <div class="relative z-10 w-full flex flex-col items-center p-6">
+                    <img class="w-full max-w-[280px] h-auto object-contain drop-shadow-2xl"
+                        data-alt="FitPung gorilla mascot" src="../../public/images/gorila/ConcentrationCurl.png" />
+                    <div class="text-center mt-4">
+                        <span
+                            class="bg-accent-crimson/20 text-accent-crimson text-[10px] font-extrabold uppercase tracking-[0.3em] px-3 py-1 rounded-full border border-accent-crimson/30">
+                            FitPung Alpha
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Activity Focus: Workout Today Card -->
+        <section class="mb-8">
+            <div class="bg-cream/5 rounded-xl p-5 border border-cream/10 shadow-lg relative overflow-hidden group">
+                <div
+                    class="absolute -right-8 -top-8 size-32 bg-accent-crimson/10 rounded-full blur-3xl group-hover:bg-accent-crimson/20 transition-all">
+                </div>
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-cream text-xl font-bold">Today's Routine</h3>
+                        <p class="text-cream/60 text-sm mt-1">Focus: High Intensity Power</p>
+                    </div>
+                    <div class="bg-accent-crimson text-[10px] font-bold px-2 py-1 rounded text-white">45 MIN</div>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-black text-cream">Full Body Blast</span>
+                        <span class="text-xs text-accent-crimson font-bold uppercase tracking-wider">Strength &amp;
+                            Conditioning</span>
+                    </div>
+                    <button
+                        class="bg-accent-crimson hover:bg-red-700 text-white font-bold px-8 py-3 rounded-full flex items-center gap-2 transition-transform active:scale-95 shadow-lg shadow-accent-crimson/20">
+                        <span>START</span>
+                        <span class="material-symbols-outlined text-sm filled-icon">play_arrow</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- Daily Stats Grid -->
+        <section class="mb-6">
+            <h3 class="text-cream text-sm font-bold uppercase tracking-[0.2em] mb-4 opacity-70">Daily Summary</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-primary/40 border border-cream/10 p-5 rounded-xl flex flex-col items-center text-center">
+                    <span class="material-symbols-outlined text-accent-crimson mb-2">fitness_center</span>
+                    <span class="text-3xl font-black text-cream">12</span>
+                    <span class="text-xs font-medium text-cream/50 uppercase tracking-tighter">Sets Completed</span>
+                </div>
+                <div class="bg-primary/40 border border-cream/10 p-5 rounded-xl flex flex-col items-center text-center">
+                    <span class="material-symbols-outlined text-accent-crimson mb-2">schedule</span>
+                    <span class="text-3xl font-black text-cream">48</span>
+                    <span class="text-xs font-medium text-cream/50 uppercase tracking-tighter">Minutes Active</span>
+                </div>
+            </div>
+        </section>
+        <!-- Quick Progress Chart Placeholder -->
+        <section class="mb-8">
+            <div class="bg-primary/40 border border-cream/5 rounded-xl p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xs font-bold uppercase tracking-widest text-cream/60">Weekly Output</h4>
+                    <span class="text-accent-crimson text-xs font-bold">+12% vs last week</span>
+                </div>
+                <div class="flex items-end justify-between h-20 gap-2">
+                    <div class="flex-1 bg-cream/10 rounded-t-sm h-[40%]"></div>
+                    <div class="flex-1 bg-cream/10 rounded-t-sm h-[60%]"></div>
+                    <div class="flex-1 bg-cream/10 rounded-t-sm h-[30%]"></div>
+                    <div class="flex-1 bg-accent-crimson rounded-t-sm h-[90%]"></div>
+                    <div class="flex-1 bg-cream/10 rounded-t-sm h-[50%]"></div>
+                    <div class="flex-1 bg-cream/10 rounded-t-sm h-[75%]"></div>
+                    <div class="flex-1 bg-cream/20 rounded-t-sm h-[20%]"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <!-- Bottom Navigation Bar -->
+    <nav
+        class="fixed bottom-0 left-0 right-0 bg-primary/95 backdrop-blur-md border-t border-cream/5 px-6 py-4 pb-8 z-50">
+        <div class="flex items-center justify-between max-w-md mx-auto">
+            <a class="flex flex-col items-center gap-1 text-accent-crimson group" href="home.html">
+                <div class="bg-accent-crimson p-2.5 rounded-full shadow-lg shadow-accent-crimson/20">
+                    <span class="material-symbols-outlined filled-icon text-white">home</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="map.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">explore</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Map</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="workout.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">calendar_today</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Plan</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="progress.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">monitoring</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Stats</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="profile.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">person</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+            </a>
+        </div>
+    </nav>
+</body>
+
+</html>

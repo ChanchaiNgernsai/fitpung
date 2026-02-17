@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung - Progress Tracking</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a2b3d",
+                        "background-light": "#f6f7f7",
+                        "background-dark": "#15191d",
+                        "crimson": "#dc143c",
+                        "cream": "#fdf5e6",
+                        "navy-muted": "#2a3b4d"
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .chart-gradient {
+            background: linear-gradient(180deg, rgba(220, 20, 60, 0.2) 0%, rgba(26, 43, 61, 0) 100%);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-primary text-cream min-h-screen flex flex-col">
+    <!-- Header Section -->
+    <header class="flex items-center justify-between px-6 pt-8 pb-4 sticky top-0 bg-primary/95 backdrop-blur-md z-50">
+        <div class="flex flex-col">
+            <h1 class="text-2xl font-bold tracking-tight">Progress</h1>
+            <p class="text-cream/60 text-sm">Keep pushing, Alex!</p>
+        </div>
+        <div class="relative">
+            <div class="size-14 rounded-full border-2 border-crimson p-1 overflow-hidden bg-navy-muted">
+                <img class="w-full h-full object-cover rounded-full"
+                    data-alt="FitPung mascot as a high rank athlete icon"
+                    src="../../public/images/gorila/ConcentrationCurl.png" />
+            </div>
+            <div
+                class="absolute -bottom-1 -right-1 bg-crimson text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-primary shadow-lg">
+                ELITE
+            </div>
+        </div>
+    </header>
+    <main class="flex-1 overflow-y-auto px-4 pb-24 space-y-6">
+        <!-- Summary Cards Grid -->
+        <section class="grid grid-cols-3 gap-3">
+            <div
+                class="bg-navy-muted/50 p-4 rounded-xl flex flex-col items-center justify-center text-center border border-white/5">
+                <span class="material-symbols-outlined text-crimson mb-2 text-xl">event_repeat</span>
+                <p class="text-[10px] uppercase tracking-wider text-cream/50 font-medium">Sessions</p>
+                <p class="text-xl font-bold mt-1">42</p>
+            </div>
+            <div
+                class="bg-navy-muted/50 p-4 rounded-xl flex flex-col items-center justify-center text-center border border-white/5">
+                <span class="material-symbols-outlined text-crimson mb-2 text-xl">fitness_center</span>
+                <p class="text-[10px] uppercase tracking-wider text-cream/50 font-medium">Sets</p>
+                <p class="text-xl font-bold mt-1">580</p>
+            </div>
+            <div
+                class="bg-navy-muted/50 p-4 rounded-xl flex flex-col items-center justify-center text-center border border-white/5">
+                <span class="material-symbols-outlined text-crimson mb-2 text-xl">timer</span>
+                <p class="text-[10px] uppercase tracking-wider text-cream/50 font-medium">Time</p>
+                <p class="text-xl font-bold mt-1">38h</p>
+            </div>
+        </section>
+        <!-- Volume Chart Section -->
+        <section class="bg-navy-muted/30 rounded-3xl p-6 border border-white/5">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-bold">Volume Trend</h2>
+                <div class="flex bg-primary rounded-full p-1 border border-white/10">
+                    <button class="px-4 py-1.5 text-xs font-semibold rounded-full bg-crimson text-white">7D</button>
+                    <button class="px-4 py-1.5 text-xs font-semibold rounded-full text-cream/50">1M</button>
+                    <button class="px-4 py-1.5 text-xs font-semibold rounded-full text-cream/50">6M</button>
+                </div>
+            </div>
+            <!-- Mock Line Chart -->
+            <div class="relative h-48 w-full mt-4">
+                <svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 400 150">
+                    <!-- Grid Lines -->
+                    <line stroke="white" stroke-dasharray="4" stroke-opacity="0.05" x1="0" x2="400" y1="30" y2="30">
+                    </line>
+                    <line stroke="white" stroke-dasharray="4" stroke-opacity="0.05" x1="0" x2="400" y1="75" y2="75">
+                    </line>
+                    <line stroke="white" stroke-dasharray="4" stroke-opacity="0.05" x1="0" x2="400" y1="120" y2="120">
+                    </line>
+                    <!-- Area Under Curve -->
+                    <path
+                        d="M0,150 L0,110 C50,100 100,130 150,80 C200,30 250,60 300,40 C350,20 400,50 400,50 L400,150 Z"
+                        fill="url(#chart-grad)"></path>
+                    <!-- Line Path -->
+                    <path d="M0,110 C50,100 100,130 150,80 C200,30 250,60 300,40 C350,20 400,50 400,50" fill="none"
+                        stroke="#dc143c" stroke-linecap="round" stroke-width="4"></path>
+                    <!-- Gradient Definition -->
+                    <defs>
+                        <lineargradient id="chart-grad" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stop-color="#dc143c" stop-opacity="0.3"></stop>
+                            <stop offset="100%" stop-color="#1a2b3d" stop-opacity="0"></stop>
+                        </lineargradient>
+                    </defs>
+                </svg>
+                <!-- Chart Labels -->
+                <div class="flex justify-between mt-4 px-1 text-[10px] text-cream/40 font-medium">
+                    <span>MON</span>
+                    <span>TUE</span>
+                    <span>WED</span>
+                    <span>THU</span>
+                    <span>FRI</span>
+                    <span>SAT</span>
+                    <span>SUN</span>
+                </div>
+            </div>
+            <div class="mt-6 flex items-center justify-between p-4 bg-primary/40 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-crimson/10 rounded-lg">
+                        <span class="material-symbols-outlined text-crimson text-sm">trending_up</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-cream/60">Weekly Change</p>
+                        <p class="text-sm font-bold">+12.4% Volume</p>
+                    </div>
+                </div>
+                <button class="text-xs font-bold text-crimson">DETAILS</button>
+            </div>
+        </section>
+        <!-- Personal Records List -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between px-2">
+                <h2 class="text-lg font-bold">Personal Records</h2>
+                <button class="text-sm text-cream/40 font-medium">View All</button>
+            </div>
+            <div class="space-y-3">
+                <!-- Record Item -->
+                <div class="flex items-center justify-between p-4 bg-navy-muted/40 rounded-2xl border border-white/5">
+                    <div class="flex items-center gap-4">
+                        <div class="size-10 rounded-full bg-primary flex items-center justify-center text-crimson">
+                            <span class="material-symbols-outlined">straighten</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold">Bench Press</p>
+                            <p class="text-[10px] text-cream/40 uppercase tracking-tighter">OCT 24, 2023</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-crimson">225 lbs</p>
+                        <p class="text-[10px] text-cream/40">5 Reps</p>
+                    </div>
+                </div>
+                <!-- Record Item -->
+                <div class="flex items-center justify-between p-4 bg-navy-muted/40 rounded-2xl border border-white/5">
+                    <div class="flex items-center gap-4">
+                        <div class="size-10 rounded-full bg-primary flex items-center justify-center text-crimson">
+                            <span class="material-symbols-outlined">stat_3</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold">Deadlift</p>
+                            <p class="text-[10px] text-cream/40 uppercase tracking-tighter">OCT 18, 2023</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-crimson">405 lbs</p>
+                        <p class="text-[10px] text-cream/40">1 Rep</p>
+                    </div>
+                </div>
+                <!-- Record Item -->
+                <div class="flex items-center justify-between p-4 bg-navy-muted/40 rounded-2xl border border-white/5">
+                    <div class="flex items-center gap-4">
+                        <div class="size-10 rounded-full bg-primary flex items-center justify-center text-crimson">
+                            <span class="material-symbols-outlined">directions_run</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold">Back Squat</p>
+                            <p class="text-[10px] text-cream/40 uppercase tracking-tighter">SEP 30, 2023</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-crimson">315 lbs</p>
+                        <p class="text-[10px] text-cream/40">8 Reps</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <!-- Bottom Navigation Bar -->
+    <nav
+        class="fixed bottom-0 left-0 right-0 bg-primary/95 backdrop-blur-md border-t border-cream/5 px-6 py-4 pb-8 z-50">
+        <div class="flex items-center justify-between max-w-md mx-auto">
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="home.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">home</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="map.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">explore</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Map</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="workout.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">calendar_today</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Plan</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-accent-crimson group" href="progress.html">
+                <div class="bg-accent-crimson p-2.5 rounded-full shadow-lg shadow-accent-crimson/20">
+                    <span class="material-symbols-outlined filled-icon text-white">monitoring</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Stats</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="profile.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">person</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+            </a>
+        </div>
+    </nav>
+</body>

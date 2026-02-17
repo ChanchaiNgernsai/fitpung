@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung Profile</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a2b3d", // Dark Navy Blue-Gray
+                        "cream": "#f5f5dc",
+                        "crimson": "#dc143c",
+                        "background-light": "#1a2b3d", // Overriding for dark navy background as requested
+                        "background-dark": "#15191d",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #1a2b3d;
+        }
+
+        .thick-card {
+            border: 2px solid #f5f5dc;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .active-nav {
+            color: #f5f5dc !important;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-primary text-cream min-h-screen flex flex-col">
+    <!-- Header / Top Bar -->
+    <div class="flex items-center justify-between p-6 pt-8">
+        <button class="flex items-center justify-center size-12 bg-primary/40 rounded-full border-2 border-cream/20">
+            <span class="material-symbols-outlined text-cream">arrow_back</span>
+        </button>
+        <h1 class="text-xl font-bold tracking-tight">PROFILE</h1>
+        <button class="flex items-center justify-center size-12 bg-primary/40 rounded-full border-2 border-cream/20">
+            <span class="material-symbols-outlined text-cream">settings</span>
+        </button>
+    </div>
+    <!-- Main Content Scrollable Area -->
+    <div class="flex-1 overflow-y-auto px-6 pb-24">
+        <!-- Mascot & Profile Header -->
+        <div class="flex flex-col items-center mt-4 mb-8">
+            <div class="relative group">
+                <div class="absolute inset-0 bg-cream/10 rounded-full blur-xl group-hover:bg-cream/20 transition-all">
+                </div>
+                <div
+                    class="relative size-36 rounded-full border-4 border-cream p-1 overflow-hidden shadow-2xl bg-primary">
+                    <img alt="User Mascot Profile" class="w-full h-full object-cover rounded-full"
+                        data-alt="Athletic mascot icon in a dark navy circle"
+                        src="../../public/images/gorila/ConcentrationCurl.png" />
+                </div>
+            </div>
+            <div class="mt-6 text-center">
+                <h2 class="text-3xl font-bold tracking-tight">Alex FitPung</h2>
+                <p class="text-cream/70 text-base mt-1 font-medium">@alex_fit_2024</p>
+            </div>
+        </div>
+        <!-- Stat Cards Grid -->
+        <div class="grid grid-cols-2 gap-3 mb-8">
+            <!-- Weight Transformation Card -->
+            <div
+                class="thick-card bg-primary/50 flex flex-col items-center justify-center py-4 rounded-xl col-span-2 relative overflow-hidden">
+                <div
+                    class="absolute top-2 right-2 bg-crimson text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                    -5KG LOSS
+                </div>
+                <span class="text-xs font-bold uppercase tracking-widest text-cream/60 mb-2">Weight
+                    Transformation</span>
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase font-bold text-cream/40">Starting</p>
+                        <p class="text-lg font-bold text-cream/70">60<span class="text-xs ml-0.5">kg</span></p>
+                    </div>
+                    <div class="h-8 w-px bg-cream/20"></div>
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase font-bold text-cream/40">Current</p>
+                        <p class="text-2xl font-bold text-cream">55<span class="text-sm ml-0.5">kg</span></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Height Card -->
+            <div class="thick-card bg-primary/50 flex flex-col items-center justify-center py-5 rounded-xl">
+                <span class="text-xs font-bold uppercase tracking-widest text-cream/60 mb-1">Height</span>
+                <span class="text-xl font-bold">182<span class="text-sm ml-0.5">cm</span></span>
+            </div>
+            <!-- Goal Card -->
+            <div class="thick-card bg-primary/50 flex flex-col items-center justify-center py-5 rounded-xl">
+                <span class="text-xs font-bold uppercase tracking-widest text-cream/60 mb-1">Goal</span>
+                <span class="text-sm font-bold leading-tight text-center px-1">Muscle Gain</span>
+            </div>
+        </div>
+        <!-- Edit Profile Action -->
+        <button
+            class="w-full bg-crimson hover:bg-crimson/90 text-white font-bold py-4 rounded-full shadow-lg transition-transform active:scale-95 mb-10 flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined">edit</span>
+            EDIT PROFILE
+        </button>
+        <!-- Training History Section -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold tracking-tight">RECENT ACTIVITY</h3>
+                <a class="text-xs font-bold text-cream/50 hover:text-cream" href="#">SEE ALL</a>
+            </div>
+            <div class="space-y-4">
+                <!-- Activity Item 1 -->
+                <div class="thick-card bg-primary/40 p-4 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="size-12 rounded-full bg-cream/10 border border-cream/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-cream">fitness_center</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-base">Leg Day</p>
+                            <p class="text-xs text-cream/60 font-medium">Monday • 45 mins</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-cream">420</p>
+                        <p class="text-[10px] uppercase font-bold text-cream/40 tracking-wider">kcal</p>
+                    </div>
+                </div>
+                <!-- Activity Item 2 -->
+                <div class="thick-card bg-primary/40 p-4 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="size-12 rounded-full bg-cream/10 border border-cream/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-cream">directions_run</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-base">Morning Cardio</p>
+                            <p class="text-xs text-cream/60 font-medium">Yesterday • 30 mins</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-cream">310</p>
+                        <p class="text-[10px] uppercase font-bold text-cream/40 tracking-wider">kcal</p>
+                    </div>
+                </div>
+                <!-- Activity Item 3 -->
+                <div class="thick-card bg-primary/40 p-4 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="size-12 rounded-full bg-cream/10 border border-cream/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-cream">exercise</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-base">Upper Body</p>
+                            <p class="text-xs text-cream/60 font-medium">Oct 12 • 60 mins</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-cream">540</p>
+                        <p class="text-[10px] uppercase font-bold text-cream/40 tracking-wider">kcal</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <nav
+        class="fixed bottom-0 left-0 right-0 bg-primary/95 backdrop-blur-md border-t border-cream/5 px-6 py-4 pb-8 z-50">
+        <div class="flex items-center justify-between max-w-md mx-auto">
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="home.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">home</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="map.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">explore</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Map</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="workout.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">calendar_today</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Plan</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-cream/40 hover:text-cream transition-colors group"
+                href="progress.html">
+                <div class="p-2.5 rounded-full">
+                    <span class="material-symbols-outlined">monitoring</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Stats</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-accent-crimson group" href="profile.html">
+                <div class="bg-accent-crimson p-2.5 rounded-full shadow-lg shadow-accent-crimson/20">
+                    <span class="material-symbols-outlined filled-icon text-white">person</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+            </a>
+        </div>
+    </nav>
+</body>
+
+</html>
