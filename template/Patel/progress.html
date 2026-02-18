@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung Mobile App - Progress Analytics</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c4bbf7",
+                        "background-light": "#fcfcfd",
+                        "background-dark": "#131121",
+                        "bubblegum": "#FF85BA",
+                        "mango": "#FFD166",
+                        "skyblue": "#E0F2FE",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.5rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Spline Sans', sans-serif;
+        }
+
+        .graph-grid {
+            background-image: linear-gradient(to right, #E0F2FE 1px, transparent 1px),
+                linear-gradient(to bottom, #E0F2FE 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-[#2D264B]">
+    <div
+        class="relative flex h-auto min-h-screen w-full max-w-[480px] mx-auto flex-col bg-white overflow-x-hidden shadow-2xl shadow-primary/10">
+        <!-- Header -->
+        <div class="flex items-center bg-white p-4 pb-2 justify-between sticky top-0 z-10">
+            <a href="home.html" class="text-[#2D264B] flex size-12 shrink-0 items-center justify-start cursor-pointer">
+                <span class="material-symbols-outlined text-2xl">arrow_back_ios</span>
+            </a>
+            <h2 class="text-[#2D264B] text-xl font-bold leading-tight tracking-tight flex-1 text-center font-display">My
+                Progress</h2>
+            <div class="flex w-12 items-center justify-end">
+                <button
+                    class="flex size-12 cursor-pointer items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined">notifications</span>
+                </button>
+            </div>
+        </div>
+        <!-- Motivational Hero Card -->
+        <div class="p-4">
+            <div
+                class="relative overflow-hidden flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-primary/20 bg-primary/5 p-6 text-center">
+                <div class="absolute -right-4 -top-4 size-24 bg-mango/20 rounded-full blur-2xl"></div>
+                <div class="absolute -left-4 -bottom-4 size-24 bg-bubblegum/20 rounded-full blur-2xl"></div>
+                <div class="bg-white size-14 rounded-full shadow-sm overflow-hidden border-2 border-white">
+                    <img class="w-full h-full object-cover" src="../../public/images/gorila/ConcentrationCurl.png" />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <p class="text-[#2D264B] text-xl font-bold leading-tight">เก่งมาก! เดือนนี้ฟิตขึ้น 20% แล้ว</p>
+                    <p class="text-[#594e97] text-sm font-medium opacity-80">You're doing amazing, keep it up! ✨</p>
+                </div>
+                <button
+                    class="mt-2 flex min-w-[120px] cursor-pointer items-center justify-center rounded-full h-10 px-6 bg-bubblegum text-white text-sm font-bold shadow-lg shadow-bubblegum/30">
+                    <span>Share Stats</span>
+                </button>
+            </div>
+        </div>
+        <!-- Summary Stats Grid -->
+        <div class="grid grid-cols-3 gap-3 px-4 py-2">
+            <div
+                class="flex flex-col items-center gap-2 rounded-lg bg-background-light p-4 border border-primary/10 shadow-sm">
+                <span class="material-symbols-outlined text-bubblegum">exercise</span>
+                <p class="text-[10px] uppercase tracking-wider font-bold text-[#594e97]/60">Sessions</p>
+                <p class="text-lg font-bold text-[#2D264B]">15</p>
+            </div>
+            <div
+                class="flex flex-col items-center gap-2 rounded-lg bg-background-light p-4 border border-primary/10 shadow-sm">
+                <span class="material-symbols-outlined text-mango">layers</span>
+                <p class="text-[10px] uppercase tracking-wider font-bold text-[#594e97]/60">Total Sets</p>
+                <p class="text-lg font-bold text-[#2D264B]">120</p>
+            </div>
+            <div
+                class="flex flex-col items-center gap-2 rounded-lg bg-background-light p-4 border border-primary/10 shadow-sm">
+                <span class="material-symbols-outlined text-primary">schedule</span>
+                <p class="text-[10px] uppercase tracking-wider font-bold text-[#594e97]/60">Hours</p>
+                <p class="text-lg font-bold text-[#2D264B]">14.5</p>
+            </div>
+        </div>
+        <!-- Time-Frame Selector -->
+        <div class="flex px-4 py-4">
+            <div
+                class="flex h-12 flex-1 items-center justify-center rounded-full bg-background-light border border-primary/10 p-1.5">
+                <label
+                    class="flex cursor-pointer h-full grow items-center justify-center rounded-full px-2 has-[:checked]:bg-white has-[:checked]:shadow-md has-[:checked]:text-primary text-[#594e97] text-sm font-bold transition-all">
+                    <span>Week</span>
+                    <input class="hidden" name="timeframe" type="radio" value="Week" />
+                </label>
+                <label
+                    class="flex cursor-pointer h-full grow items-center justify-center rounded-full px-2 has-[:checked]:bg-white has-[:checked]:shadow-md has-[:checked]:text-primary text-[#594e97] text-sm font-bold transition-all">
+                    <span>Month</span>
+                    <input checked="" class="hidden" name="timeframe" type="radio" value="Month" />
+                </label>
+                <label
+                    class="flex cursor-pointer h-full grow items-center justify-center rounded-full px-2 has-[:checked]:bg-white has-[:checked]:shadow-md has-[:checked]:text-primary text-[#594e97] text-sm font-bold transition-all">
+                    <span>Year</span>
+                    <input class="hidden" name="timeframe" type="radio" value="Year" />
+                </label>
+            </div>
+        </div>
+        <!-- Analytics Graph Section -->
+        <div class="flex flex-col gap-4 px-4 py-4">
+            <div class="flex justify-between items-end">
+                <div class="flex flex-col">
+                    <p class="text-[#2D264B] text-sm font-bold">Volume Growth</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-[#2D264B] text-3xl font-black">+20%</p>
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-green-100 text-green-600 text-[10px] font-bold">TRENDING
+                            UP</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <p class="text-[#594e97] text-xs font-medium">This Month</p>
+                    <p class="text-bubblegum font-bold">6.2k kg</p>
+                </div>
+            </div>
+            <div class="relative w-full h-[240px] rounded-lg border border-skyblue bg-white graph-grid overflow-hidden">
+                <!-- Custom Adorable Chart -->
+                <svg class="absolute inset-0 w-full h-full" preserveaspectratio="none" viewbox="0 0 400 200">
+                    <!-- Sky Blue Grid Lines (Horizontal) -->
+                    <line stroke="#E0F2FE" stroke-width="1" x1="0" x2="400" y1="50" y2="50"></line>
+                    <line stroke="#E0F2FE" stroke-width="1" x1="0" x2="400" y1="100" y2="100"></line>
+                    <line stroke="#E0F2FE" stroke-width="1" x1="0" x2="400" y1="150" y2="150"></line>
+                    <!-- Bubblegum Pink Line -->
+                    <path d="M0 160 Q 50 170, 80 120 T 160 100 T 240 140 T 320 60 T 400 40" fill="none"
+                        filter="drop-shadow(0 4px 6px rgba(255,133,186,0.3))" stroke="#FF85BA" stroke-linecap="round"
+                        stroke-linejoin="round" stroke-width="5"></path>
+                    <!-- Soft Mango Data Points -->
+                    <circle cx="80" cy="120" fill="#FFD166" r="6" stroke="white" stroke-width="2"></circle>
+                    <circle cx="160" cy="100" fill="#FFD166" r="6" stroke="white" stroke-width="2"></circle>
+                    <circle cx="240" cy="140" fill="#FFD166" r="6" stroke="white" stroke-width="2"></circle>
+                    <circle cx="320" cy="60" fill="#FFD166" r="8" stroke="white" stroke-width="3"></circle>
+                    <circle cx="400" cy="40" fill="#FFD166" r="6" stroke="white" stroke-width="2"></circle>
+                    <!-- Tooltip Point Indicator -->
+                    <rect fill="#2D264B" height="20" rx="10" width="30" x="305" y="20"></rect>
+                    <text fill="white" font-size="10" font-weight="bold" text-anchor="middle" x="320" y="34">NEW</text>
+                </svg>
+            </div>
+            <div class="flex justify-between px-2">
+                <p class="text-[#594e97] text-[11px] font-bold opacity-60">WEEK 1</p>
+                <p class="text-[#594e97] text-[11px] font-bold opacity-60">WEEK 2</p>
+                <p class="text-[#594e97] text-[11px] font-bold opacity-60">WEEK 3</p>
+                <p class="text-[#594e97] text-[11px] font-bold opacity-60">WEEK 4</p>
+            </div>
+        </div>
+        <!-- Insight Card -->
+        <div class="px-4 pb-6">
+            <div class="flex items-center gap-4 rounded-lg bg-skyblue/30 p-4 border border-skyblue">
+                <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-white text-bubblegum">
+                    <span class="material-symbols-outlined">lightbulb</span>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    <p class="text-[#2D264B] text-sm font-bold">Pro Insight</p>
+                    <p class="text-[#594e97] text-xs font-medium leading-normal">Your "Leg Day" consistency has improved
+                        by 40% this month. Your power is growing! 🦵💪</p>
+                </div>
+            </div>
+        </div>
+        <!-- Recent Activity Log -->
+        <div class="flex flex-col gap-3 px-4 pb-24">
+            <h3 class="text-[#2D264B] text-base font-bold px-1">Recent Activity</h3>
+            <div class="flex items-center justify-between p-4 rounded-lg bg-white border border-primary/10 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-full bg-mango/20 flex items-center justify-center text-xl">🔥</div>
+                    <div>
+                        <p class="text-sm font-bold text-[#2D264B]">Heavy Squats</p>
+                        <p class="text-[10px] font-medium text-[#594e97]/60">Yesterday • 45 min</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold text-bubblegum">+120 pts</p>
+                    <p class="text-[10px] font-medium text-[#594e97]/60">Level Up!</p>
+                </div>
+            </div>
+            <div
+                class="flex items-center justify-between p-4 rounded-lg bg-white border border-primary/10 shadow-sm opacity-80">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-xl">🧘</div>
+                    <div>
+                        <p class="text-sm font-bold text-[#2D264B]">Morning Yoga</p>
+                        <p class="text-[10px] font-medium text-[#594e97]/60">2 days ago • 30 min</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold text-primary">+50 pts</p>
+                    <p class="text-[10px] font-medium text-[#594e97]/60">Recovered</p>
+                </div>
+            </div>
+        </div>
+        <!-- Bottom Navigation Bar -->
+        <div
+            class="fixed bottom-0 left-1/2 -translate-x-1/2 flex w-full max-w-[480px] gap-2 border-t border-primary/10 bg-white/90 backdrop-blur-md px-4 pb-6 pt-3 z-20">
+            <a class="flex flex-1 flex-col items-center justify-center gap-1 text-[#594e97] opacity-60 hover:opacity-100"
+                href="home.html">
+                <span class="material-symbols-outlined">home</span>
+                <p class="text-[10px] font-bold">Home</p>
+            </a>
+            <a class="flex flex-1 flex-col items-center justify-center gap-1 text-[#594e97] opacity-60 hover:opacity-100"
+                href="map.html">
+                <span class="material-symbols-outlined">explore</span>
+                <p class="text-[10px] font-bold">Map</p>
+            </a>
+            <a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="progress.html">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">monitoring</span>
+                <p class="text-[10px] font-black">Analytics</p>
+            </a>
+            <a class="flex flex-1 flex-col items-center justify-center gap-1 text-[#594e97] opacity-60 hover:opacity-100"
+                href="profile.html">
+                <span class="material-symbols-outlined">account_circle</span>
+                <p class="text-[10px] font-bold">Profile</p>
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

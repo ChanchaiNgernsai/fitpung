@@ -129,12 +129,12 @@ const user = computed(() => usePage().props.auth.user);
             <div v-if="toastMessage" class="fixed top-24 right-5 z-[100] flex items-end justify-end pointer-events-none">
                 
                 <div :class="[
-                    'pointer-events-auto flex items-start gap-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur shadow-2xl rounded-xl p-4 min-w-[320px] max-w-[400px] border border-gray-100 dark:border-gray-700 ring-1 ring-black/5 transform transition-all',
+                    'pointer-events-auto flex items-start gap-3 bg-white/95  backdrop-blur shadow-2xl rounded-xl p-4 min-w-[320px] max-w-[400px] border border-gray-100  ring-1 ring-black/5 transform transition-all',
                 ]">
                     <!-- Icon Bubble -->
                     <div :class="[
                         'rounded-full p-2 flex-shrink-0 mt-0.5',
-                        (toastType === 'error' || toastType === 'logout') ? 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-500 dark:bg-green-900/20 dark:text-green-400'
+                        (toastType === 'error' || toastType === 'logout') ? 'bg-red-50 text-red-500  ' : 'bg-green-50 text-green-500  '
                     ]">
                         <!-- Success/Logout Icon -->
                         <svg v-if="toastType === 'success' || toastType === 'logout'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
@@ -144,16 +144,16 @@ const user = computed(() => usePage().props.auth.user);
 
                     <!-- Content -->
                     <div class="flex flex-col text-left flex-1">
-                        <h3 :class="['text-sm font-bold leading-tight mb-0.5', (toastType === 'error' || toastType === 'logout') ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100']">
+                        <h3 :class="['text-sm font-bold leading-tight mb-0.5', (toastType === 'error' || toastType === 'logout') ? 'text-red-600 ' : 'text-gray-900 ']">
                             {{ toastType === 'success' ? 'Success' : (toastType === 'logout' ? 'System' : 'Error') }}
                         </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 font-medium leading-snug">
+                        <p class="text-sm text-gray-600  font-medium leading-snug">
                             {{ toastMessage }}
                         </p>
                     </div>
 
                     <!-- Close Button -->
-                    <button @click="toastMessage = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors -mr-1 -mt-1">
+                    <button @click="toastMessage = null" class="text-gray-400 hover:text-gray-600  transition-colors -mr-1 -mt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg>

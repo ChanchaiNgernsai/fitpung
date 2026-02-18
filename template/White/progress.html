@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung - Progress Tracking</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13", // Crimson/Orange accent
+                        "navy-deep": "#0f172a",
+                        "navy-muted": "#1e293b",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+        }
+
+        .chart-line {
+            stroke-dasharray: 0;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-navy-deep dark:text-white antialiased">
+    <!-- Main Container (Mobile Constrained) -->
+    <div
+        class="relative flex h-screen w-full flex-col overflow-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark border-x border-slate-200 dark:border-slate-800">
+        <!-- Header -->
+        <header class="flex items-center justify-between px-6 pt-8 pb-4">
+            <div class="flex flex-col">
+                <span class="text-xs font-bold uppercase tracking-widest text-primary">FitPung Elite</span>
+                <h1 class="text-2xl font-800 tracking-tight dark:text-white">Performance</h1>
+            </div>
+            <div class="relative">
+                <div class="size-10 rounded-full border-2 border-primary p-0.5">
+                    <img alt="User Profile" class="size-full rounded-full object-cover"
+                        data-alt="Close up portrait of an athlete"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjuchVWDk_IRP1TbfrAkzG8C4dA-u_ZSX_bmaJ7iTLsz349d2YCZwMsRA1jv1NHNq-FTa1WuuTrctIi_d9WHJb2VI1NZrJ3p_BqZcczzKpP4SZPQj3B_XX6EDlPU5fbHMh9GznMXlc3-Koi2GaRlWBu-73j1pHp39bRwxLX-V_fo3bm3pe---4bpS8o-nSgL6mxkoqqAL8GatxFr8B0_Jqchl4PZb4VDP9b3_v-iSeR5UM_i9ZA9WxigaAtHyyyxzav-yqEqFoT0U" />
+                </div>
+            </div>
+        </header>
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto px-6 pb-24">
+            <!-- Time Filter Segmented Control -->
+            <div class="mt-4 flex p-1 bg-slate-200 dark:bg-navy-muted rounded-xl">
+                <button
+                    class="flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-navy-deep shadow-sm text-navy-deep dark:text-white">WEEK</button>
+                <button class="flex-1 py-2 text-xs font-bold text-slate-500 dark:text-slate-400">MONTH</button>
+                <button class="flex-1 py-2 text-xs font-bold text-slate-500 dark:text-slate-400">YEAR</button>
+            </div>
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-3 gap-3 mt-6">
+                <div
+                    class="flex flex-col items-center justify-center p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Days</span>
+                    <span class="text-xl font-800 text-primary">24</span>
+                    <span class="text-[10px] font-semibold text-green-500">+12%</span>
+                </div>
+                <div
+                    class="flex flex-col items-center justify-center p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Sets</span>
+                    <span class="text-xl font-800 text-navy-deep dark:text-white">412</span>
+                    <span class="text-[10px] font-semibold text-green-500">+5%</span>
+                </div>
+                <div
+                    class="flex flex-col items-center justify-center p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Hours</span>
+                    <span class="text-xl font-800 text-navy-deep dark:text-white">18.5</span>
+                    <span class="text-[10px] font-semibold text-green-500">+8%</span>
+                </div>
+            </div>
+            <!-- Workout Consistency Chart (Line Chart) -->
+            <div class="mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold uppercase tracking-tight text-slate-400">Workout Consistency</h2>
+                    <span class="text-xs font-bold text-primary">Avg 5.2/wk</span>
+                </div>
+                <div
+                    class="relative h-40 w-full bg-white dark:bg-navy-muted rounded-xl p-4 border border-slate-100 dark:border-slate-700">
+                    <!-- SVG Chart Representation -->
+                    <svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 300 100">
+                        <path class="chart-line" d="M0,80 Q30,70 60,85 T120,40 T180,60 T240,20 T300,50" fill="none"
+                            stroke="#ec5b13" stroke-width="3"></path>
+                        <!-- Data Points -->
+                        <circle cx="60" cy="85" fill="#ec5b13" r="3"></circle>
+                        <circle cx="120" cy="40" fill="#ec5b13" r="3"></circle>
+                        <circle cx="240" cy="20" fill="#ec5b13" r="3"></circle>
+                    </svg>
+                    <!-- Chart Labels -->
+                    <div class="flex justify-between mt-2 text-[10px] font-bold text-slate-400 uppercase">
+                        <span>Mon</span><span>Wed</span><span>Fri</span><span>Sun</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Volume Breakdown (Bar Chart) -->
+            <div class="mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold uppercase tracking-tight text-slate-400">Volume Breakdown</h2>
+                </div>
+                <div class="bg-white dark:bg-navy-muted rounded-xl p-5 border border-slate-100 dark:border-slate-700">
+                    <div class="flex items-end justify-between h-32 gap-2">
+                        <div class="flex flex-col items-center w-full gap-2">
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-t-sm h-[40%]"></div>
+                            <span class="text-[9px] font-bold text-slate-400">PUSH</span>
+                        </div>
+                        <div class="flex flex-col items-center w-full gap-2">
+                            <div class="w-full bg-primary rounded-t-sm h-[85%]"></div>
+                            <span class="text-[9px] font-bold text-slate-400">PULL</span>
+                        </div>
+                        <div class="flex flex-col items-center w-full gap-2">
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-t-sm h-[60%]"></div>
+                            <span class="text-[9px] font-bold text-slate-400">LEGS</span>
+                        </div>
+                        <div class="flex flex-col items-center w-full gap-2">
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-t-sm h-[30%]"></div>
+                            <span class="text-[9px] font-bold text-slate-400">CORE</span>
+                        </div>
+                        <div class="flex flex-col items-center w-full gap-2">
+                            <div class="w-full bg-primary/40 rounded-t-sm h-[50%]"></div>
+                            <span class="text-[9px] font-bold text-slate-400">CARDIO</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Recent Achievements -->
+            <div class="mt-8 pb-10">
+                <h2 class="text-sm font-bold uppercase tracking-tight text-slate-400 mb-4">Milestones</h2>
+                <div class="space-y-3">
+                    <div
+                        class="flex items-center gap-4 p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <span class="material-symbols-outlined">fitness_center</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold dark:text-white">Bench Press PR</p>
+                            <p class="text-xs text-slate-500">New record: 225 lbs</p>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400">2d ago</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-4 p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                            <span class="material-symbols-outlined">directions_run</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold dark:text-white">5km Personal Best</p>
+                            <p class="text-xs text-slate-500">Time: 22:10</p>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400">5d ago</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <!-- Bottom Navigation Bar -->
+        <nav
+            class="absolute bottom-0 w-full bg-white dark:bg-navy-deep border-t border-slate-200 dark:border-slate-800 px-6 pt-3 pb-8 flex items-center justify-between z-10">
+            <a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+                <span class="material-symbols-outlined text-2xl">home</span>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+                <span class="material-symbols-outlined text-2xl">exercise</span>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Workouts</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-primary" href="#">
+                <span class="material-symbols-outlined text-2xl fill-1">monitoring</span>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Progress</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+                <span class="material-symbols-outlined text-2xl">person</span>
+                <span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+            </a>
+        </nav>
+    </div>
+</body>
+
+</html>

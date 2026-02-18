@@ -422,7 +422,7 @@ onMounted(() => {
                     :class="isThemeDark ? 'bg-blue-950/30' : 'bg-blue-100/40'"></div>
                 <div class="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 blur-[120px] rounded-full transition-colors duration-700"
                     :class="isThemeDark ? 'bg-indigo-950/20' : 'bg-indigo-50/30'"></div>
-                <div class="absolute inset-0 opacity-[0.03] dark:opacity-20 mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+                <div class="absolute inset-0 opacity-[0.03]  mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
             </div>
 
             <!-- Main Interactive Canvas -->
@@ -460,8 +460,8 @@ onMounted(() => {
 
                         <!-- Grid Pattern -->
                         <pattern id="tactical-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" class="text-blue-500/10 dark:text-blue-500/[0.03]" stroke-width="0.5"/>
-                            <circle cx="0" cy="0" r="1" fill="currentColor" class="text-blue-500/20 dark:text-blue-500/[0.05]" />
+                            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" class="text-blue-500/10 " stroke-width="0.5"/>
+                            <circle cx="0" cy="0" r="1" fill="currentColor" class="text-blue-500/20 " />
                         </pattern>
                     </defs>
 
@@ -521,20 +521,20 @@ onMounted(() => {
 
                 <!-- On-Canvas HUD (Bottom Centre) -->
                 <div class="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-                    <div class="px-8 py-4 bg-white/90 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-full flex items-center gap-8 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.2)] dark:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] pointer-events-auto scale-90 md:scale-100 ring-1 ring-black/5 dark:ring-white/5">
+                    <div class="px-8 py-4 bg-white/90  backdrop-blur-2xl border border-slate-200  rounded-full flex items-center gap-8 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.2)]  pointer-events-auto scale-90 md:scale-100 ring-1 ring-black/5 ">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] font-black text-slate-800 dark:text-white italic">SCR</div>
-                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Zoom Focus</span>
+                            <div class="w-8 h-8 rounded-lg bg-slate-100  border border-slate-200  flex items-center justify-center text-[10px] font-black text-slate-800  italic">SCR</div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ">Zoom Focus</span>
                         </div>
-                        <div class="w-px h-4 bg-slate-200 dark:bg-white/10"></div>
+                        <div class="w-px h-4 bg-slate-200 "></div>
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] font-black text-slate-800 dark:text-white italic">DRG</div>
-                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Pan View</span>
+                            <div class="w-8 h-8 rounded-lg bg-slate-100  border border-slate-200  flex items-center justify-center text-[10px] font-black text-slate-800  italic">DRG</div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ">Pan View</span>
                         </div>
-                        <div class="w-px h-4 bg-slate-200 dark:bg-white/10"></div>
+                        <div class="w-px h-4 bg-slate-200 "></div>
                         <div class="flex items-center gap-3">
                             <div class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_#3b82f6]"></div>
-                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">Lnk Active</span>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 ">Lnk Active</span>
                         </div>
                     </div>
                 </div>
@@ -559,21 +559,21 @@ onMounted(() => {
                                     <div class="px-2 py-0.5 md:px-3 md:py-1 bg-blue-500 text-white text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-md skew-x-[-12deg]">
                                         Unit {{ selectedItem?.id }}
                                     </div>
-                                    <div class="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-slate-400 dark:text-slate-500 italic">Technical Specification</div>
+                                    <div class="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-slate-400  italic">Technical Specification</div>
                                 </div>
-                                <h2 class="text-2xl md:text-5xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-tight md:leading-none">
+                                <h2 class="text-2xl md:text-5xl font-black italic uppercase tracking-tighter text-slate-900  leading-tight md:leading-none">
                                     {{ getEquipmentInfo(selectedItem)?.name || selectedItem.name }}
                                 </h2>
                             </div>
 
                             <!-- Footage Display -->
                             <div ref="modalLeftPanel" class="flex-1 p-8 pt-4 flex flex-col gap-6 overflow-y-auto custom-scrollbar scroll-smooth">
-                                <div class="w-full aspect-video bg-slate-200 dark:bg-slate-900 rounded-3xl overflow-hidden group relative border border-slate-200 dark:border-white/10 shadow-2xl flex-shrink-0">
+                                <div class="w-full aspect-video bg-slate-200  rounded-3xl overflow-hidden group relative border border-slate-200  shadow-2xl flex-shrink-0">
                                     <!-- Splash Screen (Visible before Play) -->
                                     <div v-if="!isPlaying" 
                                         class="absolute inset-0 z-30 flex flex-col items-center justify-center p-8 text-center overflow-hidden transition-colors duration-500"
                                         :class="isThemeDark ? 'bg-[#020617]' : 'bg-slate-50'">
-                                        <div class="absolute inset-0 bg-gradient-to-b from-blue-600/10 to-transparent opacity-50 dark:opacity-100"></div>
+                                        <div class="absolute inset-0 bg-gradient-to-b from-blue-600/10 to-transparent opacity-50 "></div>
                                         <!-- Decorative Background Triangle -->
                                         <div class="absolute inset-x-0 top-0 h-full translate-y-[-20%] skew-y-[-10deg]"
                                             :class="isThemeDark ? 'bg-slate-800/20' : 'bg-slate-200/50'"></div>
@@ -623,7 +623,7 @@ onMounted(() => {
                                             </div>
                                             <div class="text-center space-y-1">
                                                 <div class="text-[12px] font-black italic text-indigo-500 uppercase tracking-widest">Technique Unavailable</div>
-                                                <div class="text-xs font-bold text-slate-400 dark:text-slate-500">ยังไม่ครอบคลุมวิดีโอส่วนนี้</div>
+                                                <div class="text-xs font-bold text-slate-400 ">ยังไม่ครอบคลุมวิดีโอส่วนนี้</div>
                                             </div>
                                         </div>
                                     </div>
@@ -639,29 +639,29 @@ onMounted(() => {
                                 </div>
 
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/5 group hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors">
-                                        <h4 class="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4">Static Reference</h4>
-                                        <div class="aspect-square bg-white dark:bg-slate-950 rounded-xl overflow-hidden border border-slate-200 dark:border-white/5">
+                                    <div class="bg-slate-50  rounded-2xl p-6 border border-slate-200  group hover:bg-slate-100  transition-colors">
+                                        <h4 class="text-[9px] font-black uppercase tracking-widest text-slate-400  mb-4">Static Reference</h4>
+                                        <div class="aspect-square bg-white  rounded-xl overflow-hidden border border-slate-200 ">
                                             <img v-if="isPlaying && muscleImage" 
                                                 :src="muscleImage" 
                                                 class="w-full h-full object-contain brightness-110 animate-in fade-in duration-500" 
                                             />
                                             <img v-else-if="selectedItem && getEquipmentInfo(selectedItem)?.technique?.image" :src="getEquipmentInfo(selectedItem).technique.image" class="w-full h-full object-cover grayscale brightness-75 hover:grayscale-0 hover:brightness-100 transition-all duration-700" />
-                                            <div v-else class="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900/30 p-4 text-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-300 dark:text-white/10 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <div v-else class="w-full h-full flex flex-col items-center justify-center bg-slate-100  p-4 text-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-300  mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                 </svg>
-                                                <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-tight">No Static Reference<br/><span class="text-[10px] lowercase font-bold">ยังไม่มีรูปภาพ</span></span>
+                                                <span class="text-[9px] font-black text-slate-400  uppercase tracking-widest leading-tight">No Static Reference<br/><span class="text-[10px] lowercase font-bold">ยังไม่มีรูปภาพ</span></span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/5 flex flex-col gap-6 relative group/card">
+                                    <div class="bg-slate-50  rounded-2xl p-6 border border-slate-200  flex flex-col gap-6 relative group/card">
                                         <div class="flex items-start justify-between">
                                             <div class="space-y-1">
-                                                <div class="text-[14px] font-black text-slate-800 dark:text-white italic uppercase tracking-[0.2em]">HOW TO PLAY</div>
+                                                <div class="text-[14px] font-black text-slate-800  italic uppercase tracking-[0.2em]">HOW TO PLAY</div>
                                                 <div class="flex items-center gap-2">
                                                     <div class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                                                    <div class="text-[10px] font-bold text-blue-600 dark:text-blue-500/80 uppercase tracking-widest leading-none">System Active</div>
+                                                    <div class="text-[10px] font-bold text-blue-600  uppercase tracking-widest leading-none">System Active</div>
                                                 </div>
                                             </div>
                                             
@@ -688,8 +688,8 @@ onMounted(() => {
                                             <div v-for="(set, index) in workoutSets" :key="index" 
                                                 class="grid grid-cols-4 gap-1 md:gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
                                                 <!-- Set Number -->
-                                                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl p-2.5 flex items-center justify-center relative group/delete">
-                                                    <span class="text-base font-black italic text-slate-300 dark:text-white/40 group-hover/delete:opacity-0 transition-opacity">{{ index + 1 }}</span>
+                                                <div class="bg-white  border border-slate-200  rounded-xl p-2.5 flex items-center justify-center relative group/delete">
+                                                    <span class="text-base font-black italic text-slate-300  group-hover/delete:opacity-0 transition-opacity">{{ index + 1 }}</span>
                                                     <button v-if="workoutSets.length > 1" @click="removeSet(index)" 
                                                         class="absolute inset-0 flex items-center justify-center text-red-500 opacity-0 group-hover/delete:opacity-100 transition-opacity">
                                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -697,16 +697,16 @@ onMounted(() => {
                                                 </div>
                                                 
                                                 <!-- Weight Dropdown -->
-                                                <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 rounded-xl p-2.5 flex items-center justify-center">
-                                                    <select v-model="set.weight" class="bg-transparent text-slate-800 dark:text-white text-sm font-black italic text-center appearance-none focus:outline-none cursor-pointer w-full">
-                                                        <option v-for="n in [5,7.5,10,12.5,15,17.5,20,22.5,25,30]" :key="n" :value="n" class="bg-white dark:bg-slate-900">{{ n }}kg</option>
+                                                <div class="bg-white  border border-slate-200  rounded-xl p-2.5 flex items-center justify-center">
+                                                    <select v-model="set.weight" class="bg-transparent text-slate-800  text-sm font-black italic text-center appearance-none focus:outline-none cursor-pointer w-full">
+                                                        <option v-for="n in [5,7.5,10,12.5,15,17.5,20,22.5,25,30]" :key="n" :value="n" class="bg-white ">{{ n }}kg</option>
                                                     </select>
                                                 </div>
 
                                                 <!-- Reps Dropdown -->
-                                                <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 rounded-xl p-2.5 flex items-center justify-center">
-                                                    <select v-model="set.reps" class="bg-transparent text-slate-800 dark:text-white text-sm font-black italic text-center appearance-none focus:outline-none cursor-pointer w-full">
-                                                        <option v-for="n in [6,8,10,12,15,20,30]" :key="n" :value="n" class="bg-white dark:bg-slate-900">{{ n }}</option>
+                                                <div class="bg-white  border border-slate-200  rounded-xl p-2.5 flex items-center justify-center">
+                                                    <select v-model="set.reps" class="bg-transparent text-slate-800  text-sm font-black italic text-center appearance-none focus:outline-none cursor-pointer w-full">
+                                                        <option v-for="n in [6,8,10,12,15,20,30]" :key="n" :value="n" class="bg-white ">{{ n }}</option>
                                                     </select>
                                                 </div>
 
@@ -714,12 +714,12 @@ onMounted(() => {
                                                 <div @click="toggleSetCompletion(index)" 
                                                     class="cursor-pointer border-2 rounded-xl flex items-center justify-center transition-all duration-300"
                                                     :class="set.isCompleted 
-                                                        ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
-                                                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 hover:border-blue-500/30'">
+                                                        ? 'bg-emerald-500/10  border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
+                                                        : 'bg-white  border-slate-200  hover:border-blue-500/30'">
                                                     <svg v-if="set.isCompleted" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-500 animate-in zoom-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                                     </svg>
-                                                    <div v-else class="w-1.5 h-1.5 bg-slate-300 dark:bg-white/10 rounded-full"></div>
+                                                    <div v-else class="w-1.5 h-1.5 bg-slate-300  rounded-full"></div>
                                                 </div>
                                             </div>
 
@@ -760,22 +760,22 @@ onMounted(() => {
                                     <!-- Target Muscles -->
                                     <section class="space-y-6">
                                         <div class="flex items-center justify-between">
-                                            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Engaged Modules</h4>
-                                            <div class="h-px flex-1 bg-slate-200 dark:bg-white/5 mx-4"></div>
-                                            <div class="w-2 h-2 rounded-full border border-blue-500/30 dark:border-blue-500/50"></div>
+                                            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ">Engaged Modules</h4>
+                                            <div class="h-px flex-1 bg-slate-200  mx-4"></div>
+                                            <div class="w-2 h-2 rounded-full border border-blue-500/30 "></div>
                                         </div>
                                         <div class="flex flex-wrap gap-3">
                                             <div v-for="m in getEquipmentInfo(selectedItem)?.target_muscles || []" :key="m.key" 
                                                 @click="handleMuscleClick(m.key)"
                                                 class="flex items-center gap-3 px-5 py-3 border rounded-xl transition-all cursor-pointer"
                                                 :class="activeMuscle === m.key 
-                                                    ? 'bg-blue-600/10 dark:bg-blue-600/20 border-blue-400 dark:border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)] dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]' 
-                                                    : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/30 hover:bg-slate-50 dark:hover:bg-white/[0.08]'"
+                                                    ? 'bg-blue-600/10  border-blue-400  shadow-[0_0_15px_rgba(59,130,246,0.15)] ' 
+                                                    : 'bg-white  border-slate-200  hover:border-slate-300  hover:bg-slate-50 '"
                                             >
                                                 <div class="w-2 h-2 rounded-full transition-shadow duration-300"
-                                                    :class="activeMuscle === m.key ? 'bg-blue-500 dark:bg-blue-400 shadow-[0_0_10px_#3b82f6]' : 'bg-slate-300 dark:bg-slate-500'"></div>
+                                                    :class="activeMuscle === m.key ? 'bg-blue-500  shadow-[0_0_10px_#3b82f6]' : 'bg-slate-300 '"></div>
                                                 <span class="text-[11px] font-black uppercase italic tracking-widest transition-colors"
-                                                    :class="activeMuscle === m.key ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-white/60'">
+                                                    :class="activeMuscle === m.key ? 'text-slate-900 ' : 'text-slate-400 '">
                                                     {{ m.name_th }}
                                                 </span>
                                             </div>
@@ -785,17 +785,17 @@ onMounted(() => {
                                      <!-- Pro Tips / Instruction -->
                                     <section class="space-y-6">
                                         <div class="flex items-center justify-between">
-                                            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Operation Protocol</h4>
-                                            <div class="h-px flex-1 bg-slate-200 dark:bg-white/5 mx-4"></div>
+                                            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ">Operation Protocol</h4>
+                                            <div class="h-px flex-1 bg-slate-200  mx-4"></div>
                                         </div>
                                         <div class="space-y-4">
-                                            <div class="p-6 bg-blue-500/[0.03] dark:bg-blue-500/5 rounded-2xl border border-blue-500/10 dark:border-blue-500/20 relative overflow-hidden group">
+                                            <div class="p-6 bg-blue-500/[0.03]  rounded-2xl border border-blue-500/10  relative overflow-hidden group">
                                                 <div class="absolute top-0 right-0 p-2 opacity-10">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                     </svg>
                                                 </div>
-                                                <p class="text-xs font-bold text-blue-600 dark:text-blue-300 leading-relaxed italic pr-8">
+                                                <p class="text-xs font-bold text-blue-600  leading-relaxed italic pr-8">
                                                     Focus on controlled movement. Inhale during release, exhale during contraction. Maintain posture alignment.
                                                 </p>
                                             </div>

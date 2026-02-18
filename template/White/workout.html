@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung - Modern Athletic Workout Plan</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13", // Crimson Red / Orange-Red accent
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0a121d", // Deep Navy Blue base
+                        "navy-muted": "#162231",
+                        "navy-accent": "#1e2e42",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+    <!-- Main Mobile Container -->
+    <div class="relative mx-auto min-h-screen max-w-md bg-background-light dark:bg-background-dark flex flex-col pb-24">
+        <!-- Header Section -->
+        <header
+            class="flex items-center justify-between px-6 py-4 sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-20 border-b border-slate-200 dark:border-navy-muted">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-white">
+                    <span class="material-symbols-outlined font-bold">fitness_center</span>
+                </div>
+                <h1 class="text-xl font-extrabold tracking-tighter uppercase italic">FitPung</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-slate-600 dark:text-slate-300">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full"></span>
+                </button>
+                <div class="h-9 w-9 rounded-full border-2 border-primary/30 overflow-hidden">
+                    <img alt="User Profile" class="h-full w-auto"
+                        data-alt="Close-up portrait of an athletic male user profile"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1CN3edYyAKKY19PF9_XTcXi-5z-ip6fQ22AO9pbzZEdVzjOAn3tB29dshSRUTVTzr4yjjkMk7QSNCHMclqoH-Ck291TK50awbKCEXhkqpruKgfm7Lg8EuLq8M3ymIwmh2uIJ9LFVLefNjKodj7M2Ctt5cexfMTUlMo1kFRziYZf331v0mZMmxuDNEXT5IInKAGjQe9PEBdVJNlhLfvOqMKWPbsgFLdqE5QPCxUknn_uIaUIoEP3sqZz_2dJsjLiOyIvPgVRuFFxo" />
+                </div>
+            </div>
+        </header>
+        <!-- Goal Selection Section -->
+        <section class="px-6 pt-6">
+            <h2 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-4">Choose
+                Your Path</h2>
+            <div class="flex p-1 bg-slate-200 dark:bg-navy-muted rounded-xl">
+                <button
+                    class="flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-lg bg-white dark:bg-navy-accent shadow-sm text-primary">
+                    Build Muscle
+                </button>
+                <button
+                    class="flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-lg text-slate-500 dark:text-slate-400">
+                    Fat Loss
+                </button>
+                <button
+                    class="flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-lg text-slate-500 dark:text-slate-400">
+                    Strength
+                </button>
+            </div>
+        </section>
+        <!-- Weekly Calendar Strip -->
+        <section class="px-6 pt-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Weekly
+                    Schedule</h2>
+                <span class="text-xs font-bold text-primary uppercase">October 2023</span>
+            </div>
+            <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                <!-- Inactive Day -->
+                <div
+                    class="flex flex-col items-center min-w-[56px] py-4 bg-slate-100 dark:bg-navy-muted rounded-xl border border-transparent">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Mon</span>
+                    <span class="text-lg font-black mt-1">16</span>
+                </div>
+                <!-- Inactive Day -->
+                <div
+                    class="flex flex-col items-center min-w-[56px] py-4 bg-slate-100 dark:bg-navy-muted rounded-xl border border-transparent">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Tue</span>
+                    <span class="text-lg font-black mt-1">17</span>
+                </div>
+                <!-- Active Day (Highlighted in Crimson/Primary) -->
+                <div class="flex flex-col items-center min-w-[56px] py-4 bg-primary text-white rounded-xl shadow-lg">
+                    <span class="text-[10px] font-bold uppercase opacity-80">Wed</span>
+                    <span class="text-lg font-black mt-1">18</span>
+                </div>
+                <!-- Inactive Day -->
+                <div
+                    class="flex flex-col items-center min-w-[56px] py-4 bg-slate-100 dark:bg-navy-muted rounded-xl border border-transparent">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Thu</span>
+                    <span class="text-lg font-black mt-1">19</span>
+                </div>
+                <!-- Inactive Day -->
+                <div
+                    class="flex flex-col items-center min-w-[56px] py-4 bg-slate-100 dark:bg-navy-muted rounded-xl border border-transparent">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Fri</span>
+                    <span class="text-lg font-black mt-1">20</span>
+                </div>
+                <!-- Inactive Day -->
+                <div
+                    class="flex flex-col items-center min-w-[56px] py-4 bg-slate-100 dark:bg-navy-muted rounded-xl border border-transparent">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Sat</span>
+                    <span class="text-lg font-black mt-1">21</span>
+                </div>
+            </div>
+        </section>
+        <!-- Workout Plan Details -->
+        <section class="px-6 pt-8 flex-1">
+            <div class="flex items-end justify-between mb-6">
+                <div>
+                    <h3 class="text-2xl font-black uppercase tracking-tight leading-none italic">Power Chest &amp;
+                        Triceps</h3>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">Focused Hypertrophy Session •
+                        65 min</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <!-- Exercise Card 1 -->
+                <div
+                    class="group flex items-center p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-200 dark:border-navy-accent">
+                    <div class="h-16 w-16 rounded-lg bg-slate-100 dark:bg-navy-accent overflow-hidden flex-shrink-0">
+                        <img alt="Exercise" class="h-full w-full object-cover"
+                            data-alt="Muscular person performing a barbell bench press in a dark gym"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQgsXa3tiS7cPy4_fTcSe9oE6KlYFZrrOMNnLBS8CSYXflTymrdYMtwKJLXaw6kaEG3fxrNPPN4kheYHlGcw_otAnA3F3xmcTP7DuJsDQtEOCWp2gtvojJhLw5npsGXKAU1X-026_zyBgDZC1Ww3t86DaJpI8jUWzR7qrG_mvMdbSCPuZ87pMiR38AWvwL9OWZ5cB6vDebYe_-60iJXDAXbylYjCS_oJPooy9dj1Zh6wyCSaStBiN_aKAKfH3IEzK6xlJ6xxrjQrw" />
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-extrabold uppercase text-sm tracking-wide">Incline Barbell Press</h4>
+                        <div class="flex items-center gap-3 mt-1">
+                            <span
+                                class="text-[11px] font-bold bg-primary/10 dark:bg-primary/20 text-primary px-2 py-0.5 rounded uppercase">4
+                                Sets</span>
+                            <span
+                                class="text-[11px] font-bold bg-slate-100 dark:bg-navy-accent text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded uppercase">8-10
+                                Reps</span>
+                        </div>
+                    </div>
+                    <button class="p-2 text-slate-400 dark:text-slate-600">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                </div>
+                <!-- Exercise Card 2 -->
+                <div
+                    class="group flex items-center p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-200 dark:border-navy-accent">
+                    <div class="h-16 w-16 rounded-lg bg-slate-100 dark:bg-navy-accent overflow-hidden flex-shrink-0">
+                        <img alt="Exercise" class="h-full w-full object-cover"
+                            data-alt="Close up of a person training chest with cable flyes"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1qG5EQaFvmWIu8PiGMxN02m32Jg4q7tuh3OCqUnVPoc3lh8LaB7hi5GKtirrFNL6MAvKgdGGIAFHfETcAe51e9a4SAk4CqWFsZyEAe4MUa66gckxTELP5gODhniGaoLw83llyTHMrQVj6xbEP0RuUcG2hKk2ZYxMyFc0VRfKSBMrWrmUQEnv0k_7Ymbo3qI6r_nrbg6ig5UlXTBIqoyI2Mcv3PpxFsjL-5zWTf9KsOzsZkBi3bGqZai-ABpcSgNyb-kpxXExCkhY" />
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-extrabold uppercase text-sm tracking-wide">Cable Chest Flyes</h4>
+                        <div class="flex items-center gap-3 mt-1">
+                            <span
+                                class="text-[11px] font-bold bg-primary/10 dark:bg-primary/20 text-primary px-2 py-0.5 rounded uppercase">3
+                                Sets</span>
+                            <span
+                                class="text-[11px] font-bold bg-slate-100 dark:bg-navy-accent text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded uppercase">12-15
+                                Reps</span>
+                        </div>
+                    </div>
+                    <button class="p-2 text-slate-400 dark:text-slate-600">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                </div>
+                <!-- Exercise Card 3 -->
+                <div
+                    class="group flex items-center p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-200 dark:border-navy-accent">
+                    <div class="h-16 w-16 rounded-lg bg-slate-100 dark:bg-navy-accent overflow-hidden flex-shrink-0">
+                        <img alt="Exercise" class="h-full w-full object-cover"
+                            data-alt="Dumbbells on a rack in a modern industrial fitness facility"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIiPdTcK-zuZm31Wz0V0bZejQWkM7MzIAPtz3K13lqanEb2n1a0rnV6x1qKyuFpfOqQdHqrgEkRY5nW-7_q8zHPYg2wGImqI6VUGkx2MOqQstCPgZY6W8nebEUYkCvJ83SXVoEpWAyjI8Qjgm_KfIYQvOtuCrep2c8IRi8R5uBE612kLY_Ld44oZ_oLVvVWDglp8O1dttPJNfr-nEwj3O0ZjE2GQvzBS23CSyRjbfubZgNAvRRMa0zvL5ZvE0szM-saoUrMVdbcfI" />
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-extrabold uppercase text-sm tracking-wide">Dumbbell Skullcrushers</h4>
+                        <div class="flex items-center gap-3 mt-1">
+                            <span
+                                class="text-[11px] font-bold bg-primary/10 dark:bg-primary/20 text-primary px-2 py-0.5 rounded uppercase">3
+                                Sets</span>
+                            <span
+                                class="text-[11px] font-bold bg-slate-100 dark:bg-navy-accent text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded uppercase">10
+                                Reps</span>
+                        </div>
+                    </div>
+                    <button class="p-2 text-slate-400 dark:text-slate-600">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                </div>
+                <!-- Exercise Card 4 -->
+                <div
+                    class="group flex items-center p-4 bg-white dark:bg-navy-muted rounded-xl border border-slate-200 dark:border-navy-accent">
+                    <div class="h-16 w-16 rounded-lg bg-slate-100 dark:bg-navy-accent overflow-hidden flex-shrink-0">
+                        <img alt="Exercise" class="h-full w-full object-cover"
+                            data-alt="Athletic woman performing tricep rope pushdowns"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjo6_mHUJ4Q4aqfRW6VJM30sRXXhKYhuRrY54DesG6OwZzky6VMkGRXkG9KMAvxOadZ1upxhYeE9-gBkUJY_QQe9XLgpwosttlXJcXIP1IwifHxftzNFgg2ptzEy5AQJytUA3OHhOj2QI5eBkZT78TakDhsdg3eNPw5InSd5krvOS_ICl9BiqjIyiZivj-58035a0AIEVt708y2kOEhOQW82FwGh_CJ0lz47RKkz8j031sdUSWmIGXVbTzo6EDE1NGYIyOalC_5Fc" />
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-extrabold uppercase text-sm tracking-wide">Rope Pushdowns</h4>
+                        <div class="flex items-center gap-3 mt-1">
+                            <span
+                                class="text-[11px] font-bold bg-primary/10 dark:bg-primary/20 text-primary px-2 py-0.5 rounded uppercase">4
+                                Sets</span>
+                            <span
+                                class="text-[11px] font-bold bg-slate-100 dark:bg-navy-accent text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded uppercase">15
+                                Reps</span>
+                        </div>
+                    </div>
+                    <button class="p-2 text-slate-400 dark:text-slate-600">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- Fixed Bottom Action Bar -->
+        <div class="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-30">
+            <button
+                class="w-full h-14 bg-primary text-white font-black uppercase tracking-widest rounded-xl shadow-[0_8px_30px_rgb(236,91,19,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-transform">
+                <span class="material-symbols-outlined">play_arrow</span>
+                Start Workout
+            </button>
+        </div>
+        <!-- Navigation Bar (Reused component structure) -->
+        <nav
+            class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/90 dark:bg-background-dark/95 border-t border-slate-200 dark:border-navy-muted backdrop-blur-xl z-40">
+            <div class="flex h-16 items-center">
+                <a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+                    <span class="material-symbols-outlined"
+                        style="font-variation-settings: 'FILL' 1">calendar_today</span>
+                    <span class="text-[10px] font-bold uppercase">Plan</span>
+                </a>
+                <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500"
+                    href="#">
+                    <span class="material-symbols-outlined">monitoring</span>
+                    <span class="text-[10px] font-bold uppercase">Stats</span>
+                </a>
+                <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500"
+                    href="#">
+                    <span class="material-symbols-outlined">restaurant</span>
+                    <span class="text-[10px] font-bold uppercase">Diet</span>
+                </a>
+                <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500"
+                    href="#">
+                    <span class="material-symbols-outlined">person</span>
+                    <span class="text-[10px] font-bold uppercase">Profile</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+    <!-- Toggle Dark Mode Script for demonstration context -->
+    <script>
+        // Check local storage or preferred color scheme
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</body>
+
+</html>

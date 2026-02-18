@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung Mobile App Profile - Cute Power Edition</title>
+    <!-- Material Symbols Outlined -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Google Fonts: Spline Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c4bbf7",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#131121",
+                        "accent-pink": "#f8bbd0",
+                        "accent-blue": "#bbdefb",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.5rem", // 24px as requested
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Spline Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .stat-card-shadow {
+            box-shadow: 0 4px 20px -2px rgba(196, 187, 247, 0.15);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-[#1a1826] dark:text-[#f1f0fb] min-h-screen flex justify-center">
+    <!-- Mobile Container -->
+    <div
+        class="relative flex h-full min-h-screen w-full max-w-md flex-col bg-background-light dark:bg-background-dark overflow-x-hidden border-x border-primary/10 shadow-2xl">
+        <!-- Header Nav -->
+        <div
+            class="flex items-center bg-background-light dark:bg-background-dark p-6 pb-2 justify-between sticky top-0 z-10 backdrop-blur-md bg-opacity-80">
+            <a href="home.html"
+                class="text-[#1a1826] dark:text-white flex size-10 items-center justify-center rounded-full bg-white dark:bg-primary/10 shadow-sm cursor-pointer block text-center">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </a>
+            <h2
+                class="text-[#1a1826] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center font-display">
+                Profile</h2>
+            <div class="flex w-10 items-center justify-end">
+                <button
+                    class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white dark:bg-primary/10 shadow-sm text-[#1a1826] dark:text-white">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+            </div>
+        </div>
+        <!-- Profile Section -->
+        <div class="flex p-6 @container">
+            <div class="flex w-full flex-col gap-6 items-center">
+                <div class="flex gap-4 flex-col items-center">
+                    <!-- Avatar Frame -->
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-primary/20 rounded-full blur-xl scale-110"></div>
+                        <div class="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full border-4 border-white dark:border-[#24213d] shadow-xl min-h-36 w-36 overflow-hidden"
+                            data-alt="A cute and friendly gorilla mascot character wearing fitness gear"
+                            style='background-image: url("../../public/images/gorila/ConcentrationCurl.png");'>
+                        </div>
+                        <div
+                            class="absolute bottom-1 right-1 bg-primary text-white p-1.5 rounded-full border-2 border-white dark:border-[#24213d]">
+                            <span class="material-symbols-outlined text-sm">verified</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center justify-center space-y-1">
+                        <p
+                            class="text-[#1a1826] dark:text-white text-2xl font-bold leading-tight tracking-tight font-display">
+                            Pung Champ</p>
+                        <p
+                            class="text-primary font-medium text-sm text-center px-4 leading-relaxed bg-primary/10 py-1 rounded-full">
+                            🦍 Powering through with cuteness! ✨
+                        </p>
+                    </div>
+                </div>
+                <!-- Primary Action -->
+                <button
+                    class="group flex min-w-[160px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 px-8 bg-primary text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 active:scale-95 w-full max-w-[280px]">
+                    <span class="material-symbols-outlined mr-2 group-hover:rotate-12 transition-transform">edit</span>
+                    <span class="font-bold tracking-wide">Edit Profile</span>
+                </button>
+            </div>
+        </div>
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-3 gap-3 p-6 pt-0">
+            <div
+                class="flex flex-col items-center justify-center gap-2 rounded-3xl p-4 bg-white dark:bg-[#1c1a2e] border border-primary/10 stat-card-shadow">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#a199cc]">Weight</span>
+                <p class="text-[#1a1826] dark:text-white text-xl font-bold leading-tight">75<span
+                        class="text-xs font-medium ml-0.5">kg</span></p>
+            </div>
+            <div
+                class="flex flex-col items-center justify-center gap-2 rounded-3xl p-4 bg-white dark:bg-[#1c1a2e] border border-primary/10 stat-card-shadow">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#a199cc]">Height</span>
+                <p class="text-[#1a1826] dark:text-white text-xl font-bold leading-tight">180<span
+                        class="text-xs font-medium ml-0.5">cm</span></p>
+            </div>
+            <div
+                class="flex flex-col items-center justify-center gap-2 rounded-3xl p-4 bg-white dark:bg-[#1c1a2e] border border-primary/10 stat-card-shadow">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#a199cc]">Goal</span>
+                <p class="text-[#1a1826] dark:text-white text-xl font-bold leading-tight">80<span
+                        class="text-xs font-medium ml-0.5">kg</span></p>
+            </div>
+        </div>
+        <!-- Weight Trend Section -->
+        <div class="px-6 space-y-4 mb-24">
+            <div class="flex items-center justify-between">
+                <h3 class="text-[#1a1826] dark:text-white text-lg font-bold leading-tight tracking-tight font-display">
+                    Weight Trend</h3>
+                <span class="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">This Month</span>
+            </div>
+            <div class="bg-white dark:bg-[#1c1a2e] p-6 rounded-3xl border border-primary/10 stat-card-shadow space-y-6">
+                <!-- Trend Indicators -->
+                <div class="flex justify-around items-end h-24 gap-3">
+                    <div class="flex flex-col items-center gap-2 flex-1">
+                        <div class="w-full bg-accent-blue rounded-full" style="height: 60%;"></div>
+                        <span class="text-[10px] font-bold text-gray-400">Mon</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 flex-1">
+                        <div class="w-full bg-accent-pink rounded-full" style="height: 85%;"></div>
+                        <span class="text-[10px] font-bold text-gray-400">Tue</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 flex-1">
+                        <div class="w-full bg-accent-blue rounded-full" style="height: 45%;"></div>
+                        <span class="text-[10px] font-bold text-gray-400">Wed</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 flex-1">
+                        <div class="w-full bg-accent-pink rounded-full" style="height: 70%;"></div>
+                        <span class="text-[10px] font-bold text-gray-400">Thu</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 flex-1">
+                        <div class="w-full bg-primary rounded-full" style="height: 95%;"></div>
+                        <span class="text-[10px] font-bold text-primary">Today</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="size-10 rounded-2xl bg-accent-pink/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-accent-pink">trending_up</span>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-tighter">Gain Phase</p>
+                            <p class="text-sm font-bold dark:text-white">+2.4 kg</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="size-10 rounded-2xl bg-accent-blue/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-accent-blue">trending_down</span>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-tighter">Loss Phase</p>
+                            <p class="text-sm font-bold dark:text-white">-1.2 kg</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Bottom Navigation Bar -->
+        <div
+            class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/90 dark:bg-[#131121]/90 backdrop-blur-xl border-t border-primary/10 px-6 pb-8 pt-4 flex justify-between items-center z-20">
+            <a class="flex flex-col items-center gap-1 group" href="home.html">
+                <div
+                    class="text-[#a199cc] group-hover:text-primary transition-colors flex h-8 items-center justify-center">
+                    <span class="material-symbols-outlined text-[28px]">home</span>
+                </div>
+                <p class="text-[#a199cc] text-[10px] font-bold uppercase tracking-widest">Home</p>
+            </a>
+            <a class="flex flex-col items-center gap-1 group" href="map.html">
+                <div
+                    class="text-[#a199cc] group-hover:text-primary transition-colors flex h-8 items-center justify-center">
+                    <span class="material-symbols-outlined text-[28px]">explore</span>
+                </div>
+                <p class="text-[#a199cc] text-[10px] font-bold uppercase tracking-widest">Map</p>
+            </a>
+            <a class="flex flex-col items-center gap-1 group" href="progress.html">
+                <div
+                    class="text-[#a199cc] group-hover:text-primary transition-colors flex h-8 items-center justify-center">
+                    <span class="material-symbols-outlined text-[28px]">monitoring</span>
+                </div>
+                <p class="text-[#a199cc] text-[10px] font-bold uppercase tracking-widest">Stats</p>
+            </a>
+            <a class="flex flex-col items-center gap-1 group active" href="profile.html">
+                <div class="text-primary flex h-8 items-center justify-center relative">
+                    <span class="material-symbols-outlined text-[28px]"
+                        style="font-variation-settings: 'FILL' 1;">person</span>
+                    <div class="absolute -top-1 -right-1 size-2 bg-accent-pink rounded-full border border-white"></div>
+                </div>
+                <p class="text-primary text-[10px] font-bold uppercase tracking-widest">Profile</p>
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

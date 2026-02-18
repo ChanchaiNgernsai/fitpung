@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung - Playful Gym Map</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffd84d",
+                        "selection": "#ff9f4d",
+                        "background-light": "#E6F4FF",
+                        "background-dark": "#1a2633",
+                        "sky-tint": "#E6F4FF",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .gym-floor-grid {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .thick-border {
+            border-width: 3px;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-sky-tint dark:bg-background-dark min-h-screen text-[#1a2633] dark:text-white">
+    <div class="relative max-w-md mx-auto h-screen flex flex-col overflow-hidden bg-sky-tint dark:bg-background-dark">
+        <!-- Top Navigation -->
+        <header class="p-6 pb-2">
+            <div class="flex items-center justify-between mb-4">
+                <a href="home.html" class="flex items-center gap-3">
+                    <div class="bg-primary p-2 rounded-full border-2 border-[#1a2633]">
+                        <span class="material-symbols-outlined text-2xl font-bold">fitness_center</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-800 tracking-tight leading-none">FitPung</h1>
+                        <p class="text-sm font-medium opacity-70">Sunny Side Gym • Area A</p>
+                    </div>
+                </a>
+                <button
+                    class="bg-white dark:bg-slate-800 p-3 rounded-full border-2 border-[#1a2633] shadow-[4px_4px_0px_0px_rgba(26,38,51,1)]">
+                    <span class="material-symbols-outlined">notifications</span>
+                </button>
+            </div>
+            <!-- Search Bar -->
+            <div class="relative">
+                <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-[#1a2633]/50">search</span>
+                </div>
+                <input
+                    class="w-full bg-white dark:bg-slate-800 border-2 border-[#1a2633] rounded-full py-4 pl-12 pr-4 text-sm font-bold focus:ring-0 focus:border-primary shadow-[4px_4px_0px_0px_rgba(26,38,51,1)]"
+                    placeholder="Search equipment or muscle..." type="text" />
+            </div>
+        </header>
+        <!-- Category Pills -->
+        <div class="flex gap-2 px-6 py-2 overflow-x-auto no-scrollbar">
+            <button
+                class="bg-primary border-2 border-[#1a2633] px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap shadow-[2px_2px_0px_0px_rgba(26,38,51,1)]">All
+                Gear</button>
+            <button
+                class="bg-white border-2 border-[#1a2633] px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap opacity-60">Upper
+                Body</button>
+            <button
+                class="bg-white border-2 border-[#1a2633] px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap opacity-60">Legs</button>
+            <button
+                class="bg-white border-2 border-[#1a2633] px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap opacity-60">Cardio</button>
+        </div>
+        <!-- Interactive Map Area -->
+        <main class="flex-1 relative p-6">
+            <div
+                class="w-full h-full bg-white dark:bg-slate-900 border-4 border-[#1a2633] rounded-xl overflow-hidden relative gym-floor-grid shadow-[8px_8px_0px_0px_rgba(26,38,51,1)]">
+                <!-- Floor Map Content -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <!-- Machine Icons (Interactive) -->
+                    <!-- Chest Press -->
+                    <div class="absolute top-[15%] left-[20%] group">
+                        <div
+                            class="bg-primary border-2 border-[#1a2633] w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transform hover:scale-110 active:bg-selection transition-all">
+                            <span class="material-symbols-outlined">exercise</span>
+                        </div>
+                        <span
+                            class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-extrabold whitespace-nowrap">Chest
+                            Press</span>
+                    </div>
+                    <!-- Squat Rack (Selected) -->
+                    <div class="absolute top-[40%] right-[25%] group scale-125">
+                        <div
+                            class="bg-selection border-2 border-[#1a2633] w-14 h-14 rounded-full flex items-center justify-center cursor-pointer shadow-[4px_4px_0px_0px_rgba(26,38,51,1)]">
+                            <span class="material-symbols-outlined text-white">accessibility_new</span>
+                        </div>
+                        <div
+                            class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#1a2633] text-white text-[10px] py-1 px-3 rounded-full whitespace-nowrap font-bold">
+                            Squat Rack
+                        </div>
+                    </div>
+                    <!-- Dumbbells -->
+                    <div class="absolute bottom-[20%] left-[30%]">
+                        <div
+                            class="bg-primary border-2 border-[#1a2633] w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer hover:bg-selection transition-all">
+                            <span class="material-symbols-outlined">weight</span>
+                        </div>
+                        <span
+                            class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-extrabold whitespace-nowrap">Free
+                            Weights</span>
+                    </div>
+                    <!-- Treadmill -->
+                    <div class="absolute top-[60%] left-[15%]">
+                        <div
+                            class="bg-primary border-2 border-[#1a2633] w-12 h-16 rounded-xl flex items-center justify-center cursor-pointer hover:bg-selection transition-all">
+                            <span class="material-symbols-outlined">directions_run</span>
+                        </div>
+                        <span
+                            class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-extrabold whitespace-nowrap">Treadmill</span>
+                    </div>
+                </div>
+                <!-- Zoom Controls -->
+                <div class="absolute right-4 bottom-4 flex flex-col gap-2">
+                    <button
+                        class="bg-white border-2 border-[#1a2633] w-10 h-10 rounded-full flex items-center justify-center font-bold">+</button>
+                    <button
+                        class="bg-white border-2 border-[#1a2633] w-10 h-10 rounded-full flex items-center justify-center font-bold">-</button>
+                </div>
+            </div>
+        </main>
+        <!-- Equipment Detail Card (Floating) -->
+        <div class="px-6 pb-24 -mt-12 z-10">
+            <div
+                class="bg-white dark:bg-slate-800 border-4 border-primary rounded-xl p-5 shadow-[8px_8px_0px_0px_rgba(26,38,51,1)] relative">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span
+                            class="inline-block bg-selection/20 text-selection text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-1">LEG
+                            DAY READY</span>
+                        <h3 class="text-xl font-800">Squat Rack #04</h3>
+                        <p class="text-xs font-medium opacity-60">Level: Intermediate • Wait time: 5m</p>
+                    </div>
+                    <button class="bg-primary/20 p-2 rounded-full">
+                        <span class="material-symbols-outlined text-primary">favorite</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-6">
+                    <!-- Muscle Relief SVG (Simplified Representation) -->
+                    <div
+                        class="w-24 h-32 bg-sky-tint dark:bg-slate-700 rounded-lg flex items-center justify-center border-2 border-[#1a2633]/10 relative overflow-hidden">
+                        <svg class="w-16 h-24 text-[#1a2633]/20 fill-current" viewbox="0 0 100 120">
+                            <!-- Simple Human Silhouette -->
+                            <circle cx="50" cy="15" r="10"></circle>
+                            <rect height="40" rx="10" width="30" x="35" y="28"></rect>
+                            <rect height="35" rx="4" width="8" x="25" y="30"></rect>
+                            <rect height="35" rx="4" width="8" x="67" y="30"></rect>
+                            <!-- Highlighted Muscles (Legs) -->
+                            <rect class="text-selection fill-current" height="40" rx="5" width="10" x="38" y="72">
+                            </rect>
+                            <rect class="text-selection fill-current" height="40" rx="5" width="10" x="52" y="72">
+                            </rect>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-bold mb-2">Primary Muscles:</h4>
+                        <div class="flex flex-wrap gap-1 mb-4">
+                            <span
+                                class="bg-selection text-white text-[10px] font-bold px-2 py-1 rounded-full">Quadriceps</span>
+                            <span
+                                class="bg-selection text-white text-[10px] font-bold px-2 py-1 rounded-full">Glutes</span>
+                        </div>
+                        <button
+                            class="w-full bg-primary border-2 border-[#1a2633] py-2 rounded-full text-xs font-black shadow-[3px_3px_0px_0px_rgba(26,38,51,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all">
+                            START WORKOUT
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Bottom Navigation Bar -->
+        <nav
+            class="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t-4 border-[#1a2633] px-6 py-4 flex justify-between items-center z-20">
+            <a class="flex flex-col items-center gap-1 group" href="map.html">
+                <div class="bg-primary border-2 border-[#1a2633] p-1 rounded-lg">
+                    <span class="material-symbols-outlined font-bold text-[#1a2633]">map</span>
+                </div>
+                <span class="text-[10px] font-black uppercase text-[#1a2633]">Map</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 group opacity-40 hover:opacity-100 transition-opacity"
+                href="workout.html">
+                <span class="material-symbols-outlined text-2xl">format_list_bulleted</span>
+                <span class="text-[10px] font-black uppercase">Routine</span>
+            </a>
+            <div class="flex flex-col items-center gap-1 -mt-10">
+                <a href="workout.html"
+                    class="bg-selection border-4 border-[#1a2633] p-4 rounded-full shadow-[4px_4px_0px_0px_rgba(26,38,51,1)]">
+                    <span class="material-symbols-outlined text-white text-3xl font-black">add</span>
+                </a>
+            </div>
+            <a class="flex flex-col items-center gap-1 group opacity-40 hover:opacity-100 transition-opacity"
+                href="progress.html">
+                <span class="material-symbols-outlined text-2xl">monitoring</span>
+                <span class="text-[10px] font-black uppercase">Stats</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 group opacity-40 hover:opacity-100 transition-opacity"
+                href="profile.html">
+                <span class="material-symbols-outlined text-2xl">person</span>
+                <span class="text-[10px] font-black uppercase">Me</span>
+            </a>
+        </nav>
+    </div>
+</body>
+
+</html>

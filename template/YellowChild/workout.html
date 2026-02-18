@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>FitPung - Sunny Workout Plan</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffd84d", // Honey Gold
+                        "background-light": "#fdfcf7", // Cream / Off-white
+                        "background-dark": "#231f0f",
+                        "soft-orange": "#ffb347",
+                        "sky-tint": "#bae6fd",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .soft-shadow {
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+        }
+
+        .bubbly-card {
+            transition: transform 0.2s ease;
+        }
+
+        .bubbly-card:active {
+            transform: scale(0.96);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-[#1d190c]">
+    <!-- Main Container -->
+    <div
+        class="relative flex h-auto min-h-screen w-full max-w-md mx-auto flex-col bg-background-light overflow-x-hidden">
+        <!-- Header -->
+        <div class="flex items-center bg-background-light p-4 pb-2 justify-between sticky top-0 z-10">
+            <div class="flex size-12 shrink-0 items-center">
+                <a href="profile.html"
+                    class="bg-primary/20 aspect-square rounded-full size-10 flex items-center justify-center border-2 border-primary hover:bg-primary/30 transition-colors">
+                    <span class="material-symbols-outlined text-primary font-bold">face</span>
+                </a>
+            </div>
+            <h2 class="text-[#1d190c] text-xl font-extrabold leading-tight tracking-tight flex-1 text-center">FitPung
+            </h2>
+            <div class="flex w-12 items-center justify-end">
+                <button
+                    class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white border border-primary/10 soft-shadow">
+                    <span class="material-symbols-outlined text-[#1d190c]"
+                        style="font-variation-settings: 'FILL' 0, 'wght' 400;">notifications</span>
+                </button>
+            </div>
+        </div>
+        <!-- Greeting -->
+        <div class="px-6 pt-6 pb-2">
+            <h1 class="text-[#1d190c] text-[32px] font-extrabold leading-tight">Ready to play?</h1>
+            <p class="text-[#1d190c]/60 font-medium">Pick your workout path today!</p>
+        </div>
+        <!-- Goal Selection Cards -->
+        <div class="grid grid-cols-1 gap-4 p-6">
+            <!-- Build Muscle (Yellow) -->
+            <div
+                class="bubbly-card relative overflow-hidden bg-primary rounded-xl p-6 flex items-center justify-between soft-shadow border-4 border-white">
+                <div class="z-10">
+                    <h3 class="text-[#1d190c] text-2xl font-black mb-1">Build Muscle</h3>
+                    <p class="text-[#1d190c]/70 font-bold text-sm">STRENGTH &amp; POWER</p>
+                    <button class="mt-4 bg-white text-[#1d190c] px-4 py-2 rounded-full font-bold text-sm">Start
+                        Path</button>
+                </div>
+                <div class="absolute -right-4 -bottom-4 opacity-30">
+                    <span class="material-symbols-outlined text-[120px]"
+                        style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+                </div>
+            </div>
+            <!-- Lose Fat (Soft Orange) -->
+            <div
+                class="bubbly-card relative overflow-hidden bg-soft-orange rounded-xl p-6 flex items-center justify-between soft-shadow border-4 border-white">
+                <div class="z-10">
+                    <h3 class="text-white text-2xl font-black mb-1">Lose Fat</h3>
+                    <p class="text-white/80 font-bold text-sm">BURN &amp; TONE</p>
+                    <button class="mt-4 bg-white text-soft-orange px-4 py-2 rounded-full font-bold text-sm">Let's
+                        Go</button>
+                </div>
+                <div class="absolute -right-4 -bottom-4 opacity-30">
+                    <span class="material-symbols-outlined text-white text-[120px]"
+                        style="font-variation-settings: 'FILL' 1;">bolt</span>
+                </div>
+            </div>
+            <!-- Strength (Sky Tint) -->
+            <div
+                class="bubbly-card relative overflow-hidden bg-sky-tint rounded-xl p-6 flex items-center justify-between soft-shadow border-4 border-white">
+                <div class="z-10">
+                    <h3 class="text-[#0c4a6e] text-2xl font-black mb-1">Total Strength</h3>
+                    <p class="text-[#0c4a6e]/70 font-bold text-sm">DURABILITY &amp; FLEX</p>
+                    <button class="mt-4 bg-[#0c4a6e] text-white px-4 py-2 rounded-full font-bold text-sm">I'm
+                        Ready</button>
+                </div>
+                <div class="absolute -right-4 -bottom-4 opacity-30">
+                    <span class="material-symbols-outlined text-[#0c4a6e] text-[120px]"
+                        style="font-variation-settings: 'FILL' 1;">exercise</span>
+                </div>
+            </div>
+        </div>
+        <!-- Weekly Schedule Section -->
+        <div class="px-6 py-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-[#1d190c] text-[22px] font-black leading-tight">Weekly Schedule</h2>
+                <span class="text-primary font-bold text-sm bg-primary/10 px-3 py-1 rounded-full">Week 3</span>
+            </div>
+            <div class="flex justify-between items-center gap-2 overflow-x-auto pb-4 no-scrollbar">
+                <!-- Completed (Sky Tint) -->
+                <div class="flex flex-col items-center gap-2 min-w-[56px]">
+                    <p class="text-xs font-bold text-[#1d190c]/40 uppercase tracking-widest">Mon</p>
+                    <div
+                        class="size-14 rounded-full bg-sky-tint flex items-center justify-center border-2 border-white soft-shadow">
+                        <span class="material-symbols-outlined text-[#0c4a6e] font-black">check</span>
+                    </div>
+                </div>
+                <!-- Completed (Sky Tint) -->
+                <div class="flex flex-col items-center gap-2 min-w-[56px]">
+                    <p class="text-xs font-bold text-[#1d190c]/40 uppercase tracking-widest">Tue</p>
+                    <div
+                        class="size-14 rounded-full bg-sky-tint flex items-center justify-center border-2 border-white soft-shadow">
+                        <span class="material-symbols-outlined text-[#0c4a6e] font-black">check</span>
+                    </div>
+                </div>
+                <!-- Selected (Honey Gold / Primary) -->
+                <div class="flex flex-col items-center gap-2 min-w-[64px]">
+                    <p class="text-xs font-black text-primary uppercase tracking-widest">Wed</p>
+                    <div
+                        class="size-16 rounded-full bg-primary flex flex-col items-center justify-center border-4 border-white soft-shadow ring-4 ring-primary/20">
+                        <span class="text-[#1d190c] text-lg font-black">15</span>
+                    </div>
+                </div>
+                <!-- Upcoming (Cream) -->
+                <div class="flex flex-col items-center gap-2 min-w-[56px]">
+                    <p class="text-xs font-bold text-[#1d190c]/40 uppercase tracking-widest">Thu</p>
+                    <div
+                        class="size-14 rounded-full bg-white flex items-center justify-center border-2 border-[#1d190c]/5 soft-shadow">
+                        <span class="text-[#1d190c]/40 text-sm font-bold">16</span>
+                    </div>
+                </div>
+                <!-- Upcoming (Cream) -->
+                <div class="flex flex-col items-center gap-2 min-w-[56px]">
+                    <p class="text-xs font-bold text-[#1d190c]/40 uppercase tracking-widest">Fri</p>
+                    <div
+                        class="size-14 rounded-full bg-white flex items-center justify-center border-2 border-[#1d190c]/5 soft-shadow">
+                        <span class="text-[#1d190c]/40 text-sm font-bold">17</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Todays Plan Illustration Area -->
+        <div
+            class="mx-6 mb-24 bg-primary/10 rounded-xl p-6 border-2 border-dashed border-primary/40 flex flex-col items-center text-center">
+            <div class="size-32 mb-4 bg-primary/20 rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary text-6xl"
+                    style="font-variation-settings: 'FILL' 1;">skateboarding</span>
+            </div>
+            <h4 class="text-lg font-black text-[#1d190c]">Push Your Limits!</h4>
+            <p class="text-sm font-medium text-[#1d190c]/60 max-w-[200px] mt-1">Today's session focuses on
+                high-intensity cardio and agility.</p>
+            <button
+                class="mt-6 w-full bg-primary text-[#1d190c] font-black py-4 rounded-full soft-shadow border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
+                START WORKOUT
+            </button>
+        </div>
+        <!-- Bottom Navigation Bar -->
+        <div
+            class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/90 backdrop-blur-lg border-t border-[#f4f1e6] px-4 pb-6 pt-3 flex items-center justify-around z-50">
+            <a class="flex flex-col items-center gap-1 text-primary" href="home.html">
+                <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">home</span>
+                <p class="text-[10px] font-black uppercase tracking-tighter">Home</p>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-[#a18d45] hover:text-primary transition-colors"
+                href="workout.html">
+                <span class="material-symbols-outlined text-2xl">exercise</span>
+                <p class="text-[10px] font-bold uppercase tracking-tighter">Workouts</p>
+            </a>
+            <div class="relative -top-6">
+                <a href="map.html"
+                    class="size-14 bg-primary text-[#1d190c] rounded-full flex items-center justify-center soft-shadow border-4 border-white">
+                    <span class="material-symbols-outlined text-3xl font-black">map</span>
+                </a>
+            </div>
+            <a class="flex flex-col items-center gap-1 text-[#a18d45] hover:text-primary transition-colors"
+                href="progress.html">
+                <span class="material-symbols-outlined text-2xl">bar_chart</span>
+                <p class="text-[10px] font-bold uppercase tracking-tighter">Stats</p>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-[#a18d45] hover:text-primary transition-colors"
+                href="profile.html">
+                <span class="material-symbols-outlined text-2xl">person</span>
+                <p class="text-[10px] font-bold uppercase tracking-tighter">Profile</p>
+            </a>
+        </div>
+    </div>
+    <!-- Background Pattern -->
+    <div class="fixed inset-0 pointer-events-none opacity-[0.03] z-[-1]"
+        data-alt="Subtle geometric cubes pattern background"
+        style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDupeW5FqNXSgy1jDkSvPFbtDZEKzfxnmi6h-w8wuR5d5uyv5DNCPy7mjyrJOcGHJcUyRZ4yjLgq1ledW-Kl6eptAjvqeYvPtNIhzXojFY9hSEoKzE4fRVRcOLmmq1LuFUmXEjvGYerjIU1mbrRfBF0Y_a2hcIKfe4iT_PvhYTRIbnz_o42hUGU6R2n1sG524tzeZGOZd4bygGkMvKnGxmwVDpOsAP5RXuyCGKn6e-d9EJzP3Bbl95G3LFLVJEnsDChadePErsS5RM');">
+    </div>
+</body>
+
+</html>

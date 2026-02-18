@@ -11,18 +11,20 @@ use App\Models\GymLayout;
 
 use App\Http\Controllers\AdminController;
 
-Route::get('/', function () {
-    return Inertia::render('Home', [
-        'gyms' => GymLayout::where('is_public', true)
-            ->where('is_approved', true) // Only show approved gyms
-            ->limit(6)
-            ->get()
-    ]);
-})->name('home');
+Route::get('/', [GymLayoutController::class, 'showSelection'])->name('selection');
+Route::get('/home', [GymLayoutController::class, 'showHome'])->name('home');
+Route::get('/mobile', [GymLayoutController::class, 'showMobileHome'])->name('mobile.home');
+Route::get('/mobile/maps', [GymLayoutController::class, 'showMobileMaps'])->name('mobile.maps');
+Route::get('/mobile/workout', [GymLayoutController::class, 'showMobileWorkout'])->name('mobile.workout');
+Route::get('/mobile/stats', [GymLayoutController::class, 'showMobileStats'])->name('mobile.stats');
+Route::get('/mobile/profile', [GymLayoutController::class, 'showMobileProfile'])->name('mobile.profile');
+Route::get('/mobile/settings', [GymLayoutController::class, 'showMobileSettings'])->name('mobile.settings');
 
 Route::get('/gyms/{id}', [GymLayoutController::class, 'showPublic'])->name('gyms.show');
 Route::get('/gyms/{id}/map', [GymLayoutController::class, 'showMap'])->name('gyms.map');
 Route::get('/gyms/{id}/technique', [GymLayoutController::class, 'showTechnique'])->name('gyms.technique');
+Route::get('/gyms/{id}/white-map', [GymLayoutController::class, 'showWhiteMap'])->name('gyms.white-map');
+Route::get('/gyms/{id}/recommend', [GymLayoutController::class, 'showRecommendations'])->name('gyms.recommend');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [GymLayoutController::class, 'index'])->name('dashboard');

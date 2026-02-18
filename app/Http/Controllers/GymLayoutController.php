@@ -25,6 +25,86 @@ class GymLayoutController extends Controller
     }
 
     /**
+     * Show the selection landing page.
+     */
+    public function showSelection()
+    {
+        return Inertia::render('WelcomeSelection');
+    }
+
+    /**
+     * Show the original desktop home page.
+     */
+    public function showHome()
+    {
+        return Inertia::render('Home', [
+            'gyms' => GymLayout::where('is_public', true)
+                ->where('is_approved', true)
+                ->limit(6)
+                ->get()
+        ]);
+    }
+
+    /**
+     * Show the new mobile home page.
+     */
+    public function showMobileHome()
+    {
+        return Inertia::render('MobileHome', [
+            'featuredGyms' => GymLayout::where('is_public', true)
+                ->where('is_approved', true)
+                ->whereNotNull('recommendations')
+                ->limit(5)
+                ->get()
+        ]);
+    }
+
+    /**
+     * Show mobile maps page.
+     */
+    public function showMobileMaps()
+    {
+        return Inertia::render('MobileMaps', [
+            'gyms' => GymLayout::where('is_public', true)
+                ->where('is_approved', true)
+                ->limit(6)
+                ->get()
+        ]);
+    }
+
+    /**
+     * Show mobile workout page.
+     */
+    public function showMobileWorkout()
+    {
+        return Inertia::render('MobileWorkout');
+    }
+
+    /**
+     * Show mobile stats page.
+     */
+    public function showMobileStats()
+    {
+        return Inertia::render('MobileStats');
+    }
+
+    /**
+     * Show mobile profile page.
+     */
+    public function showMobileProfile()
+    {
+        return Inertia::render('MobileProfile');
+    }
+
+    /**
+     * Show mobile settings page.
+     */
+    public function showMobileSettings()
+    {
+        return Inertia::render('MobileSettings');
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
@@ -103,6 +183,7 @@ class GymLayoutController extends Controller
             'holidays' => 'nullable|array',
             'promotions' => 'nullable|array',
             'price_list' => 'nullable|array',
+            'recommendations' => 'nullable|array',
         ]);
 
         $data = [
@@ -113,6 +194,7 @@ class GymLayoutController extends Controller
             'holidays' => $request->holidays,
             'promotions' => $request->promotions,
             'price_list' => $request->price_list,
+            'recommendations' => $request->recommendations,
         ];
 
         if ($request->has('room_config'))
@@ -199,6 +281,40 @@ class GymLayoutController extends Controller
         }
 
         return Inertia::render('Gyms/TechniqueMap', [
+            'gym' => $gym,
+            'equipments' => Equipment::all()
+        ]);
+    }
+
+    /**
+     * Show the white template map page.
+     */
+    public function showWhiteMap($id)
+    {
+        $gym = GymLayout::where('id', $id)->firstOrFail();
+
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        return Inertia::render('Gyms/WhiteMap', [
+            'gym' => $gym,
+            'equipments' => Equipment::all()
+        ]);
+    }
+
+    /**
+     * Show the recommendation map page.
+     */
+    public function showRecommendations($id)
+    {
+        $gym = GymLayout::where('id', $id)->firstOrFail();
+
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        return Inertia::render('Gyms/MobileMachineRecommend', [
             'gym' => $gym,
             'equipments' => Equipment::all()
         ]);

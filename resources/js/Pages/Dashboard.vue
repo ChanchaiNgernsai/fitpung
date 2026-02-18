@@ -21,6 +21,7 @@ const settingsForm = useForm({
     holidays: [],
     promotions: [],
     price_list: [],
+    recommendations: [],
 });
 
 const imagePreview = ref(null);
@@ -91,6 +92,7 @@ const openSettings = (layout) => {
     settingsForm.holidays = layout.holidays || [];
     settingsForm.promotions = layout.promotions || [];
     settingsForm.price_list = layout.price_list || [];
+    settingsForm.recommendations = layout.recommendations || [];
     settingsForm.image_url = layout.image_path ? `/storage/${layout.image_path}` : null;
     settingsForm.image = null;
     imagePreview.value = null;
@@ -218,6 +220,47 @@ const removePrice = (index) => {
     settingsForm.price_list.splice(index, 1);
 };
 
+const addRecommendation = () => {
+    settingsForm.recommendations.push({ 
+        title: '', 
+        subtitle: '', 
+        duration: 45, 
+        calories: 320, 
+        badge: 'Intense',
+        exercises: [] 
+    });
+};
+
+const removeRecommendation = (index) => {
+    settingsForm.recommendations.splice(index, 1);
+};
+
+const toggleExerciseInRecommendation = (recIndex, machineName) => {
+    const exercises = settingsForm.recommendations[recIndex].exercises;
+    const existingIndex = exercises.findIndex(e => (typeof e === 'string' ? e : e.name) === machineName);
+    
+    if (existingIndex === -1) {
+        // Add new exercise as an object with default values
+        exercises.push({
+            name: machineName,
+            weight: '10',
+            sets: '3',
+            reps: '12'
+        });
+    } else {
+        // Remove exercise
+        exercises.splice(existingIndex, 1);
+    }
+};
+
+const getExerciseName = (exercise) => {
+    return typeof exercise === 'string' ? exercise : exercise.name;
+};
+
+const isExerciseSelected = (rec, name) => {
+    return rec.exercises.some(e => getExerciseName(e) === name);
+};
+
 const saveSettings = () => {
     // Use the dedicated POST route for updates to handle multipart/form-data correctly
     settingsForm.post(route('gym-builder.post_update', selectedLayout.value.id), {
@@ -254,6 +297,19 @@ const getViewBox = (pointsStr) => {
     const y = minY - padding;
     
     return `${x} ${y} ${w} ${h}`;
+};
+
+const getUniqueMachines = (items) => {
+    if (!items) return [];
+    const unique = [];
+    const seen = new Set();
+    for (const item of items) {
+        if (!seen.has(item.name)) {
+            unique.push(item);
+            seen.add(item.name);
+        }
+    }
+    return unique;
 };
 </script>
 
@@ -515,6 +571,126 @@ const getViewBox = (pointsStr) => {
                                 </div>
                                 <div v-if="settingsForm.price_list.length === 0" class="text-center py-8 opacity-30 italic text-sm border-2 border-dashed border-base-content/10 rounded-2xl sm:col-span-2 lg:col-span-3">
                                     No prices listed.
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Section: Workout Recommendations -->
+                        <section>
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-primary/10 rounded-lg text-primary">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </div>
+                                    <h3 class="text-lg md:text-xl font-bold">Workout Recommendations</h3>
+                                </div>
+                                <button class="btn btn-primary btn-sm" @click="addRecommendation">+ Add Recommendation</button>
+                            </div>
+
+                            <div class="space-y-6">
+                                <div v-for="(rec, recIdx) in settingsForm.recommendations" :key="recIdx" class="bg-base-200/50 p-6 rounded-3xl border border-base-content/5 relative group">
+                                    <button @click="removeRecommendation(recIdx)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                        <div class="form-control">
+                                            <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-60">Title</span></label>
+                                            <input v-model="rec.title" type="text" placeholder="e.g. UPPER BODY FOCUS" class="input input-sm input-bordered" />
+                                        </div>
+                                        <div class="form-control">
+                                            <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-60">Badge (Category)</span></label>
+                                            <select v-model="rec.badge" class="select select-sm select-bordered font-bold text-xs">
+                                                <option value="Starter">Starter</option>
+                                                <option value="Intermediate">Intermediate (กลาง)</option>
+                                                <option value="Elite">Elite</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-control md:col-span-2">
+                                            <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-60">Subtitle / Target Description</span></label>
+                                            <input v-model="rec.subtitle" type="text" placeholder="Targets Chest, Shoulders, and Triceps..." class="input input-sm input-bordered" />
+                                        </div>
+                                        <div class="form-control">
+                                            <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-60">Duration (Min)</span></label>
+                                            <input v-model="rec.duration" type="number" class="input input-sm input-bordered" />
+                                        </div>
+                                        <div class="form-control">
+                                            <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-60">Est. Calories</span></label>
+                                            <input v-model="rec.calories" type="number" class="input input-sm input-bordered" />
+                                        </div>
+                                    </div>
+
+                                    <!-- Exercise Selection Grid -->
+                                    <div class="form-control">
+                                        <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-60">1. Select Included Machines</span></label>
+                                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-4 bg-base-100 rounded-3xl border border-base-content/5">
+                                            <div 
+                                                v-for="machine in getUniqueMachines(selectedLayout.items)" 
+                                                :key="machine.name"
+                                                @click="toggleExerciseInRecommendation(recIdx, machine.name)"
+                                                class="group relative aspect-square rounded-2xl border-2 transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center p-2 text-center"
+                                                :class="isExerciseSelected(rec, machine.name) ? 'border-primary bg-primary/5' : 'border-transparent bg-base-200/50 hover:bg-base-200'"
+                                            >
+                                                <img :src="machine.src" class="w-12 h-12 object-contain mb-2 transition-all" :class="isExerciseSelected(rec, machine.name) ? 'brightness-110 drop-shadow-[0_0_8px_rgba(var(--p),0.4)]' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100'" />
+                                                <span class="text-[8px] font-black uppercase text-center leading-tight transition-colors" :class="isExerciseSelected(rec, machine.name) ? 'text-primary' : 'text-base-content/40 group-hover:text-base-content/80'">{{ machine.name }}</span>
+                                                
+                                                <!-- Selection Marker -->
+                                                <div v-if="isExerciseSelected(rec, machine.name)" class="absolute top-2 right-2 size-4 bg-primary text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-200">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="!selectedLayout.items || selectedLayout.items.length === 0" class="col-span-full text-center py-6 opacity-30 italic text-xs">
+                                                No machines found in this layout. Please add machines in the Editor first.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Selected Machine Details -->
+                                    <div v-if="rec.exercises.length > 0" class="form-control mt-4">
+                                        <label class="label pt-0"><span class="label-text font-bold text-[10px] uppercase opacity-60">2. Set Target for Each Machine</span></label>
+                                        <div class="space-y-3">
+                                            <div v-for="(exe, exeIdx) in rec.exercises" :key="getExerciseName(exe)" 
+                                                class="flex items-center gap-4 p-4 bg-base-100 rounded-2xl border border-base-content/5 animate-in slide-in-from-left duration-300"
+                                                :style="{ animationDelay: `${exeIdx * 50}ms` }"
+                                            >
+                                                <!-- Mini Preview -->
+                                                <div class="size-10 rounded-xl bg-base-200 flex items-center justify-center flex-shrink-0">
+                                                    <img :src="selectedLayout.items.find(i => i.name === getExerciseName(exe))?.src" class="size-6 object-contain" />
+                                                </div>
+                                                
+                                                <!-- Name -->
+                                                <div class="flex-1">
+                                                    <p class="text-[10px] font-black uppercase tracking-tighter">{{ getExerciseName(exe) }}</p>
+                                                </div>
+
+                                                <!-- Detail Inputs -->
+                                                <div class="flex items-center gap-2">
+                                                    <div class="flex flex-col">
+                                                        <label class="text-[8px] font-bold opacity-30 uppercase ml-1">Weight (kg)</label>
+                                                        <input v-model="rec.exercises[exeIdx].weight" type="text" placeholder="10" class="input input-xs input-bordered w-16 font-bold" />
+                                                    </div>
+                                                    <div class="flex flex-col">
+                                                        <label class="text-[8px] font-bold opacity-30 uppercase ml-1">Sets</label>
+                                                        <input v-model="rec.exercises[exeIdx].sets" type="text" placeholder="3" class="input input-xs input-bordered w-12 font-bold" />
+                                                    </div>
+                                                    <div class="flex flex-col">
+                                                        <label class="text-[8px] font-bold opacity-30 uppercase ml-1">Reps</label>
+                                                        <input v-model="rec.exercises[exeIdx].reps" type="text" placeholder="12" class="input input-xs input-bordered w-12 font-bold" />
+                                                    </div>
+                                                </div>
+
+                                                <!-- Remove Button -->
+                                                <button @click="toggleExerciseInRecommendation(recIdx, getExerciseName(exe))" class="btn btn-ghost btn-xs btn-circle text-error">
+                                                    <span class="material-symbols-outlined text-sm">close</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="settingsForm.recommendations.length === 0" class="text-center py-12 opacity-30 italic text-sm border-2 border-dashed border-base-content/10 rounded-3xl">
+                                    No workout recommendations created yet.
                                 </div>
                             </div>
                         </section>

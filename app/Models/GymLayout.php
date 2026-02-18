@@ -27,6 +27,7 @@ class GymLayout extends Model
         'price',
         'thumbnail_path',
         'is_approved',
+        'recommendations',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class GymLayout extends Model
         'holidays' => 'array',
         'promotions' => 'array',
         'price_list' => 'array',
+        'recommendations' => 'array',
     ];
 
     public function user(): BelongsTo

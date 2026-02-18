@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c4bbf7",
+                        "background-light": "#FFF7ED", // Creamy Vanilla
+                        "background-dark": "#131121",
+                        "bubblegum": "#F472B6",
+                        "skyblue": "#BAE6FD"
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px",
+                        "24px": "24px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #c4bbf7 0%, #BAE6FD 100%);
+        }
+
+        body {
+            font-family: 'Spline Sans', sans-serif;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-[#2D264B]">
+    <!-- Top Navigation / Header -->
+    <header class="flex items-center justify-between px-6 pt-6 pb-2">
+        <div class="flex items-center gap-3">
+            <a href="profile.html" class="size-12 rounded-full border-2 border-primary overflow-hidden bg-white block">
+                <img class="w-full h-full object-cover" data-alt="User profile avatar smiling"
+                    src="../../public/images/gorila/ConcentrationCurl.png" />
+            </a>
+            <div>
+                <p class="text-xs font-medium text-[#7C71A8]">สวัสดี!</p>
+                <h2 class="text-lg font-bold leading-none">FitPung</h2>
+            </div>
+        </div>
+        <button class="size-11 flex items-center justify-center rounded-full bg-white shadow-sm text-primary">
+            <span class="material-symbols-outlined">notifications</span>
+        </button>
+    </header>
+    <!-- Hero Section -->
+    <section class="px-4 py-4">
+        <div
+            class="hero-gradient rounded-xl p-6 relative overflow-hidden min-h-[220px] flex flex-col justify-end shadow-lg shadow-primary/20">
+            <!-- Mascot Decoration -->
+            <div class="absolute top-4 right-4 w-40 h-40 opacity-90">
+                <img class="w-full h-full object-contain" data-alt="Cute friendly gorilla mascot waving"
+                    src="../../public/images/gorila/GobletSquat.png" />
+            </div>
+            <div class="relative z-10 max-w-[70%]">
+                <span
+                    class="inline-block px-3 py-1 bg-white/30 backdrop-blur-md rounded-full text-xs font-bold text-white mb-2">ENERGY
+                    LEVEL: HIGH 🔥</span>
+                <h1 class="text-white text-3xl font-bold leading-tight drop-shadow-sm">
+                    วันนี้ฟิตไปกี่เซ็ตแล้วน้า~ 💪✨
+                </h1>
+            </div>
+        </div>
+    </section>
+    <!-- Stats Quick Row -->
+    <section class="flex gap-3 px-4 py-2 overflow-x-auto no-scrollbar">
+        <div
+            class="flex items-center gap-2 bg-white rounded-full px-4 py-3 shadow-sm border border-orange-100 flex-1 min-w-[120px]">
+            <div class="size-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+                <span class="material-symbols-outlined text-sm">local_fire_department</span>
+            </div>
+            <div>
+                <p class="text-[10px] text-[#7C71A8] font-medium uppercase">Calories</p>
+                <p class="font-bold text-sm">320 kcal</p>
+            </div>
+        </div>
+        <div
+            class="flex items-center gap-2 bg-white rounded-full px-4 py-3 shadow-sm border border-blue-50 border-primary/10 flex-1 min-w-[120px]">
+            <div class="size-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                <span class="material-symbols-outlined text-sm">schedule</span>
+            </div>
+            <div>
+                <p class="text-[10px] text-[#7C71A8] font-medium uppercase">Time</p>
+                <p class="font-bold text-sm">45 min</p>
+            </div>
+        </div>
+        <div
+            class="flex items-center gap-2 bg-white rounded-full px-4 py-3 shadow-sm border border-green-50 flex-1 min-w-[120px]">
+            <div class="size-8 rounded-full bg-green-100 flex items-center justify-center text-green-500">
+                <span class="material-symbols-outlined text-sm">footprint</span>
+            </div>
+            <div>
+                <p class="text-[10px] text-[#7C71A8] font-medium uppercase">Steps</p>
+                <p class="font-bold text-sm">6.4k</p>
+            </div>
+        </div>
+    </section>
+    <!-- Workout Today Card -->
+    <section class="px-4 py-6">
+        <div class="bg-white rounded-24px p-6 shadow-xl shadow-primary/5 border border-primary/5">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 class="text-xl font-bold">Workout Today</h3>
+                    <p class="text-sm text-[#7C71A8]">Full Body Blitz • Intermediate</p>
+                </div>
+                <div
+                    class="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                    40 MINS
+                </div>
+            </div>
+            <div class="space-y-4 mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="size-14 rounded-2xl bg-background-light overflow-hidden">
+                        <img class="w-full h-full object-cover" data-alt="Person performing squats in a bright gym"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8yvI4Jd0SVZfNo8sY773dua6dwjd2S0KmlpUwrDI8U7O10tdqPC-TRpA550EqugkeQIDXmqpM6RX0Ya0dw0xtSzow7UGiSQeruXWCnvjHnmUxLTfPMmeMMeebrtN3TDmW2IWlDX_JoWNL6lpPeXTzM9lbNDdmekbuu_hxBda9LlnzZDkzWt6rGZjHdWNMbolYjCCvUg4eSDwlCbmOYOUD2IVxDkoQIgGCyX_QIY0JLsdRbgh7FQiODdV-xxl3PG-mtV6ftVQ8-WE" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between mb-1">
+                            <p class="text-sm font-bold">Dumbbell Squats</p>
+                            <p class="text-xs text-[#7C71A8]">2 of 4 sets</p>
+                        </div>
+                        <div class="w-full bg-primary/10 h-2 rounded-full overflow-hidden">
+                            <div class="bg-primary h-full w-1/2 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="size-14 rounded-2xl bg-background-light overflow-hidden">
+                        <img class="w-full h-full object-cover" data-alt="Fitness equipment like dumbbells and bands"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaufVb8_WCkCk47sGwuD2LMnF95NxH92F7lyEiN47yeqXq2Igv7zRz0zaXJgrztO-TtevxPlTF8sigf6m6mZTQb9LxPz_MDAc2AW-2Rm3PPLlmB9_dzbJTN4LxV-BKAcbJoeajT5xDil_v-E4M0y4jijcE3bEDusnNish0p_D_rfOGiL1MkDAjqmyV-P-bhVHgTtsbtqrSb2gPp_-1uJPUneBGKqOmRUqckhl4Lj0C6izWbF_kDz0RdNVdzvPVZy9ANj-pRJjynnQ" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between mb-1">
+                            <p class="text-sm font-bold">Push-ups</p>
+                            <p class="text-xs text-[#7C71A8]">0 of 3 sets</p>
+                        </div>
+                        <div class="w-full bg-primary/10 h-2 rounded-full overflow-hidden">
+                            <div class="bg-primary h-full w-0 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button
+                class="w-full bg-bubblegum hover:bg-bubblegum/90 text-white font-bold py-4 rounded-full shadow-lg shadow-bubblegum/30 flex items-center justify-center gap-2 transition-transform active:scale-95">
+                <span class="material-symbols-outlined">play_circle</span>
+                Start Workout
+            </button>
+        </div>
+    </section>
+    <!-- Community Section -->
+    <section class="px-4 pb-28">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Friends Online</h3>
+            <button class="text-primary text-sm font-bold">See All</button>
+        </div>
+        <div class="flex items-center -space-x-3">
+            <div class="size-10 rounded-full border-2 border-white overflow-hidden bg-primary/20">
+                <img class="w-full h-full object-cover" data-alt="Community member avatar"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBH2N9nRACmcs3TnRQdR7R5aCVLAOCM7_ZLa67Yaa_YUBfbOZSYYKPTZyp9aLKeVG6RDzoffVAsK9Fznu-jdPxzpojK1c4FCsL-x_MVVhsI5t2o5WlZiZMt3ar5ZMYDxhNreOhqAFopCBsckvAjmwphrFU3b0Lf3IfY2tmkYQ5hwcJq0aqdBrJpNncOASjEWbDbcVbpKUkWMgpzH-CYNZV-Ak-N5HAicBtvia0TG68-sKtjcJ3NoM_qYfxk_WMs1gCERmk6DJZkCeM" />
+            </div>
+            <div class="size-10 rounded-full border-2 border-white overflow-hidden bg-primary/20">
+                <img class="w-full h-full object-cover" data-alt="Community member avatar"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNg3ZpT2TIiMZE41D5Mh4dUXgcl_gfSeamZuNoxdtQ-taLxfrOt_EYmH2pOT1tFZi9jKWRr319_CtkLiNkuOYIBDq3L5c0Uz5YXAMSkcBDJR20ITOEySeu4aGGBNM3W1EkSaQO8dJaDGr-wNNBsf2KpZenZlt5nIPpYFA_otbba4h4RZONTjbxL4HBNI3zk6SL1ibBTvN7HPzJm5VGCrqp51weB_elDVzJKEuKjb54rI_abNQbrl_W0mlbGZE_f3jS_d-_sTMFNxo" />
+            </div>
+            <div class="size-10 rounded-full border-2 border-white overflow-hidden bg-primary/20">
+                <img class="w-full h-full object-cover" data-alt="Community member avatar"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuA82RJ8nGn7UH8sqUhGb_t4xtS2YYKWiyA7wzyhi1EVLpvSnxkhF-2tN5hZh6aSRrwkiVqKAt2JvfqYZe5rSs9H8MJCObQYp-lJq1tE4UyO6_Sws2i1OLVsa0YYNWy9BopEfEfjX67ONShNzChXA7K7OUXUaLjwNaskfTthVdwOU-4rh_kz96kaOLxPl5OfWKtcmtTZ0sjVKxUpZk1RgA9Q-GiUeJpavW_vmvNPd9iKUVY1BMxY4LLJttPgfZoI8UC4y8HWB_psfBM" />
+            </div>
+            <div
+                class="size-10 rounded-full border-2 border-white bg-bubblegum/10 flex items-center justify-center text-[10px] font-bold text-bubblegum">
+                +42
+            </div>
+            <p class="ml-6 text-xs text-[#7C71A8] font-medium italic">working out right now!</p>
+        </div>
+    </section>
+    <!-- Bottom Navigation Bar -->
+    <nav
+        class="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-background-light via-background-light to-transparent">
+        <div
+            class="max-w-md mx-auto bg-white rounded-full shadow-2xl border border-primary/5 px-4 py-3 flex items-center justify-around">
+            <a class="flex flex-col items-center gap-1 text-primary" href="home.html">
+                <span class="material-symbols-outlined text-2xl">home</span>
+                <span class="text-[10px] font-bold uppercase tracking-tight">Home</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-[#7C71A8] opacity-60 hover:opacity-100 transition-opacity"
+                href="map.html">
+                <span class="material-symbols-outlined text-2xl">map</span>
+                <span class="text-[10px] font-bold uppercase tracking-tight">Map</span>
+            </a>
+            <a class="relative -top-1 bg-primary text-white p-3 rounded-full shadow-lg shadow-primary/40 transform scale-110 hover:scale-125 transition-transform"
+                href="workout.html">
+                <span class="material-symbols-outlined text-2xl">add</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-[#7C71A8] opacity-60 hover:opacity-100 transition-opacity"
+                href="progress.html">
+                <span class="material-symbols-outlined text-2xl">monitoring</span>
+                <span class="text-[10px] font-bold uppercase tracking-tight">Stats</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 text-[#7C71A8] opacity-60 hover:opacity-100 transition-opacity"
+                href="profile.html">
+                <span class="material-symbols-outlined text-2xl">person</span>
+                <span class="text-[10px] font-bold uppercase tracking-tight">Me</span>
+            </a>
+        </div>
+    </nav>
+</body>
+
+</html>
