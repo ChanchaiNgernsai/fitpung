@@ -77,7 +77,12 @@ class GymLayoutController extends Controller
      */
     public function showMobileWorkout()
     {
-        return Inertia::render('MobileWorkout');
+        return Inertia::render('MobileWorkout', [
+            'gyms' => GymLayout::where('is_public', true)
+                ->where('is_approved', true)
+                ->whereNotNull('recommendations')
+                ->get()
+        ]);
     }
 
     /**

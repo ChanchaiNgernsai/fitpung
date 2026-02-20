@@ -92,8 +92,11 @@ const openSettings = (layout) => {
     settingsForm.holidays = layout.holidays || [];
     settingsForm.promotions = layout.promotions || [];
     settingsForm.price_list = layout.price_list || [];
-    settingsForm.recommendations = layout.recommendations || [];
-    settingsForm.image_url = layout.image_path ? `/storage/${layout.image_path}` : null;
+    settingsForm.recommendations = (layout.recommendations || []).map(r => ({
+        ...r,
+        id: r.id || Date.now() + Math.random() // Ensure ID exists for stable keys
+    }));
+    settingsForm.image_url = formatImageUrl(layout.image_path);
     settingsForm.image = null;
     imagePreview.value = null;
     showSettingsModal.value = true;
@@ -222,11 +225,12 @@ const removePrice = (index) => {
 
 const addRecommendation = () => {
     settingsForm.recommendations.push({ 
+        id: Date.now() + Math.random(),
         title: '', 
         subtitle: '', 
         duration: 45, 
         calories: 320, 
-        badge: 'Intense',
+        badge: 'Starter',
         exercises: [] 
     });
 };
@@ -299,6 +303,12 @@ const getViewBox = (pointsStr) => {
     return `${x} ${y} ${w} ${h}`;
 };
 
+const imageLoadError = ref({});
+
+const handleImageError = (id) => {
+    imageLoadError.value[id] = true;
+};
+
 const getUniqueMachines = (items) => {
     if (!items) return [];
     const unique = [];
@@ -310,6 +320,12 @@ const getUniqueMachines = (items) => {
         }
     }
     return unique;
+};
+
+const formatImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `/storage/${path}`;
 };
 </script>
 
@@ -346,8 +362,12 @@ const getUniqueMachines = (items) => {
                     >
                         <!-- Card Preview Section -->
                         <div class="h-60 bg-neutral relative overflow-hidden flex items-center justify-center">
-                            <template v-if="layout.image_path">
-                                <img :src="`/storage/${layout.image_path}`" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <template v-if="layout.image_path && !imageLoadError[layout.id]">
+                                <img 
+                                    :src="formatImageUrl(layout.image_path)" 
+                                    @error="handleImageError(layout.id)"
+                                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                />
                             </template>
                             <div v-else class="w-full h-full bg-gradient-to-br from-[#1a2233] to-[#0f172a] flex items-center justify-center p-6">
                                 <svg 
@@ -588,7 +608,7 @@ const getUniqueMachines = (items) => {
                             </div>
 
                             <div class="space-y-6">
-                                <div v-for="(rec, recIdx) in settingsForm.recommendations" :key="recIdx" class="bg-base-200/50 p-6 rounded-3xl border border-base-content/5 relative group">
+                                <div v-for="(rec, recIdx) in settingsForm.recommendations" :key="rec.id" class="bg-base-200/50 p-6 rounded-3xl border border-base-content/5 relative group">
                                     <button @click="removeRecommendation(recIdx)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                                     
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

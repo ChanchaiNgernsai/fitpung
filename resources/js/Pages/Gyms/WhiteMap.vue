@@ -269,13 +269,13 @@ onUnmounted(() => {
 
             <!-- Floating Controls (HUD) -->
             <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 bg-white/90  backdrop-blur-lg rounded-full border border-gray-100  shadow-xl z-20">
-                <button @click="resetZoom" class="flex items-center gap-2 hover:text-[var(--theme-color)] transition-colors ">
-                    <span class="material-symbols-outlined text-sm">home</span>
+                <button @click="resetZoom" class="flex items-center gap-2 text-gray-900 hover:text-[var(--theme-color)] transition-colors ">
+                    <span class="material-symbols-outlined text-sm font-bold">home</span>
                     <span class="text-[10px] font-black uppercase tracking-tighter">Reset</span>
                 </button>
                 <div class="w-px h-4 bg-gray-200 "></div>
-                <div class="flex items-center gap-2 text-gray-400">
-                    <span class="material-symbols-outlined text-sm">mouse</span>
+                <div class="flex items-center gap-2 text-gray-500">
+                    <span class="material-symbols-outlined text-sm font-bold">mouse</span>
                     <span class="text-[10px] font-black uppercase tracking-tighter">Pan & Zoom</span>
                 </div>
             </div>

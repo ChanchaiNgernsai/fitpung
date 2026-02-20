@@ -26,10 +26,10 @@ onMounted(() => {
                 <div class="size-20 bg-white  rounded-[24px] shadow-xl mx-auto flex items-center justify-center border border-gray-100 ">
                     <span class="material-symbols-outlined text-4xl text-[#ec5b13] fill-icon">fitness_center</span>
                 </div>
-                <h1 class="text-4xl font-black italic tracking-tighter uppercase leading-none">
+                <h1 class="text-4xl font-black italic tracking-tighter uppercase leading-none text-gray-900 ">
                     <span class="text-gray-900 ">Fit</span><span class="text-[#ec5b13]">Pung</span>
                 </h1>
-                <p class="text-sm font-bold text-gray-400 uppercase tracking-[0.3em]">Select Experience</p>
+                <p class="text-xs font-black text-gray-600 uppercase tracking-[0.3em]">Select Experience</p>
             </div>
 
             <!-- Choice Cards -->
@@ -44,8 +44,8 @@ onMounted(() => {
                             <span class="material-symbols-outlined text-[#ec5b13]">computer</span>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-black uppercase italic leading-none mb-2">Desktop View</h2>
-                            <p class="text-xs text-gray-500  font-medium leading-relaxed">The original full-featured workspace for planning and building layouts.</p>
+                            <h2 class="text-2xl font-black uppercase italic leading-none mb-2 text-gray-900 ">Desktop View</h2>
+                            <p class="text-xs text-gray-600  font-medium leading-relaxed">The original full-featured workspace for planning and building layouts.</p>
                         </div>
                         <div class="flex items-center gap-2 text-[#ec5b13] font-black text-[10px] uppercase tracking-widest">
                             Continue Legacy
@@ -64,8 +64,8 @@ onMounted(() => {
                             <span class="material-symbols-outlined text-[#ec5b13]">smartphone</span>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-black uppercase italic leading-none mb-2">Mobile Elite</h2>
-                            <p class="text-xs text-gray-500  font-medium leading-relaxed">Simplified, premium experience optimized for your phone screens.</p>
+                            <h2 class="text-2xl font-black uppercase italic leading-none mb-2 text-gray-900 ">Mobile Elite</h2>
+                            <p class="text-xs text-gray-600  font-medium leading-relaxed">Simplified, premium experience optimized for your phone screens.</p>
                         </div>
                         <div class="flex items-center gap-2 text-[#ec5b13] font-black text-[10px] uppercase tracking-widest">
                             Go Mobile
