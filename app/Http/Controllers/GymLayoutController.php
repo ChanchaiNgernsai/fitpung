@@ -80,7 +80,6 @@ class GymLayoutController extends Controller
         return Inertia::render('MobileWorkout', [
             'gyms' => GymLayout::where('is_public', true)
                 ->where('is_approved', true)
-                ->whereNotNull('recommendations')
                 ->get()
         ]);
     }

@@ -59,6 +59,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Workout Plans (Mobile API-like)
+    Route::get('/api/workout-plans', [\App\Http\Controllers\WorkoutPlanController::class, 'index']);
+    Route::post('/api/workout-plans', [\App\Http\Controllers\WorkoutPlanController::class, 'store']);
+    Route::delete('/api/workout-plans/{workoutPlan}', [\App\Http\Controllers\WorkoutPlanController::class, 'destroy']);
 });
 
 require __DIR__ . '/auth.php';

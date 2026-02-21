@@ -289,9 +289,28 @@ const getMachineClass = (machine) => {
                         </div>
                         <div class="flex-1">
                             <h4 class="text-sm font-black uppercase italic text-gray-900 leading-none mb-1">{{ machine.name }}</h4>
-                            <div v-if="machine.details" class="flex items-center gap-3">
-                                <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-widest">{{ machine.details.weight }}kg</span>
-                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ machine.details.sets }} Sets × {{ machine.details.reps }} reps</span>
+                            <div v-if="machine.details" class="flex gap-2">
+                                <!-- Sets Box -->
+                                <div class="flex flex-col items-start">
+                                    <span class="text-[7px] font-black text-gray-300 uppercase tracking-widest pl-1 mb-0.5">Sets</span>
+                                    <div class="px-2.5 py-1 bg-white rounded-lg border border-gray-100 shadow-sm flex items-center justify-center min-w-[32px]">
+                                        <span class="text-[9px] font-black text-gray-900">{{ machine.details.sets }}</span>
+                                    </div>
+                                </div>
+                                <!-- Reps Box -->
+                                <div class="flex flex-col items-start">
+                                    <span class="text-[7px] font-black text-gray-300 uppercase tracking-widest pl-1 mb-0.5">Reps</span>
+                                    <div class="px-2.5 py-1 bg-white rounded-lg border border-gray-100 shadow-sm flex items-center justify-center min-w-[32px]">
+                                        <span class="text-[9px] font-black text-gray-900">{{ machine.details.reps }}</span>
+                                    </div>
+                                </div>
+                                <!-- Weight Box -->
+                                <div class="flex flex-col items-start">
+                                    <span class="text-[7px] font-black text-gray-300 uppercase tracking-widest pl-1 mb-0.5">Weight</span>
+                                    <div class="px-2.5 py-1 bg-white rounded-lg border border-gray-100 shadow-sm flex items-center justify-center min-w-[44px]">
+                                        <span class="text-[9px] font-black text-gray-900">{{ machine.details.weight }}kg</span>
+                                    </div>
+                                </div>
                             </div>
                             <p v-else class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Perfect for {{ activeRecommendation?.title }}</p>
                         </div>
