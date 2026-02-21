@@ -17,6 +17,8 @@ const activeMuscle = ref(null);
 const isPlaying = ref(false);
 const isThemeDark = ref(false);
 const isProgramModalOpen = ref(false);
+const weightOptions = Array.from({ length: 80 }, (_, i) => ((i + 1) * 2.5).toFixed(1).replace(/\.0$/, '') + 'kg');
+
 const expandedProgramExName = ref(null); // Track which exercise is expanded in the program modal
 const selectedPlanInfo = ref(null); // { category: string, targetSets: number, targetReps: number }
 
@@ -35,7 +37,7 @@ const formatImageUrl = (path) => {
 const addNewSet = () => {
     const lastSet = workoutSets.value[workoutSets.value.length - 1];
     workoutSets.value.push({
-        weight: lastSet ? lastSet.weight : 10,
+        weight: lastSet ? lastSet.weight : '10kg',
         reps: lastSet ? lastSet.reps : 12,
         isCompleted: false
     });
@@ -84,7 +86,7 @@ const initSessionForProgramEx = (ex) => {
             name: ex.name,
             image: getEquipmentInfo(item)?.image || item.src,
             sets: Array.from({ length: parseInt(ex.sets) || 3 }, () => ({
-                weight: parseInt(ex.targetWeight) || 10,
+                weight: ((parseFloat(ex.targetWeight) || 10).toFixed(1).replace(/\.0$/, '') + 'kg'),
                 reps: parseInt(ex.reps) || 12,
                 isCompleted: false
             }))
@@ -97,7 +99,7 @@ const addSetToSession = (itemId) => {
     const sets = sessionLog.value[itemId].sets;
     const lastSet = sets[sets.length - 1];
     sets.push({
-        weight: lastSet ? lastSet.weight : 10,
+        weight: lastSet ? lastSet.weight : '10kg',
         reps: lastSet ? lastSet.reps : 12,
         isCompleted: false
     });
@@ -131,7 +133,7 @@ const finishWorkout = () => {
             name: entry.name,
             image: entry.image,
             sets: entry.sets.filter(s => s.isCompleted).map(s => ({
-                weight: s.weight + 'kg', // Format to match MobileWorkout expectation
+                weight: s.weight.toLowerCase().includes('kg') ? s.weight : s.weight + 'kg', // Ensure consistent formatting
                 reps: s.reps
             }))
         }));
@@ -164,7 +166,6 @@ const finishWorkout = () => {
     window.location.href = route('mobile.workout');
 };
 
-const weightOptions = Array.from({ length: 80 }, (_, i) => (i + 1) * 2.5);
 
 // --- Map Logic (Panning/Zooming) ---
 const viewBox = ref({ x: 0, y: 0, w: 1000, h: 800 });
@@ -739,19 +740,19 @@ onUnmounted(() => {
                                                              </button>
  
                                                              <!-- Weight Box -->
-                                                             <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center px-2" @click.stop>
-                                                                 <input type="number" v-model="set.weight" 
-                                                                     class="w-full border-none p-0 focus:ring-0 text-base font-black text-gray-900 text-center bg-transparent italic"
-                                                                 />
+                                                             <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden" @click.stop>
+                                                                 <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-gray-900 text-center bg-transparent italic appearance-none text-center-last">
+                                                                     <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                                                 </select>
                                                              </div>
  
                                                              <!-- Set Box -->
-                                                             <div class="w-16 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center">
+                                                             <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
                                                                  <span class="text-base font-black text-gray-900 italic font-black">{{ idx + 1 }}</span>
                                                              </div>
  
                                                              <!-- Reps Box -->
-                                                             <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center px-2" @click.stop>
+                                                             <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2" @click.stop>
                                                                  <input type="number" v-model="set.reps" 
                                                                      class="w-full border-none p-0 focus:ring-0 text-base font-black text-gray-900 text-center bg-transparent italic"
                                                                  />
@@ -870,18 +871,22 @@ onUnmounted(() => {
                                         </button>
 
                                         <!-- Weight Box -->
-                                        <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center px-2">
-                                            <span class="text-base font-black text-gray-900 italic uppercase">{{ set.weight }}KG</span>
+                                        <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden" @click.stop>
+                                            <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-gray-900 text-center bg-transparent italic appearance-none text-center-last">
+                                                <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                            </select>
                                         </div>
 
                                         <!-- Set Box -->
-                                        <div class="w-16 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center">
+                                        <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
                                             <span class="text-base font-black text-gray-900 italic">{{ index + 1 }}</span>
                                         </div>
 
                                         <!-- Reps Box -->
-                                        <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center px-2">
-                                            <span class="text-base font-black text-gray-900 italic">{{ set.reps }}</span>
+                                        <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2" @click.stop>
+                                            <input type="number" v-model="set.reps" 
+                                                class="w-full border-none p-0 focus:ring-0 text-base font-black text-gray-900 text-center bg-transparent italic"
+                                            />
                                         </div>
 
                                         <!-- Done Button -->

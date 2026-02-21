@@ -11,6 +11,8 @@ const props = defineProps({
 const mode = ref(null); // null (selection) | 'free'
 const activeTab = ref('equipments'); // 'equipments' | 'plans' | 'history'
 const isWorkoutSessionActive = ref(false);
+const weightOptions = Array.from({ length: 80 }, (_, i) => ((i + 1) * 2.5).toFixed(1).replace(/\.0$/, '') + 'kg');
+
 const activeWorkout = ref(null);
 const setsDone = ref(0);
 const totalMinutes = ref(48);
@@ -477,17 +479,19 @@ const mergedHistory = computed(() => {
                             </button>
 
                             <!-- Weight Box -->
-                            <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center px-2">
-                                <input v-model="set.weight" class="w-full text-base font-black text-gray-900 border-none p-0 focus:ring-0 text-center bg-transparent italic uppercase" placeholder="0">
+                            <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden">
+                                <select v-model="set.weight" class="w-full text-sm font-black text-gray-900 border-none p-0 focus:ring-0 text-center bg-transparent italic uppercase appearance-none text-center-last">
+                                    <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                </select>
                             </div>
 
                             <!-- Set Box -->
-                            <div class="w-16 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center">
+                            <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
                                 <span class="text-base font-black text-gray-900 italic">{{ setIdx + 1 }}</span>
                             </div>
 
                             <!-- Reps Box -->
-                            <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center px-2">
+                            <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2">
                                 <input v-model="set.reps" class="w-full text-base font-black text-gray-900 border-none p-0 focus:ring-0 text-center bg-transparent italic" placeholder="0">
                             </div>
 
