@@ -397,8 +397,9 @@ const mergedHistory = computed(() => {
                 </button>
             </header>
 
-            <div class="px-6 py-4 space-y-8">
-                <div v-for="exercise in activeWorkout.exercises" :key="exercise.name" class="space-y-8 py-8 border-b border-gray-50 last:border-0">
+            <div class="px-6 py-4">
+                <div v-for="exercise in activeWorkout.exercises" :key="exercise.name" 
+                    class="bg-white rounded-[40px] border-2 border-gray-100 p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] mb-10 space-y-8 last:mb-20">
                     <!-- Premium Exercise Header -->
                     <div class="flex gap-6 items-center">
                         <div class="size-28 rounded-[36px] bg-white border border-gray-100 flex-shrink-0 flex items-center justify-center p-4 shadow-sm">

@@ -55,30 +55,64 @@ const toggleSetCompletion = (index) => {
 
 const saveCurrentSetsToLog = () => {
     if (selectedItem.value) {
-        sessionLog.value[selectedItem.value.id] = {
-            id: selectedItem.value.id,
-            name: getEquipmentInfo(selectedItem.value)?.name || selectedItem.value.name,
-            // Find equipment image or fallback to item src
-            image: getEquipmentInfo(selectedItem.value)?.image || selectedItem.value.src,
-            sets: JSON.parse(JSON.stringify(workoutSets.value)), // Deep copy
-            targetSets: selectedPlanInfo.value?.targetSets || 3,
-            targetWeight: selectedPlanInfo.value?.targetWeight || 10,
-            reps: selectedPlanInfo.value?.targetReps || 12
-        };
+        const hasProgress = workoutSets.value.some(s => s.isCompleted);
+        const alreadyInLog = !!sessionLog.value[selectedItem.value.id];
+
+        // Only save if there's actual progress OR it was already started (e.g. from Program list)
+        if (hasProgress || alreadyInLog) {
+            sessionLog.value[selectedItem.value.id] = {
+                id: selectedItem.value.id,
+                name: getEquipmentInfo(selectedItem.value)?.name || selectedItem.value.name,
+                image: getEquipmentInfo(selectedItem.value)?.image || selectedItem.value.src,
+                sets: JSON.parse(JSON.stringify(workoutSets.value)),
+                targetSets: selectedPlanInfo.value?.targetSets || 3,
+                targetWeight: selectedPlanInfo.value?.targetWeight || 10,
+                reps: selectedPlanInfo.value?.targetReps || 12
+            };
+        }
     }
     isModalOpen.value = false;
-    selectedPlanInfo.value = null; // Reset plan info after saving
+    selectedPlanInfo.value = null;
 };
 
 // --- Recommendation Accordion Logic ---
-const initSessionForProgramEx = (ex) => {
-    const item = props.gym.items.find(i => {
+const normalizeWeight = (val) => {
+    if (typeof val === 'string' && val.toLowerCase().endsWith('kg')) return val;
+    let num = parseFloat(val) || 10;
+    return num.toFixed(1).replace(/\.0$/, '') + 'kg';
+};
+
+const getMapItemForEx = (exercise) => {
+    if (selectedItem.value) {
+        const info = getEquipmentInfo(selectedItem.value);
+        const nameLower = exercise.name.toLowerCase();
+        const matches = (selectedItem.value.name && selectedItem.value.name.toLowerCase() === nameLower) || 
+                       (info && info.name && info.name.toLowerCase() === nameLower) ||
+                       (info && info.name_th && info.name_th === exercise.name);
+        if (matches) return selectedItem.value;
+    }
+
+    const inProgressMatch = props.gym.items.find(i => {
+        if (!sessionLog.value[i.id]) return false;
+        const info = getEquipmentInfo(i);
+        const nameLower = exercise.name.toLowerCase();
+        return (i.name && i.name.toLowerCase() === nameLower) || 
+               (info && info.name && info.name.toLowerCase() === nameLower) ||
+               (info && info.name_th && info.name_th === exercise.name);
+    });
+    if (inProgressMatch) return inProgressMatch;
+
+    return props.gym.items.find(i => {
          const info = getEquipmentInfo(i);
-         const nameLower = ex.name.toLowerCase();
+         const nameLower = exercise.name.toLowerCase();
          return (i.name && i.name.toLowerCase() === nameLower) || 
                 (info && info.name && info.name.toLowerCase() === nameLower) ||
-                (info && info.name_th && info.name_th === ex.name);
+                (info && info.name_th && info.name_th === exercise.name);
     });
+};
+
+const initSessionForProgramEx = (ex) => {
+    const item = getMapItemForEx(ex);
 
     if (item && !sessionLog.value[item.id]) {
         sessionLog.value[item.id] = {
@@ -86,13 +120,27 @@ const initSessionForProgramEx = (ex) => {
             name: ex.name,
             image: getEquipmentInfo(item)?.image || item.src,
             sets: Array.from({ length: parseInt(ex.sets) || 3 }, () => ({
-                weight: ((parseFloat(ex.targetWeight) || 10).toFixed(1).replace(/\.0$/, '') + 'kg'),
+                weight: normalizeWeight(ex.targetWeight || 10),
                 reps: parseInt(ex.reps) || 12,
                 isCompleted: false
             }))
         };
     }
     return item;
+};
+
+const logSessionCount = computed(() => {
+    return Object.values(sessionLog.value).filter(entry => entry.sets.some(s => s.isCompleted)).length;
+});
+
+const isExerciseCompleted = (itemId) => {
+    const log = sessionLog.value[itemId];
+    return log && log.sets.length > 0 && log.sets.every(s => s.isCompleted);
+};
+
+const getSessionLog = (ex) => {
+    const item = getMapItemForEx(ex);
+    return item ? sessionLog.value[item.id] : null;
 };
 
 const addSetToSession = (itemId) => {
@@ -115,34 +163,21 @@ const toggleSetInSession = (itemId, index) => {
     sessionLog.value[itemId].sets[index].isCompleted = !sessionLog.value[itemId].sets[index].isCompleted;
 };
 
-const getSessionLog = (ex) => {
-    const item = getMapItemForEx(ex);
-    return item ? sessionLog.value[item.id] : null;
-};
-
-const isExerciseCompleted = (itemId) => {
-    const log = sessionLog.value[itemId];
-    return log && log.sets.length > 0 && log.sets.every(s => s.isCompleted);
-};
-
 const finishWorkout = () => {
-    // 1. Collect all exercises with at least one completed set
     const exercises = Object.values(sessionLog.value)
         .filter(entry => entry.sets.some(s => s.isCompleted))
         .map(entry => ({
             name: entry.name,
             image: entry.image,
             sets: entry.sets.filter(s => s.isCompleted).map(s => ({
-                weight: s.weight.toLowerCase().includes('kg') ? s.weight : s.weight + 'kg', // Ensure consistent formatting
+                weight: s.weight.toLowerCase().includes('kg') ? s.weight : s.weight + 'kg',
                 reps: s.reps
             }))
         }));
 
     if (exercises.length === 0) return;
-
     const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
 
-    // 2. Create Session Object
     const session = {
         id: Date.now(),
         date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
@@ -151,18 +186,15 @@ const finishWorkout = () => {
         sets: totalSets
     };
 
-    // 3. Save to LocalStorage
     const savedHistory = localStorage.getItem('fitpung_workout_history');
     const history = savedHistory ? JSON.parse(savedHistory) : [];
     history.unshift(session);
     localStorage.setItem('fitpung_workout_history', JSON.stringify(history));
 
-    // 4. Update total sets count
     const savedSets = localStorage.getItem('fitpung_sets_done');
     const currentTotal = savedSets ? parseInt(savedSets) : 0;
     localStorage.setItem('fitpung_sets_done', (currentTotal + totalSets).toString());
 
-    // 5. Redirect back to Workout page
     window.location.href = route('mobile.workout');
 };
 
@@ -203,16 +235,10 @@ const getInitialBounds = (pointsStr, items = [], padding = 150) => {
         });
     }
 
-    const contentW = maxX - minX;
-    const contentH = maxY - minY;
-    
-    // In MobileLayout, the canvas is already constrained.
-    const padX = Math.max(contentW * 0.08, 30);
-    const padY = Math.max(contentH * 0.08, 30);
-    const targetW = contentW + (padX * 2);
+    const targetW = (maxX - minX) + (padding * 2);
     return { 
-        x: minX - padX,
-        y: minY - padY, 
+        x: minX - padding,
+        y: minY - padding, 
         w: targetW,
         h: targetW * 1.6 
     };
@@ -231,10 +257,7 @@ const getSvgPoint = (clientX, clientY) => {
 };
 
 const handleWheel = (event) => {
-    // Only intercept scroll if zoom is enabled!
     if (!isZoomEnabled.value) return; 
-    
-    event.preventDefault();
     const svgP = getSvgPoint(event.clientX, event.clientY);
     const direction = event.deltaY > 0 ? 1 : -1;
     const newW = viewBox.value.w * (1 + direction * 0.1);
@@ -285,34 +308,28 @@ const selectItem = (item, customSets = null, planInfo = null) => {
     isPlaying.value = false;
     selectedPlanInfo.value = planInfo;
     
-    // Load Sets Logic
     if (sessionLog.value[item.id]) {
-        // 1. Load from current session if exists
         workoutSets.value = JSON.parse(JSON.stringify(sessionLog.value[item.id].sets));
     } else if (customSets && Array.isArray(customSets) && customSets.length > 0) {
-        // 2. Load from passed Custom Sets (e.g. from program)
         workoutSets.value = customSets.map(s => ({
-            weight: s.weight || 10,
+            weight: normalizeWeight(s.weight || 10),
             reps: s.reps || 12,
             isCompleted: false
         }));
     } else if (item.preset_sets && Array.isArray(item.preset_sets) && item.preset_sets.length > 0) {
-        // 3. Load from Owner Presets (from Map Item data)
         workoutSets.value = item.preset_sets.map(s => ({
-            weight: s.weight || 10,
+            weight: normalizeWeight(s.weight || 10),
             reps: s.reps || 12,
             isCompleted: false
         }));
     } else {
-        // 4. Default from Equipment DB if possible
         const info = getEquipmentInfo(item);
         workoutSets.value = [{ 
-            weight: info?.target_weight || 10, 
+            weight: normalizeWeight(info?.target_weight || 10), 
             reps: info?.reps || 12, 
             isCompleted: false 
         }];
     }
-
     isModalOpen.value = true;
 };
 
@@ -325,15 +342,7 @@ const toggleProgramEx = (ex) => {
     }
 };
 
-const getMapItemForEx = (exercise) => {
-    return props.gym.items.find(i => {
-         const info = getEquipmentInfo(i);
-         const nameLower = exercise.name.toLowerCase();
-         return (i.name && i.name.toLowerCase() === nameLower) || 
-                (info && info.name && info.name.toLowerCase() === nameLower) ||
-                (info && info.name_th && info.name_th === exercise.name);
-    });
-};
+// Reordered to top
 
 const getExerciseImage = (ex) => {
     if (!ex) return null;
@@ -374,20 +383,24 @@ const locateProgramExercise = (exercise) => {
 
 const selectProgramExercise = (exercise) => {
     // 1. Find the map item matching the exercise name
-    const item = props.gym.items.find(i => {
-         const info = getEquipmentInfo(i);
-         const nameLower = exercise.name.toLowerCase();
-         return (i.name && i.name.toLowerCase() === nameLower) || 
-                (info && info.name && info.name.toLowerCase() === nameLower) ||
-                (info && info.name_th && info.name_th === exercise.name);
-    });
+    const item = getMapItemForEx(exercise);
 
     if (item) {
-        // 2. Initialize session for this exercise
+        // 2. Initialize session for this exercise if not exists
         initSessionForProgramEx(exercise);
         
-        // 3. Just expand the accordion inline
-        expandedProgramExName.value = exercise.name;
+        // 3. Prepare plan info for the detail modal
+        const planInfo = {
+            category: exercise.category || 'Owner Recommended',
+            targetSets: parseInt(exercise.sets) || 3,
+            targetWeight: parseFloat(exercise.targetWeight) || 10,
+            targetReps: parseInt(exercise.reps) || 12,
+            isRecommended: true
+        };
+
+        // 4. Open the main detail modal and close the list
+        selectItem(item, null, planInfo);
+        isProgramModalOpen.value = false;
     } else {
         alert('Equipment not found on the map for: ' + exercise.name);
     }
@@ -431,9 +444,7 @@ const muscleVideoInfo = computed(() => {
     return null;
 });
 
-const logSessionCount = computed(() => {
-    return Object.values(sessionLog.value).filter(entry => entry.sets.some(s => s.isCompleted)).length;
-});
+// Removed redundant logSessionCount
 
 const ownerPlans = computed(() => {
     if (!props.gym.recommendations || !Array.isArray(props.gym.recommendations)) return [];
@@ -553,7 +564,7 @@ onUnmounted(() => {
                                     : { filter: isThemeDark ? 'invert(1) opacity(0.8)' : 'opacity(0.4) grayscale(1)' }
                             ]" 
                         />
-                        <!-- In-progress indicator (Dot) -->
+                        <!-- In-progress indicator (Dot) - Positioned at machine center -->
                         <circle v-if="sessionLog[item.id] && sessionLog[item.id].sets.some(s => s.isCompleted) && !isExerciseCompleted(item.id)" 
                             r="8" 
                             cx="0" 
@@ -562,7 +573,7 @@ onUnmounted(() => {
                             stroke="white" 
                             stroke-width="2" />
                         
-                        <!-- Completed indicator (Checkmark) -->
+                        <!-- Completed indicator (Checkmark) - Positioned at machine center -->
                         <g v-if="isExerciseCompleted(item.id)">
                             <circle r="12" cx="0" cy="0" fill="#00a18c" stroke="white" stroke-width="2" />
                             <text class="material-symbols-outlined" 
@@ -791,157 +802,56 @@ onUnmounted(() => {
                 
                 <div class="bg-white w-full max-w-md md:rounded-[40px] rounded-t-[40px] overflow-hidden shadow-2xl relative animate-in slide-in-from-bottom-full duration-500 flex flex-col max-h-[92vh]">
                     <div class="px-8 pt-10 pb-8 space-y-8 overflow-y-auto no-scrollbar">
-                        <!-- Design Image 2: Guided Plan Header -->
-                        <div v-if="selectedPlanInfo" class="space-y-8">
+                        <!-- Header Section -->
+                        <div class="space-y-6">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-[10px] font-black text-[#00a18c] uppercase tracking-[0.2em] mb-1">GUIDED PLAN</p>
-                                    <h2 class="text-[32px] font-black uppercase italic text-gray-900 leading-[0.9] tracking-tighter">{{ selectedPlanInfo.category }}</h2>
-                                </div>
-                                <button @click="saveCurrentSetsToLog" class="size-10 rounded-full bg-gray-50 flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-gray-400">close</span>
-                                </button>
-                            </div>
-
-                            <div class="flex gap-6 items-center">
-                                <div class="size-28 rounded-[36px] bg-white border border-gray-100 flex items-center justify-center p-4 shadow-sm">
-                                     <img v-if="getEquipmentInfo(selectedItem)?.image || selectedItem.src" 
-                                          :src="formatImageUrl(getEquipmentInfo(selectedItem)?.image || selectedItem.src)" 
-                                          class="w-full h-full object-contain">
-                                </div>
-                                <div class="flex-1">
-                                    <h3 class="text-[28px] font-black uppercase italic text-gray-900 leading-[0.9] tracking-tighter mb-4">
-                                        {{ getEquipmentInfo(selectedItem)?.name || selectedItem.name }}
-                                    </h3>
-                                    <div class="flex items-center gap-3">
-                                        <!-- Progress Box -->
-                                        <div class="flex flex-col items-center">
-                                            <span class="text-[7px] font-black text-[#00a18c] uppercase tracking-widest mb-1 px-1">Progress</span>
-                                            <div class="px-3 py-1.5 bg-[#00a18c]/5 rounded-xl border border-[#00a18c]/20 flex items-center justify-center min-w-[48px]">
-                                                <span class="text-[11px] font-black text-[#00a18c] uppercase italic">
-                                                    {{ sessionLog[selectedItem.id]?.sets.filter(s => s.isCompleted).length || 0 }}/{{ selectedPlanInfo.targetSets }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <!-- Target Box -->
-                                        <div class="flex flex-col items-center">
-                                            <span class="text-[7px] font-black text-gray-300 uppercase tracking-widest mb-1 px-1">Target</span>
-                                            <div class="px-3 py-1.5 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center min-w-[48px]">
-                                                <span class="text-[11px] font-black text-gray-900 uppercase italic">{{ selectedPlanInfo.targetWeight }}KG</span>
-                                            </div>
-                                        </div>
-                                        <!-- Reps Box -->
-                                        <div class="flex flex-col items-center">
-                                            <span class="text-[7px] font-black text-gray-300 uppercase tracking-widest mb-1 px-1">Reps</span>
-                                            <div class="px-3 py-1.5 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center min-w-[48px]">
-                                                <span class="text-[11px] font-black text-gray-900 uppercase italic">{{ selectedPlanInfo.targetReps }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="space-y-4 pt-2">
-                                <div class="flex items-center justify-between">
-                                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Workout Log</h3>
-                                    <button @click="addNewSet" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#ec5b13]/20 text-[#ec5b13] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all bg-[#ec5b13]/5">
-                                        <span class="material-symbols-outlined text-[10px] font-bold">add</span>
-                                        ADD SET
-                                    </button>
-                                </div>
-
-                                <div class="space-y-3">
-                                    <!-- Table Header -->
-                                    <div class="flex items-center gap-3 px-1 text-[8px] font-black text-gray-300 uppercase tracking-widest">
-                                        <div class="size-10"></div>
-                                        <div class="flex-1 text-center">Weight (KG)</div>
-                                        <div class="w-16 text-center">Sets</div>
-                                        <div class="flex-1 text-center">Reps</div>
-                                        <div class="size-11"></div>
-                                    </div>
-
-                                    <div v-for="(set, index) in workoutSets" :key="index" 
-                                        @click="toggleSetCompletion(index)"
-                                        class="flex items-center gap-3 transition-all duration-300"
-                                        :class="{ 'opacity-40': set.isCompleted }">
-                                        
-                                        <!-- Remove Icon -->
-                                        <button @click.stop="removeSet(index)" class="size-10 flex items-center justify-center text-gray-200 hover:text-red-500 transition-colors">
-                                            <span class="material-symbols-outlined text-[18px]">close</span>
-                                        </button>
-
-                                        <!-- Weight Box -->
-                                        <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden" @click.stop>
-                                            <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-gray-900 text-center bg-transparent italic appearance-none text-center-last">
-                                                <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
-                                            </select>
-                                        </div>
-
-                                        <!-- Set Box -->
-                                        <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
-                                            <span class="text-base font-black text-gray-900 italic">{{ index + 1 }}</span>
-                                        </div>
-
-                                        <!-- Reps Box -->
-                                        <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2" @click.stop>
-                                            <input type="number" v-model="set.reps" 
-                                                class="w-full border-none p-0 focus:ring-0 text-base font-black text-gray-900 text-center bg-transparent italic"
-                                            />
-                                        </div>
-
-                                        <!-- Done Button -->
-                                        <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm"
-                                            :class="set.isCompleted 
-                                                ? 'bg-[#00a18c] border-[#00a18c] text-white' 
-                                                : 'bg-white border-gray-100 text-gray-200'">
-                                            <span class="material-symbols-outlined text-xl font-bold">{{ set.isCompleted ? 'check_circle' : 'check' }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button @click="saveCurrentSetsToLog" 
-                                class="w-full bg-gray-900 text-white py-5 rounded-[28px] font-black text-sm tracking-[0.2em] shadow-xl active:scale-95 transition-all uppercase mt-6 italic">
-                                SAVE PROGRESS & CLOSE
-                            </button>
-                        </div>
-
-                        <!-- Original Detail Header (If not from plan) -->
-                        <div v-else class="space-y-6">
-                            <div class="flex items-center justify-between">
-                                <div>
+                                    <!-- Badges -->
                                     <div class="flex items-center gap-2 mb-2">
-                                        <span class="bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[9px] font-black px-2 py-0.5 rounded uppercase">Unit {{ selectedItem?.id }}</span>
-                                        <span v-if="selectedItem?.preset_sets" class="text-[9px] text-[#00a18c] font-bold uppercase tracking-widest border border-[#00a18c]/20 px-2 py-0.5 rounded">Owner Preset</span>
+                                        <span v-if="selectedPlanInfo" class="bg-[#00a18c]/10 text-[#00a18c] text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest leading-none">GUIDED</span>
+                                        <span v-else class="bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[9px] font-black px-2 py-0.5 rounded uppercase">Unit {{ selectedItem?.id }}</span>
+                                        
+                                        <span v-if="selectedItem?.preset_sets && !selectedPlanInfo" class="text-[9px] text-[#00a18c] font-bold uppercase tracking-widest border border-[#00a18c]/20 px-2 py-0.5 rounded leading-none">Owner Preset</span>
                                     </div>
-                                    <h2 class="text-3xl font-black leading-tight uppercase italic text-gray-900">{{ getEquipmentInfo(selectedItem)?.name || selectedItem.name }}</h2>
+
+                                    <!-- Unified Title (Equipment Name) -->
+                                    <h2 class="text-[32px] font-black uppercase italic text-gray-900 leading-[0.9] tracking-tighter">
+                                        {{ getEquipmentInfo(selectedItem)?.name || selectedItem.name }}
+                                    </h2>
+                                    <p v-if="selectedPlanInfo" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 ml-0.5">
+                                        {{ selectedPlanInfo.category }}
+                                    </p>
                                 </div>
                                 <button @click="saveCurrentSetsToLog" class="size-10 rounded-full bg-gray-50 flex items-center justify-center">
                                     <span class="material-symbols-outlined text-gray-400">close</span>
                                 </button>
                             </div>
+                        </div>
 
-                            <div class="bg-gray-100 rounded-[32px] overflow-hidden aspect-video relative group border border-gray-200">
-                                <div v-if="!isPlaying" class="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[#1a1f2c] to-[#2a3142] text-white">
-                                    <span class="material-symbols-outlined text-5xl mb-4 opacity-50">fitness_center</span>
-                                    <button @click="isPlaying = true" class="bg-[var(--theme-color)] hover:scale-105 transition-transform text-white px-8 py-3 rounded-full font-black text-sm shadow-xl shadow-[var(--theme-color)]/40">
-                                        WATCH TECHNIQUE
-                                    </button>
-                                </div>
-                                <div v-if="isPlaying" class="w-full h-full">
-                                    <iframe v-if="muscleVideoInfo"
-                                        class="w-full h-full"
-                                        :src="`https://www.youtube-nocookie.com/embed/${muscleVideoInfo.id}?autoplay=1&mute=1&rel=0`" 
-                                        frameborder="0" allowfullscreen></iframe>
-                                    <video v-else-if="getEquipmentInfo(selectedItem)?.technique?.video" 
-                                        :src="getEquipmentInfo(selectedItem).technique.video" 
-                                        class="w-full h-full object-cover" controls autoplay muted loop></video>
+                        <!-- Video Section (Unified: Always available) -->
+                        <div class="bg-gray-100 rounded-[32px] overflow-hidden aspect-video relative group border border-gray-200">
+                            <div v-if="!isPlaying" class="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[#1a1f2c] to-[#2a3142] text-white">
+                                <span class="material-symbols-outlined text-5xl mb-4 opacity-50">fitness_center</span>
+                                <button @click="isPlaying = true" class="bg-[var(--theme-color)] hover:scale-105 transition-transform text-white px-8 py-3 rounded-full font-black text-sm shadow-xl shadow-[var(--theme-color)]/40">
+                                    WATCH TECHNIQUE
+                                </button>
+                            </div>
+                            <div v-if="isPlaying" class="w-full h-full">
+                                <iframe v-if="muscleVideoInfo"
+                                    class="w-full h-full"
+                                    :src="`https://www.youtube-nocookie.com/embed/${muscleVideoInfo.id}?autoplay=1&mute=1&rel=0`" 
+                                    frameborder="0" allowfullscreen></iframe>
+                                <video v-else-if="getEquipmentInfo(selectedItem)?.technique?.video" 
+                                    :src="getEquipmentInfo(selectedItem).technique.video" 
+                                    class="w-full h-full object-cover" controls autoplay muted loop></video>
+                                <div v-else class="w-full h-full flex items-center justify-center bg-gray-900 text-white/50 text-[10px] font-bold uppercase tracking-widest">
+                                    No technique video available
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Target Muscles (Only if video not playing or not from plan) -->
-                        <div v-if="!selectedPlanInfo" class="space-y-4">
+                        <!-- Target Muscles Section (Unified) -->
+                        <div class="space-y-4">
                             <h3 class="text-[10px] font-black uppercase tracking-widest text-[#ec5b13]">Target Muscles</h3>
                             <div class="flex flex-wrap gap-2">
                                 <button v-for="m in getEquipmentInfo(selectedItem)?.target_muscles || []" :key="m.key" 
@@ -952,20 +862,78 @@ onUnmounted(() => {
                                         : 'bg-white  border-gray-100  text-gray-600 font-black'">
                                     {{ m.name_th }}
                                 </button>
+                                <div v-if="!getEquipmentInfo(selectedItem)?.target_muscles?.length" class="text-[10px] text-gray-400 italic">No muscle data available</div>
                             </div>
                         </div>
 
-                        <!-- Workout Log for Direct Selection (Non-Guided) -->
-                        <div v-if="!selectedPlanInfo" class="space-y-4 pb-4">
-                             <!-- This section remains similar to above but for when owner recommendations aren't being followed -->
-                             <div class="flex items-center justify-between">
-                                <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Workout Log</h3>
-                                <button @click="addNewSet" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--theme-color)]/20 text-[var(--theme-color)] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all">
+                        <!-- Workout Log Section (Unified) -->
+                        <div class="space-y-4 pb-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex flex-col">
+                                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Workout Log</h3>
+                                    <p v-if="selectedPlanInfo" class="text-[8px] font-black text-[#00a18c] uppercase tracking-widest mt-1">
+                                        Goal: {{ selectedPlanInfo.targetSets }} Sets × {{ selectedPlanInfo.targetReps }} Reps @ {{ selectedPlanInfo.targetWeight }}KG
+                                    </p>
+                                </div>
+                                <button @click="addNewSet" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#ec5b13]/20 text-[#ec5b13] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all bg-[#ec5b13]/5">
                                     <span class="material-symbols-outlined text-[10px] font-bold">add</span>
                                     ADD SET
                                 </button>
-                             </div>
-                             <!-- ... rest of standard log ... -->
+                            </div>
+
+                            <div class="space-y-3">
+                                <!-- Table Header -->
+                                <div class="flex items-center gap-3 px-1 text-[8px] font-black text-gray-300 uppercase tracking-widest">
+                                    <div class="size-10"></div>
+                                    <div class="flex-1 text-center">Weight (KG)</div>
+                                    <div class="w-16 text-center">Sets</div>
+                                    <div class="flex-1 text-center">Reps</div>
+                                    <div class="size-11"></div>
+                                </div>
+
+                                <div v-for="(set, index) in workoutSets" :key="index" 
+                                    @click="toggleSetCompletion(index)"
+                                    class="flex items-center gap-3 transition-all duration-300"
+                                    :class="{ 'opacity-40': set.isCompleted }">
+                                    
+                                    <!-- Remove Icon -->
+                                    <button @click.stop="removeSet(index)" class="size-10 flex items-center justify-center text-gray-200 hover:text-red-500 transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">close</span>
+                                    </button>
+
+                                    <!-- Weight Box -->
+                                    <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden" @click.stop>
+                                        <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-gray-900 text-center bg-transparent italic appearance-none text-center-last">
+                                            <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Set Box -->
+                                    <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
+                                        <span class="text-base font-black text-gray-900 italic">{{ index + 1 }}</span>
+                                    </div>
+
+                                    <!-- Reps Box -->
+                                    <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2" @click.stop>
+                                        <input type="number" v-model="set.reps" 
+                                            class="w-full border-none p-0 focus:ring-0 text-base font-black text-gray-900 text-center bg-transparent italic"
+                                        />
+                                    </div>
+
+                                    <!-- Done Button -->
+                                    <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm"
+                                        :class="set.isCompleted 
+                                            ? 'bg-[#00a18c] border-[#00a18c] text-white' 
+                                            : 'bg-white border-gray-100 text-gray-200'">
+                                        <span class="material-symbols-outlined text-xl font-bold">{{ set.isCompleted ? 'check_circle' : 'check' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button @click="saveCurrentSetsToLog" 
+                                class="w-full bg-gray-900 text-white py-5 rounded-[28px] font-black text-sm tracking-[0.2em] shadow-xl active:scale-95 transition-all uppercase mt-6 italic">
+                                SAVE PROGRESS & CLOSE
+                            </button>
                         </div>
                     </div>
                 </div>
