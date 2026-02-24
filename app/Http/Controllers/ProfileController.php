@@ -29,15 +29,29 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $oldWeight = $user->weight;
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $validated = $request->validated();
+        $user->fill($validated);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        if (!$user->save()) {
+            \Log::error('User failed to save in ProfileController');
+            return Redirect::back()->with('error', 'Failed to save changes.');
+        }
 
-        return Redirect::route('profile.edit');
+        // Log weight history if weight changed
+        if ($oldWeight != $user->weight) {
+            $user->weightHistories()->create([
+                'weight' => $user->weight,
+            ]);
+        }
+
+        return Redirect::route('mobile.profile')->with('status', 'Profile updated successfully!');
     }
 
     /**

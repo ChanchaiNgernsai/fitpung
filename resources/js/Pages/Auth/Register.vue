@@ -8,6 +8,9 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
+    weight: '',
+    height: '',
+    goal: '',
 });
 
 const submit = () => {
@@ -98,6 +101,53 @@ const submit = () => {
                             placeholder="you@example.com"
                         />
                          <InputError class="mt-2 text-error" :message="form.errors.email" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-bold">Weight (kg)</span>
+                            </label>
+                            <input 
+                                id="weight" 
+                                type="number" 
+                                v-model="form.weight" 
+                                class="input input-bordered w-full focus:input-primary bg-base-200 focus:bg-base-100 transition-all" 
+                                placeholder="kg"
+                            />
+                            <InputError class="mt-2 text-error" :message="form.errors.weight" />
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-bold">Height (cm)</span>
+                            </label>
+                            <input 
+                                id="height" 
+                                type="number" 
+                                v-model="form.height" 
+                                class="input input-bordered w-full focus:input-primary bg-base-200 focus:bg-base-100 transition-all" 
+                                placeholder="cm"
+                            />
+                            <InputError class="mt-2 text-error" :message="form.errors.height" />
+                        </div>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text font-bold">Fitness Goal</span>
+                        </label>
+                        <select 
+                            id="goal" 
+                            v-model="form.goal" 
+                            class="select select-bordered w-full focus:select-primary bg-base-200 focus:bg-base-100 transition-all"
+                        >
+                            <option value="" disabled selected>-</option>
+                            <option value="Muscle Gain">Muscle Gain (เพิ่มกล้ามเนื้อ)</option>
+                            <option value="Lose Weight">Lose Weight (ลดน้ำหนัก)</option>
+                            <option value="Keep Fit">Keep Fit (รักษารูปร่าง)</option>
+                            <option value="Endurance">Endurance (เพิ่มความทนทาน)</option>
+                        </select>
+                        <InputError class="mt-2 text-error" :message="form.errors.goal" />
                     </div>
 
                     <div class="form-control w-full">

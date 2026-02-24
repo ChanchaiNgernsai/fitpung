@@ -119,6 +119,14 @@ class GymLayoutController extends Controller
     }
 
     /**
+     * Display the specified resource.
+     */
+    public function show(GymLayout $gym_builder)
+    {
+        return redirect()->route('gyms.show', $gym_builder->id);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
