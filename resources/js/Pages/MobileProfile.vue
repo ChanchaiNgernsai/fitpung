@@ -14,6 +14,8 @@ watch(() => user.value.weight, (newVal) => {
     }
 }, { immediate: true });
 
+const isInitialSync = ref(true);
+const isWeightEditing = ref(false);
 const isEditModalOpen = ref(false);
 const errors = ref({});
 const editForm = ref({
@@ -46,28 +48,78 @@ const saveProfile = () => {
     });
 };
 
-const updateWeight = (delta) => {
-    const newWeight = Number(localWeight.value) + delta;
-    if (newWeight < 20 || newWeight > 300) return;
-    
-    localWeight.value = newWeight;
-    
-    // Debounce the server update
-    if (updateTimeout) clearTimeout(updateTimeout);
-    
-    updateTimeout = setTimeout(() => {
-        router.patch(route('profile.update'), { 
-            weight: newWeight 
-        }, {
-            preserveScroll: true,
-            only: ['auth', 'flash'],
-            onError: (err) => {
-                localWeight.value = user.value.weight; // Revert on error
-                alert('Failed to update weight: ' + (Object.values(err)[0] || 'Error'));
-            }
-        });
-    }, 500);
+const integerRef = ref(null);
+const decimalRef = ref(null);
+
+const integers = Array.from({ length: 281 }, (_, i) => 20 + i);
+const decimals = Array.from({ length: 10 }, (_, i) => i);
+
+const onIntegerScroll = (e) => {
+    if (isInitialSync.value) return;
+    const scrollTop = e.target.scrollTop;
+    const index = Math.round(scrollTop / 34); // Updated to 34px
+    const intPart = integers[index] || 20;
+    const decPart = Math.round((localWeight.value % 1) * 10) / 10;
+    localWeight.value = parseFloat((intPart + decPart).toFixed(1));
 };
+
+const onDecimalScroll = (e) => {
+    if (isInitialSync.value) return;
+    const scrollTop = e.target.scrollTop;
+    const index = Math.round(scrollTop / 34); // Updated to 34px
+    const decPart = (decimals[index] || 0) / 10;
+    const intPart = Math.floor(localWeight.value);
+    localWeight.value = parseFloat((intPart + decPart).toFixed(1));
+};
+
+const hasWeightChanged = computed(() => {
+    return localWeight.value !== user.value.weight;
+});
+
+const cancelWeightEdit = () => {
+    localWeight.value = user.value.weight;
+    syncPickersToWeight(localWeight.value);
+    isWeightEditing.value = false;
+};
+
+// Auto-save logic removed in favor of manual save button
+
+const saveWeightToServer = (weight) => {
+    if (weight < 20 || weight > 300) return;
+    router.patch(route('profile.update'), { 
+        weight: weight 
+    }, {
+        preserveScroll: true,
+        only: ['auth', 'flash'],
+        onSuccess: () => {
+            isWeightEditing.value = false;
+        },
+        onError: (err) => {
+            syncPickersToWeight(user.value.weight);
+            alert('Failed to update weight: ' + (Object.values(err)[0] || 'Error'));
+        }
+    });
+};
+
+const syncPickersToWeight = (weight) => {
+    if (!integerRef.value || !decimalRef.value) return;
+    const intPart = Math.floor(weight);
+    const decPart = Math.round((weight % 1) * 10);
+    
+    // 34px per item height
+    integerRef.value.scrollTop = (intPart - 20) * 34;
+    decimalRef.value.scrollTop = decPart * 34;
+};
+
+onMounted(() => {
+    setTimeout(() => {
+        syncPickersToWeight(localWeight.value);
+        // Reset flag after initial sync is done
+        setTimeout(() => {
+            isInitialSync.value = false;
+        }, 300);
+    }, 100);
+});
 
 let updateTimeout = null;
 
@@ -77,6 +129,24 @@ const goBack = () => {
 
 const showToast = ref(false);
 const toastMessage = ref('');
+
+const isDarkMode = ref(localStorage.getItem('fitpung-dark-mode') === 'true');
+
+const toggleDarkMode = () => {
+    isDarkMode.value = !isDarkMode.value;
+    localStorage.setItem('fitpung-dark-mode', isDarkMode.value);
+    // Dispatch storage event to notify Layout
+    window.dispatchEvent(new StorageEvent('storage', {
+        key: 'fitpung-dark-mode',
+        newValue: isDarkMode.value ? 'true' : 'false'
+    }));
+    
+    if (isDarkMode.value) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+};
 
 watch(() => page.props.flash.status, (newStatus) => {
     if (newStatus) {
@@ -94,108 +164,187 @@ watch(() => page.props.flash.status, (newStatus) => {
         <Head title="FitPung - Profile" />
 
         <!-- Success Toast -->
-        <div v-if="showToast" class="fixed top-6 left-6 right-6 z-[200] animate-slide-down">
-            <div class="bg-gray-900 text-white px-6 py-4 rounded-[24px] shadow-2xl flex items-center gap-3 border border-white/10 backdrop-blur-md">
-                <span class="material-symbols-outlined text-[var(--theme-color)]">check_circle</span>
-                <span class="text-xs font-black uppercase tracking-widest">{{ toastMessage }}</span>
+        <div v-if="showToast" class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-slide-down pointer-events-none">
+            <div class="bg-[var(--text-main)] text-[var(--card-bg)] px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-[var(--border-color)] backdrop-blur-md transition-colors">
+                <span class="material-symbols-outlined text-[var(--theme-color)] text-lg">check_circle</span>
+                <span class="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{{ toastMessage }}</span>
             </div>
         </div>
 
         <!-- Header -->
-        <header class="flex items-center justify-between p-6">
-            <button @click="goBack" class="size-10 rounded-full bg-white  shadow-sm border border-gray-100  flex items-center justify-center">
-                <span class="material-symbols-outlined text-gray-900 font-bold">arrow_back</span>
+        <header class="flex items-center justify-between p-6 transition-colors">
+            <button @click="goBack" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-colors">
+                <span class="material-symbols-outlined text-[var(--text-main)] font-bold">arrow_back</span>
             </button>
-            <h1 class="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Account Profile</h1>
-            <Link :href="route('mobile.settings')" class="size-10 rounded-full bg-white  shadow-sm border border-gray-100  flex items-center justify-center">
-                <span class="material-symbols-outlined text-gray-900 font-bold">settings</span>
-            </Link>
+            <h1 class="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] transition-colors">Account Profile</h1>
+            <div class="flex items-center gap-2">
+                <button @click="toggleDarkMode" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-all active:scale-90">
+                    <span class="material-symbols-outlined text-[var(--text-main)] font-bold text-xl">
+                        {{ isDarkMode ? 'light_mode' : 'dark_mode' }}
+                    </span>
+                </button>
+                <Link :href="route('mobile.settings')" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-colors">
+                    <span class="material-symbols-outlined text-[var(--text-main)] font-bold">settings</span>
+                </Link>
+            </div>
         </header>
 
         <!-- Profile Detail -->
         <div class="pb-8">
             <!-- User Intro -->
             <div class="px-6 py-4 flex flex-col items-center">
-            <div class="relative mb-6">
-                <div class="size-36 rounded-full border-4 border-[var(--theme-color)] p-1.5 shadow-2xl shadow-[var(--theme-color)]/20">
-                    <div class="size-full rounded-full overflow-hidden bg-gray-100">
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjuchVWDk_IRP1TbfrAkzG8C4dA-u_ZSX_bmaJ7iTLsz349d2YCZwMsRA1jv1NHNq-FTa1WuuTrctIi_d9WHJb2VI1NZrJ3p_BqZcczzKpP4SZPQj3B_XX6EDlPU5fbHMh9GznMXlc3-Koi2GaRlWBu-73j1pHp39bRwxLX-V_fo3bm3pe---4bpS8o-nSgL6mxkoqqAL8GatxFr8B0_Jqchl4PZb4VDP9b3_v-iSeR5UM_i9ZA9WxigaAtHyyyxzav-yqEqFoT0U" class="size-full object-cover">
+                <div class="relative mb-6">
+                    <div class="size-36 rounded-full border-4 border-[var(--theme-color)] p-1.5 shadow-2xl shadow-[var(--theme-color)]/20 transition-colors">
+                        <div class="size-full rounded-full overflow-hidden bg-[var(--page-bg)] transition-colors">
+                            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjuchVWDk_IRP1TbfrAkzG8C4dA-u_ZSX_bmaJ7iTLsz349d2YCZwMsRA1jv1NHNq-FTa1WuuTrctIi_d9WHJb2VI1NZrJ3p_BqZcczzKpP4SZPQj3B_XX6EDlPU5fbHMh9GznMXlc3-Koi2GaRlWBu-73j1pHp39bRwxLX-V_fo3bm3pe---4bpS8o-nSgL6mxkoqqAL8GatxFr8B0_Jqchl4PZb4VDP9b3_v-iSeR5UM_i9ZA9WxigaAtHyyyxzav-yqEqFoT0U" class="size-full object-cover">
+                        </div>
+                    </div>
+                    <div class="absolute bottom-2 right-2 size-8 bg-[var(--theme-color)] rounded-full border-4 border-[var(--app-bg)] flex items-center justify-center text-white transition-colors">
+                        <span class="material-symbols-outlined text-sm fill-icon">verified</span>
                     </div>
                 </div>
-                <div class="absolute bottom-2 right-2 size-8 bg-[var(--theme-color)] rounded-full border-4 border-white  flex items-center justify-center text-white">
-                    <span class="material-symbols-outlined text-sm fill-icon">verified</span>
-                </div>
-            </div>
                 <div class="text-center mb-8">
-                <h2 class="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{{ user.name || 'User' }}</h2>
-                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)] mt-3">Elite Athlete • Level 42</p>
-            </div>
+                    <h2 class="text-3xl font-black italic uppercase tracking-tighter text-[var(--text-main)] leading-none transition-colors">{{ user.name || 'User' }}</h2>
+                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)] mt-3">Elite Athlete • Level 42</p>
+                </div>
 
-            <button @click="openEditModal" class="w-full py-5 bg-[var(--theme-color)] text-white font-black italic uppercase tracking-widest rounded-[24px] shadow-xl shadow-[var(--theme-color)]/30 active:scale-95 transition-all mb-10">
-                Edit Profile
-            </button>
+                <button @click="openEditModal" class="w-full py-5 bg-[var(--text-main)] text-[var(--card-bg)] font-black italic uppercase tracking-widest rounded-[24px] shadow-xl shadow-black/10 active:scale-95 transition-all mb-10">
+                    Edit Profile
+                </button>
             </div>
 
             <!-- Quick Stats -->
             <section class="px-6 py-4">
                 <div class="grid grid-cols-3 gap-3">
-                    <div class="bg-white p-3 rounded-[24px] border border-gray-100 shadow-sm flex flex-col items-center text-center relative overflow-hidden group">
-                        <span class="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">Weight</span>
-                        <div class="flex items-center gap-1.5">
-                            <button @click="updateWeight(-1)" class="size-6 rounded-full bg-gray-50 flex items-center justify-center active:scale-90 active:bg-gray-100 transition-all">
-                                <span class="material-symbols-outlined text-[14px] font-black">remove</span>
-                            </button>
-                            <span class="text-base font-black text-gray-900 leading-none">{{ Math.round(localWeight) }}<span class="text-[9px] ml-0.5 text-gray-400 uppercase tracking-tighter">kg</span></span>
-                            <button @click="updateWeight(1)" class="size-6 rounded-full bg-gray-50 flex items-center justify-center active:scale-90 active:bg-gray-100 transition-all">
-                                <span class="material-symbols-outlined text-[14px] font-black">add</span>
-                            </button>
+                    <!-- Weight Picker (Compact & First) -->
+                    <div class="bg-[var(--card-bg)] p-4 rounded-[28px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-start text-center relative overflow-hidden h-[130px] pt-7 transition-colors">
+                        <span class="absolute top-2.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Weight</span>
+                        
+                        <div class="relative w-full h-[60px] flex items-center justify-center gap-1 transition-opacity duration-300" :class="{ 'opacity-40 grayscale pointer-events-none': !isWeightEditing }">
+                            <!-- Center Focus Bar -->
+                            <div class="absolute inset-x-2 h-[34px] bg-[var(--page-bg)] rounded-xl -z-0 border border-black/5"></div>
+                            
+                            <!-- Integer Picker -->
+                            <div class="relative h-full w-10 overflow-hidden">
+                                <div 
+                                    ref="integerRef"
+                                    @scroll="onIntegerScroll"
+                                    class="h-full overflow-y-auto no-scrollbar snap-y snap-mandatory py-[13px]"
+                                >
+                                    <div v-for="int in integers" :key="int" 
+                                        class="h-[34px] flex items-center justify-center snap-center transition-all duration-300"
+                                        :class="Math.floor(localWeight) === int ? 'text-[12px] font-black text-[var(--text-main)]' : 'text-[9px] font-bold text-[var(--text-muted)]'"
+                                    >
+                                        {{ int }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Separator -->
+                            <div class="text-xl font-black text-[var(--theme-color)] mb-1">.</div>
+
+                            <!-- Decimal Picker -->
+                            <div class="relative h-full w-6 overflow-hidden">
+                                <div 
+                                    ref="decimalRef"
+                                    @scroll="onDecimalScroll"
+                                    class="h-full overflow-y-auto no-scrollbar snap-y snap-mandatory py-[13px]"
+                                >
+                                    <div v-for="dec in decimals" :key="dec" 
+                                        class="h-[34px] flex items-center justify-center snap-center transition-all duration-300"
+                                        :class="Math.round((localWeight % 1) * 10) === dec ? 'text-[12px] font-black text-[var(--text-main)]' : 'text-[9px] font-bold text-[var(--text-muted)]'"
+                                    >
+                                        {{ dec }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-2.5 w-full px-2">
+                            <template v-if="!isWeightEditing">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-baseline gap-0.5 transition-colors">
+                                        <span class="text-lg font-black text-[var(--theme-color)] leading-none italic transition-colors">{{ Number(localWeight).toFixed(1) }}</span>
+                                        <span class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">KG</span>
+                                    </div>
+                                    <button 
+                                        @click="isWeightEditing = true"
+                                        class="bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[6px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full active:scale-95 transition-all border border-[var(--theme-color)]/20 shadow-sm"
+                                    >
+                                        Edit
+                                    </button>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <div class="flex items-center justify-center gap-1.5 w-full">
+                                    <button 
+                                        @click="cancelWeightEdit"
+                                        class="flex-1 bg-[var(--page-bg)] text-[var(--text-muted)] text-[6px] font-black uppercase tracking-widest py-1.5 rounded-full active:scale-95 transition-all text-center border border-[var(--border-color)]"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        @click="saveWeightToServer(localWeight.value)"
+                                        :disabled="!hasWeightChanged"
+                                        class="flex-1 bg-[var(--theme-color)] text-white text-[6px] font-black uppercase tracking-widest py-1.5 rounded-full shadow-lg shadow-[var(--theme-color)]/20 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none text-center"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </template>
                         </div>
                     </div>
-                    <div class="bg-white p-5 rounded-[24px] border border-gray-100 shadow-sm flex flex-col items-center text-center">
-                        <span class="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">Height</span>
-                        <span class="text-lg font-black text-gray-900 leading-none">{{ user.height || 0 }}<span class="text-[10px] ml-0.5 text-gray-400 uppercase tracking-tighter">cm</span></span>
+
+                    <!-- Height Section -->
+                    <div class="bg-[var(--card-bg)] p-4 rounded-[28px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center relative h-[130px] transition-colors">
+                        <span class="absolute top-2.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Height</span>
+                        <span class="text-lg font-black text-[var(--text-main)] leading-none transition-colors">
+                            {{ user.height || 0 }}<span class="text-[10px] ml-0.5 text-[var(--text-muted)] uppercase tracking-tighter transition-colors">cm</span>
+                        </span>
                     </div>
-                    <div class="bg-white p-5 rounded-[24px] border border-gray-100 shadow-sm flex flex-col items-center text-center">
-                        <span class="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">Goal</span>
-                        <span class="text-[9px] font-black text-gray-900 uppercase leading-tight mt-1">{{ user.goal || 'No Goal' }}</span>
+
+                    <!-- Goal Section -->
+                    <div class="bg-[var(--card-bg)] p-4 rounded-[28px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center relative h-[130px] transition-colors">
+                        <span class="absolute top-2.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Goal</span>
+                        <span class="text-[12px] font-black text-[var(--text-main)] uppercase leading-tight mt-1 transition-colors">{{ user.goal || 'No Goal' }}</span>
                     </div>
                 </div>
             </section>
 
             <!-- Metrics List -->
-            <div class="px-6 w-full space-y-4">
+            <div class="px-6 w-full space-y-4 pt-4">
                 <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Performance</h3>
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Performance</h3>
                     <span class="text-[10px] font-bold text-[var(--theme-color)] uppercase tracking-widest">History</span>
                 </div>
                 <div class="space-y-3">
-                    <div class="bg-white  p-5 rounded-[24px] border border-gray-100  flex items-center justify-between shadow-sm transition-all hover:scale-[1.02]">
+                    <div class="bg-[var(--card-bg)] p-5 rounded-[24px] border border-[var(--border-color)] flex items-center justify-between shadow-sm transition-all hover:scale-[1.02]">
                         <div class="flex items-center gap-4">
                             <div class="size-12 rounded-2xl bg-[var(--theme-color)]/10 flex items-center justify-center text-[var(--theme-color)]">
                                 <span class="material-symbols-outlined fill-icon">fitness_center</span>
                             </div>
                             <div class="ml-1 flex-1 text-left">
-                                <h4 class="font-black uppercase text-sm text-gray-900 leading-none mb-1">Workouts</h4>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">128 Completed</p>
+                                <h4 class="font-black uppercase text-sm text-[var(--text-main)] leading-none mb-1 transition-colors">Workouts</h4>
+                                <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest transition-colors">128 Completed</p>
                             </div>
                         </div>
                         <div class="text-right">
                             <p class="text-lg font-black text-[var(--theme-color)] leading-none">82%</p>
-                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Progress</p>
+                            <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">Progress</p>
                         </div>
                     </div>
                     
-                    <div class="bg-white  rounded-[28px] border border-gray-100  overflow-hidden shadow-sm mt-6">
-                        <a href="#" class="flex items-center justify-between p-5 hover:bg-gray-50  border-b border-gray-100  transition-colors">
+                    <div class="bg-[var(--card-bg)] rounded-[28px] border border-[var(--border-color)] overflow-hidden shadow-sm mt-6 transition-colors">
+                        <a href="#" class="flex items-center justify-between p-5 hover:bg-[var(--page-bg)] border-b border-[var(--border-color)] transition-colors">
                             <div class="flex items-center gap-4">
-                                <span class="material-symbols-outlined text-gray-600">workspace_premium</span>
-                                <span class="font-black uppercase text-[10px] tracking-widest text-gray-600 ">Personal Bests</span>
+                                <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">workspace_premium</span>
+                                <span class="font-black uppercase text-[10px] tracking-widest text-[var(--text-muted)] transition-colors">Personal Bests</span>
                             </div>
-                            <span class="material-symbols-outlined text-gray-500 font-bold text-sm">arrow_forward_ios</span>
+                            <span class="material-symbols-outlined text-[var(--text-muted)] font-bold text-sm transition-colors">arrow_forward_ios</span>
                         </a>
-                        <a href="#" class="flex items-center justify-between p-5 hover:bg-gray-50  transition-colors">
+                        <a href="#" class="flex items-center justify-between p-5 hover:bg-[var(--page-bg)] transition-colors">
                             <div class="flex items-center gap-4">
-                                <span class="material-symbols-outlined text-gray-400">logout</span>
+                                <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">logout</span>
                                 <span class="font-black uppercase text-[10px] tracking-widest text-red-500">Sign Out</span>
                             </div>
                         </a>
@@ -207,27 +356,27 @@ watch(() => page.props.flash.status, (newStatus) => {
         <!-- Edit Profile Modal -->
         <div v-if="isEditModalOpen" class="fixed inset-0 z-[100] flex items-end justify-center">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="isEditModalOpen = false"></div>
-            <div class="relative w-full max-w-lg bg-white rounded-t-[40px] p-8 pb-12 animate-slide-up shadow-2xl flex flex-col max-h-[90vh]">
-                <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-8 shrink-0"></div>
+            <div class="relative w-full max-w-lg bg-[var(--card-bg)] rounded-t-[40px] p-8 pb-12 animate-slide-up shadow-2xl flex flex-col max-h-[90vh] border-t border-[var(--border-color)] transition-colors text-[var(--text-main)]">
+                <div class="w-12 h-1 bg-[var(--border-color)] rounded-full mx-auto mb-8 shrink-0 transition-colors"></div>
                 
-                <h3 class="text-xl font-black italic uppercase tracking-tighter text-gray-900 mb-6 shrink-0">Edit Profile</h3>
+                <h3 class="text-xl font-black italic uppercase tracking-tighter text-[var(--text-main)] mb-6 shrink-0 transition-colors">Edit Profile</h3>
                 
                 <div class="space-y-6 overflow-y-auto pr-2 pb-10 flex-1 custom-scrollbar">
                     <div class="form-control">
-                        <label class="label"><span class="label-text font-bold uppercase text-[10px] tracking-widest text-gray-400">Full Name</span></label>
-                        <input v-model="editForm.name" type="text" class="input input-bordered w-full rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-[var(--theme-color)] transition-all" />
+                        <label class="label"><span class="label-text font-bold uppercase text-[10px] tracking-widest text-[var(--text-muted)]">Full Name</span></label>
+                        <input v-model="editForm.name" type="text" class="input input-bordered w-full rounded-2xl bg-[var(--page-bg)] border-none text-[var(--text-main)] focus:ring-2 focus:ring-[var(--theme-color)] transition-all" />
                         <span v-if="errors.name" class="text-[10px] text-red-500 mt-1 ml-2 font-bold uppercase tracking-wider">{{ errors.name }}</span>
                     </div>
 
                     <div class="form-control">
-                        <label class="label"><span class="label-text font-bold uppercase text-[10px] tracking-widest text-gray-400">Height (cm)</span></label>
-                        <input v-model="editForm.height" type="number" class="input input-bordered w-full rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-[var(--theme-color)] transition-all" />
+                        <label class="label"><span class="label-text font-bold uppercase text-[10px] tracking-widest text-[var(--text-muted)]">Height (cm)</span></label>
+                        <input v-model="editForm.height" type="number" class="input input-bordered w-full rounded-2xl bg-[var(--page-bg)] border-none text-[var(--text-main)] focus:ring-2 focus:ring-[var(--theme-color)] transition-all" />
                         <span v-if="errors.height" class="text-[10px] text-red-500 mt-1 ml-2 font-bold uppercase tracking-wider">{{ errors.height }}</span>
                     </div>
 
                     <div class="form-control">
-                        <label class="label"><span class="label-text font-bold uppercase text-[10px] tracking-widest text-gray-400">Goal</span></label>
-                        <select v-model="editForm.goal" class="select select-bordered w-full rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-[var(--theme-color)] transition-all px-4">
+                        <label class="label"><span class="label-text font-bold uppercase text-[10px] tracking-widest text-[var(--text-muted)]">Goal</span></label>
+                        <select v-model="editForm.goal" class="select select-bordered w-full rounded-2xl bg-[var(--page-bg)] border-none text-[var(--text-main)] focus:ring-2 focus:ring-[var(--theme-color)] transition-all px-4">
                             <option value="Muscle Gain">Muscle Gain</option>
                             <option value="Lose Weight">Lose Weight</option>
                             <option value="Keep Fit">Keep Fit</option>
@@ -238,7 +387,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                 </div>
 
                 <div class="mt-8 flex gap-3 pb-safe shrink-0">
-                    <button @click="isEditModalOpen = false" class="flex-1 py-4 bg-gray-100 text-gray-600 font-black italic uppercase tracking-widest rounded-2xl active:scale-95 transition-all">Cancel</button>
+                    <button @click="isEditModalOpen = false" class="flex-1 py-4 bg-[var(--page-bg)] text-[var(--text-muted)] font-black italic uppercase tracking-widest rounded-2xl active:scale-95 transition-all">Cancel</button>
                     <button @click="saveProfile" class="flex-1 py-4 bg-[var(--theme-color)] text-white font-black italic uppercase tracking-widest rounded-2xl shadow-lg shadow-[var(--theme-color)]/30 active:scale-95 transition-all">Save Changes</button>
                 </div>
             </div>
@@ -279,13 +428,17 @@ input[type=number] {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #eee;
+    background: var(--border-color);
     border-radius: 10px;
 }
-.custom-scrollbar-hide::-webkit-scrollbar {
+.custom-scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
     display: none;
 }
-.custom-scrollbar-hide {
+.no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }

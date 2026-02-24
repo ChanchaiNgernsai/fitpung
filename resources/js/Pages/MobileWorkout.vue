@@ -347,35 +347,35 @@ const mergedHistory = computed(() => {
         <Head title="FitPung - Workouts" />
 
         <!-- Mode Selection View -->
-        <div v-if="!mode && !isWorkoutSessionActive" class="min-h-full bg-[#f8f9fa] p-6 flex flex-col items-center justify-center space-y-6">
+        <div v-if="!mode && !isWorkoutSessionActive" class="min-h-full bg-[var(--page-bg)] p-6 flex flex-col items-center justify-center space-y-6 transition-colors">
             <div class="text-center mb-8">
-                 <h1 class="text-3xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Choose Mode</h1>
-                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">Select how you want to train today</p>
+                 <h1 class="text-3xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none mt-1 transition-colors">Choose Mode</h1>
+                 <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mt-2 transition-colors">Select how you want to train today</p>
             </div>
 
             <!-- Gym Mode Card -->
-            <button @click="selectMode('gym')" class="w-full bg-white p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-[#00a18c] group transition-all duration-300 relative overflow-hidden">
+            <button @click="selectMode('gym')" class="w-full bg-[var(--card-bg)] p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-[#00a18c] group transition-all duration-300 relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                     <span class="material-symbols-outlined text-9xl text-[#00a18c]">map</span>
                 </div>
                 <div class="relative z-10 flex flex-col items-start text-left">
                     <span class="bg-[#00a18c]/10 text-[#00a18c] px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-4">Interactive</span>
-                    <h2 class="text-3xl font-black uppercase italic text-gray-900 leading-none mb-2">Gym Workout</h2>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider max-w-[200px]">
+                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">Gym Workout</h2>
+                    <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
                         Select a gym, use the map, and follow owner-set programs.
                     </p>
                 </div>
             </button>
 
             <!-- Free Mode Card -->
-            <button @click="selectMode('free')" class="w-full bg-white p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-blue-500 group transition-all duration-300 relative overflow-hidden">
+            <button @click="selectMode('free')" class="w-full bg-[var(--card-bg)] p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-blue-500 group transition-all duration-300 relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                     <span class="material-symbols-outlined text-9xl text-blue-500">fitness_center</span>
                 </div>
                 <div class="relative z-10 flex flex-col items-start text-left">
                     <span class="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-4">Manual</span>
-                    <h2 class="text-3xl font-black uppercase italic text-gray-900 leading-none mb-2">Free Workout</h2>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider max-w-[200px]">
+                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">Free Workout</h2>
+                    <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
                         Choose exercises manually and track your own sets.
                     </p>
                 </div>
@@ -383,34 +383,34 @@ const mergedHistory = computed(() => {
         </div>
 
         <!-- Workout Session View (Guided Plan) -->
-        <div v-else-if="isWorkoutSessionActive && activeWorkout" class="min-h-full bg-white">
-            <header class="p-6 pb-2 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30">
+        <div v-else-if="isWorkoutSessionActive && activeWorkout" class="min-h-full bg-[var(--app-bg)] transition-colors">
+            <header class="p-6 pb-2 flex items-center justify-between sticky top-0 bg-[var(--nav-bg)] backdrop-blur-md z-30 border-b border-[var(--border-color)] transition-colors">
                 <div>
                     <h2 class="text-[10px] font-black uppercase tracking-[0.2em] mb-1"
                         :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[#00a18c]'">
                         {{ activeWorkout.sessionType === 'manual' ? 'BUILD SESSION' : 'GUIDED PLAN' }}
                     </h2>
-                    <h3 class="text-xl font-black uppercase italic text-gray-900 leading-tight">{{ activeWorkout.title }}</h3>
+                    <h3 class="text-xl font-black uppercase italic text-[var(--text-main)] leading-tight transition-colors">{{ activeWorkout.title }}</h3>
                 </div>
-                <button @click="isWorkoutSessionActive = false" class="size-10 rounded-full bg-gray-50 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-gray-400">close</span>
+                <button @click="isWorkoutSessionActive = false" class="size-10 rounded-full bg-[var(--page-bg)] flex items-center justify-center transition-colors">
+                    <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">close</span>
                 </button>
             </header>
 
             <div class="px-6 py-4">
                 <div v-for="exercise in activeWorkout.exercises" :key="exercise.name" 
-                    class="bg-white rounded-[40px] border-2 border-gray-100 p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] mb-10 space-y-8 last:mb-20">
+                    class="bg-[var(--card-bg)] rounded-[40px] border border-[var(--border-color)] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] mb-10 space-y-8 last:mb-20 transition-colors">
                     <!-- Premium Exercise Header -->
                     <div class="flex gap-6 items-center">
-                        <div class="size-28 rounded-[36px] bg-white border border-gray-100 flex-shrink-0 flex items-center justify-center p-4 shadow-sm">
+                        <div class="size-28 rounded-[36px] bg-[var(--page-bg)] border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center p-4 shadow-sm transition-colors">
                             <img v-if="exercise.image" :src="exercise.image" class="w-full h-full object-contain">
-                            <div v-else class="flex flex-col items-center justify-center opacity-20">
-                                <span class="material-symbols-outlined text-4xl">fitness_center</span>
+                            <div v-else class="flex flex-col items-center justify-center opacity-20 transition-colors">
+                                <span class="material-symbols-outlined text-4xl text-[var(--text-main)]">fitness_center</span>
                             </div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="mb-4">
-                                <h4 class="text-[28px] font-black uppercase italic text-gray-900 leading-[0.9] tracking-tighter">{{ exercise.name }}</h4>
+                                <h4 class="text-[28px] font-black uppercase italic text-[var(--text-main)] leading-[0.9] tracking-tighter transition-colors">{{ exercise.name }}</h4>
                                 <span v-if="exercise.isMerged" class="inline-block mt-2 px-2 py-0.5 rounded-md bg-[#00a18c]/10 text-[#00a18c] text-[8px] font-black uppercase italic tracking-wider">Merged</span>
                             </div>
                             <div class="flex items-center gap-3">
@@ -434,18 +434,18 @@ const mergedHistory = computed(() => {
                                 </div>
                                 <!-- Weight Box -->
                                 <div class="flex flex-col items-center">
-                                    <span class="text-[7px] font-black text-gray-300 uppercase tracking-widest mb-1 px-1">Target</span>
-                                    <div class="px-3 py-1.5 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center min-w-[48px]">
-                                        <span class="text-[11px] font-black text-gray-900 uppercase italic">
+                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 px-1 transition-colors">Target</span>
+                                    <div class="px-3 py-1.5 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)] flex items-center justify-center min-w-[48px] transition-colors">
+                                        <span class="text-[11px] font-black text-[var(--text-main)] uppercase italic transition-colors">
                                             {{ exercise.targetWeight || (exercise.workoutLogs.length > 0 ? exercise.workoutLogs[0].weight : '0kg') }}
                                         </span>
                                     </div>
                                 </div>
                                 <!-- Reps Box -->
                                 <div class="flex flex-col items-center">
-                                    <span class="text-[7px] font-black text-gray-300 uppercase tracking-widest mb-1 px-1">Reps</span>
-                                    <div class="px-3 py-1.5 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center min-w-[48px]">
-                                        <span class="text-[11px] font-black text-gray-900 uppercase italic">{{ exercise.reps }}</span>
+                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 px-1 transition-colors">Reps</span>
+                                    <div class="px-3 py-1.5 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)] flex items-center justify-center min-w-[48px] transition-colors">
+                                        <span class="text-[11px] font-black text-[var(--text-main)] uppercase italic transition-colors">{{ exercise.reps }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -453,7 +453,7 @@ const mergedHistory = computed(() => {
                     </div>
 
                     <div class="flex items-center justify-between mt-8 mb-4">
-                        <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Workout Log</h4>
+                        <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Workout Log</h4>
                         <button @click="addSet(exercise)" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#ec5b13]/20 text-[#ec5b13] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all bg-[#ec5b13]/5">
                             <span class="material-symbols-outlined text-[10px] font-bold">add</span>
                             ADD SET
@@ -462,7 +462,7 @@ const mergedHistory = computed(() => {
 
                     <div class="space-y-3">
                         <!-- Table Header -->
-                        <div class="flex items-center gap-3 px-1 text-[8px] font-black text-gray-300 uppercase tracking-widest">
+                        <div class="flex items-center gap-3 px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
                             <div class="size-10"></div>
                             <div class="flex-1 text-center">Weight (KG)</div>
                             <div class="w-16 text-center">Sets</div>
@@ -480,126 +480,126 @@ const mergedHistory = computed(() => {
                             </button>
 
                             <!-- Weight Box -->
-                            <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden">
-                                <select v-model="set.weight" class="w-full text-sm font-black text-gray-900 border-none p-0 focus:ring-0 text-center bg-transparent italic uppercase appearance-none text-center-last">
+                            <div class="flex-1 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-1 overflow-hidden transition-colors">
+                                <select v-model="set.weight" class="w-full text-sm font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic uppercase appearance-none text-center-last transition-colors">
                                     <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
                                 </select>
                             </div>
 
                             <!-- Set Box -->
-                            <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
-                                <span class="text-base font-black text-gray-900 italic">{{ setIdx + 1 }}</span>
+                            <div class="w-16 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center transition-colors">
+                                <span class="text-base font-black text-[var(--text-main)] italic transition-colors">{{ setIdx + 1 }}</span>
                             </div>
 
                             <!-- Reps Box -->
-                            <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2">
-                                <input v-model="set.reps" class="w-full text-base font-black text-gray-900 border-none p-0 focus:ring-0 text-center bg-transparent italic" placeholder="0">
+                            <div class="flex-1 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-2 transition-colors">
+                                <input v-model="set.reps" class="w-full text-base font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic transition-colors" placeholder="0">
                             </div>
 
                             <!-- Done Button -->
                             <button @click="toggleSet(set)" 
                                 class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm active:scale-95"
-                                :class="set.completed ? 'bg-[#00a18c] border-[#00a18c] text-white' : 'bg-white border-gray-100 text-gray-200'">
+                                :class="set.completed ? 'bg-[#00a18c] border-[#00a18c] text-white' : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/30'">
                                 <span class="material-symbols-outlined text-xl font-bold">{{ set.completed ? 'check_circle' : 'check' }}</span>
                             </button>
                         </div>
                         
                         <!-- Empty Sets State -->
-                        <div v-if="exercise.workoutLogs.length === 0" class="py-12 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center opacity-30">
-                             <span class="material-symbols-outlined text-4xl mb-3">add_task</span>
-                             <p class="text-[10px] font-black uppercase tracking-widest text-center">No sets added yet</p>
+                        <div v-if="exercise.workoutLogs.length === 0" class="py-12 border-2 border-dashed border-[var(--border-color)] rounded-[32px] flex flex-col items-center justify-center opacity-30 transition-colors">
+                             <span class="material-symbols-outlined text-4xl mb-3 text-[var(--text-muted)]">add_task</span>
+                             <p class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] text-center">No sets added yet</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="px-6 py-4 flex flex-col gap-4 mt-4">
+            <div class="px-6 py-4 flex flex-col gap-4 mt-4 transition-colors">
                 <button @click="saveAsCustomPlan(activeWorkout)" 
-                    class="w-full py-4 rounded-[24px] bg-white border-2 border-blue-600 text-blue-600 font-black uppercase tracking-[0.2em] shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+                    class="w-full py-4 rounded-[24px] bg-[var(--card-bg)] border-2 border-blue-600 text-blue-600 font-black uppercase tracking-[0.2em] shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined">bookmark</span>
                     Save as My Plan
                 </button>
                 <button @click="finishWorkout" 
-                    class="w-full py-5 rounded-[24px] bg-gray-900 text-white font-black uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">
+                    class="w-full py-5 rounded-[24px] bg-[var(--text-main)] text-[var(--card-bg)] font-black uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">
                     Finish & Log Session
                 </button>
             </div>
         </div>
 
         <!-- Free Workout Home View -->
-        <div v-else class="bg-[#f8f9fa] min-h-screen pb-32">
+        <div v-else class="bg-[var(--page-bg)] min-h-screen pb-32 transition-colors">
             <!-- Header Tabs -->
-            <header class="p-6 pb-2">
-                <div class="flex flex-col items-center mb-4">
+            <header class="p-6 pb-2 transition-colors">
+                <div class="flex flex-col items-center mb-4 transition-colors">
                     <p class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500 mb-1">Free Mode</p>
-                    <h1 class="text-[26px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">Select Workout</h1>
+                    <h1 class="text-[26px] font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none transition-colors">Select Workout</h1>
                 </div>
 
                 <!-- Simple Back Button -->
-                <button @click="mode = null" class="absolute left-6 top-8 size-9 rounded-full flex items-center justify-center border border-gray-50 bg-white shadow-sm">
-                    <span class="material-symbols-outlined text-gray-300 text-xl">arrow_back</span>
+                <button @click="mode = null" class="absolute left-6 top-8 size-9 rounded-full flex items-center justify-center border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm transition-all">
+                    <span class="material-symbols-outlined text-[var(--text-muted)] text-xl transition-colors">arrow_back</span>
                 </button>
 
                 <!-- Tabs -->
-                <div class="flex gap-8 border-b border-gray-50 px-2">
+                <div class="flex gap-8 border-b border-[var(--border-color)] px-2 transition-colors">
                     <button @click="activeTab = 'equipments'; selectedWorkoutIds = []" 
-                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'equipments' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-300']">
+                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'equipments' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
                         Equipment Pool
                     </button>
                     <button @click="activeTab = 'plans'; selectedWorkoutIds = []" 
-                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'plans' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-300']">
+                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'plans' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
                         My Plans
                     </button>
                     <button @click="activeTab = 'history'" 
-                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'history' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-300']">
+                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'history' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
                         History
                     </button>
                 </div>
             </header>
 
-            <div v-if="activeTab !== 'history'" class="px-6 mt-4">
+            <div v-if="activeTab !== 'history'" class="px-6 mt-4 transition-colors">
                  <div class="relative">
-                    <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-gray-200 text-xl">search</span>
+                    <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xl transition-colors">search</span>
                     <input v-model="searchQuery" 
                         type="text" 
                         placeholder="Search exercises..." 
-                        class="w-full pl-12 pr-6 py-4 bg-white border border-gray-50 rounded-full text-xs focus:ring-0 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)] outline-none placeholder:text-gray-200"
+                        class="w-full pl-12 pr-6 py-4 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-full text-xs text-[var(--text-main)] focus:ring-0 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)] outline-none placeholder:text-[var(--text-muted)]/40"
                     >
                  </div>
             </div>
 
             <!-- Main View Content -->
-            <div v-if="activeTab === 'equipments' || activeTab === 'plans'">
-                <div class="py-6">
+            <div v-if="activeTab === 'equipments' || activeTab === 'plans'" class="transition-colors">
+                <div class="py-6 transition-colors">
                     <div class="px-8 flex items-center justify-between mb-2">
                         <div class="flex flex-col">
-                            <h3 class="text-lg font-black uppercase italic text-gray-900 tracking-tight leading-none">Build Your Session</h3>
-                            <p class="text-[7px] font-black text-gray-300 uppercase tracking-widest mt-1">
+                            <h3 class="text-lg font-black uppercase italic text-[var(--text-main)] tracking-tight leading-none transition-colors">Build Your Session</h3>
+                            <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-1 transition-colors">
                                 {{ selectedWorkoutIds.length }} Items Selected
                             </p>
                         </div>
                     </div>
 
                     <!-- List View -->
-                    <div class="px-6 space-y-4 pb-8">
+                    <div class="px-6 space-y-4 pb-8 transition-colors">
                         <div v-for="workout in (activeTab === 'equipments' ? allEquipments : userSavedPlans)" :key="workout.id" 
                             @click="toggleSelection(workout.id)"
-                            class="bg-white p-4 rounded-[32px] border transition-all duration-300 flex items-center gap-4 group"
-                            :class="selectedWorkoutIds.includes(workout.id) ? 'border-[#00a18c] ring-1 ring-[#00a18c]/5' : 'border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.015)] shadow-gray-200/20'">
+                            class="bg-[var(--card-bg)] p-4 rounded-[32px] border transition-all duration-300 flex items-center gap-4 group"
+                            :class="selectedWorkoutIds.includes(workout.id) ? 'border-[#00a18c] ring-1 ring-[#00a18c]/5' : 'border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.015)]'">
                             
-                            <div class="size-16 rounded-[24px] overflow-hidden relative border border-gray-50 flex-shrink-0 flex items-center justify-center bg-[#fcfdfe]">
+                            <div class="size-16 rounded-[24px] overflow-hidden relative border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center bg-[var(--page-bg)] transition-colors">
                                 <img v-if="workout.image && !workout.isCustom" :src="workout.image" class="w-full h-full object-contain">
-                                <div v-else class="flex flex-col items-center justify-center text-[#00a18c]">
+                                <div v-else class="flex flex-col items-center justify-center text-[#00a18c] transition-opacity opacity-60">
                                     <span class="material-symbols-outlined text-3xl">fitness_center</span>
                                 </div>
                             </div>
 
-                            <div class="flex-1 min-w-0">
+                            <div class="flex-1 min-w-0 transition-colors">
                                 <span class="text-[6px] font-black uppercase tracking-[0.1em] text-[#00a18c] opacity-60">
                                     {{ workout.gymName }}
                                 </span>
-                                <h4 class="text-[17px] font-black uppercase italic text-gray-900 truncate leading-none tracking-tighter my-0.5">{{ workout.title }}</h4>
-                                <p class="text-[7px] font-black text-gray-300 uppercase tracking-widest">
+                                <h4 class="text-[17px] font-black uppercase italic text-[var(--text-main)] truncate leading-none tracking-tighter my-0.5 transition-colors">{{ workout.title }}</h4>
+                                <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
                                     {{ workout.exercises?.length || 1 }} EXERCISES
                                 </p>
                             </div>
@@ -607,7 +607,7 @@ const mergedHistory = computed(() => {
                             <div class="flex items-center">
                                 <!-- Selection Circle -->
                                 <div class="size-8 rounded-full flex items-center justify-center border transition-all"
-                                    :class="selectedWorkoutIds.includes(workout.id) ? 'bg-[#00a18c] border-[#00a18c] text-white shadow-lg' : 'border-gray-50 text-gray-50'">
+                                    :class="selectedWorkoutIds.includes(workout.id) ? 'bg-[#00a18c] border-[#00a18c] text-white shadow-lg' : 'border-[var(--border-color)] text-transparent'">
                                     <span v-if="selectedWorkoutIds.includes(workout.id)" class="material-symbols-outlined text-white text-lg font-black">check</span>
                                 </div>
                             </div>
@@ -625,56 +625,56 @@ const mergedHistory = computed(() => {
             </div>
 
             <!-- History View (Unified) -->
-            <div v-else class="px-6 py-4 space-y-10">
-                <div v-if="mergedHistory.length === 0" class="py-20 text-center opacity-30">
-                    <span class="material-symbols-outlined text-6xl">history</span>
-                    <p class="text-xs font-black uppercase tracking-widest mt-4">No workout history yet</p>
+            <div v-else class="px-6 py-4 space-y-10 transition-colors">
+                <div v-if="mergedHistory.length === 0" class="py-20 text-center opacity-30 transition-colors">
+                    <span class="material-symbols-outlined text-6xl text-[var(--text-muted)]">history</span>
+                    <p class="text-xs font-black uppercase tracking-widest mt-4 text-[var(--text-muted)]">No workout history yet</p>
                 </div>
                 
-                <div v-for="entry in mergedHistory" :key="entry.id" class="space-y-6">
+                <div v-for="entry in mergedHistory" :key="entry.id" class="space-y-6 transition-colors">
                     <!-- Session Header (Date & Title) -->
-                    <div class="px-2">
+                    <div class="px-2 transition-colors">
                         <span class="text-[10px] font-black text-[#00a18c] uppercase tracking-[0.2em] mb-1 block">{{ entry.date }}</span>
-                        <h4 class="text-2xl font-black uppercase italic text-gray-900 leading-none tracking-tighter">{{ entry.title }}</h4>
+                        <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tighter transition-colors">{{ entry.title }}</h4>
                     </div>
                     
                     <!-- Detailed Exercise List -->
-                    <div v-if="entry.exercises && entry.exercises.length > 0" class="space-y-4">
-                        <div v-for="ex in entry.exercises" :key="ex.name" class="flex gap-4 items-start bg-white rounded-[32px] p-5 border border-gray-100 shadow-sm shadow-gray-200/50">
+                    <div v-if="entry.exercises && entry.exercises.length > 0" class="space-y-4 transition-colors">
+                        <div v-for="ex in entry.exercises" :key="ex.name" class="flex gap-4 items-start bg-[var(--card-bg)] rounded-[32px] p-5 border border-[var(--border-color)] shadow-sm transition-colors">
                             <!-- Machine Image -->
-                            <div class="size-20 rounded-2xl bg-gray-50 overflow-hidden border border-gray-100 flex-shrink-0 p-2 shadow-inner">
+                            <div class="size-20 rounded-2xl bg-[var(--page-bg)] overflow-hidden border border-[var(--border-color)] flex-shrink-0 p-2 shadow-inner transition-colors">
                                 <img v-if="ex.image" :src="ex.image" class="w-full h-full object-contain">
-                                <div v-else class="w-full h-full flex items-center justify-center opacity-10">
-                                    <span class="material-symbols-outlined text-2xl">fitness_center</span>
+                                <div v-else class="w-full h-full flex items-center justify-center opacity-10 transition-colors">
+                                    <span class="material-symbols-outlined text-2xl text-[var(--text-main)]">fitness_center</span>
                                 </div>
                             </div>
 
-                            <div class="flex-1 min-w-0 pt-1">
-                                <h5 class="text-xs font-black uppercase italic text-gray-900 mb-3 truncate tracking-tight">{{ ex.name }}</h5>
+                            <div class="flex-1 min-w-0 pt-1 transition-colors">
+                                <h5 class="text-xs font-black uppercase italic text-[var(--text-main)] mb-3 truncate tracking-tight transition-colors">{{ ex.name }}</h5>
                                 <!-- History Set Logs (New Labeled Box Style) -->
                                 <div class="flex flex-col gap-4">
-                                    <div v-for="(set, idx) in ex.sets" :key="idx" class="flex gap-2 items-end">
+                                    <div v-for="(set, idx) in ex.sets" :key="idx" class="flex gap-2 items-end transition-colors">
                                         <!-- Weight Group -->
                                         <div class="flex-1 flex flex-col gap-1">
-                                            <span class="text-[7px] font-black text-gray-300 uppercase tracking-wider pl-1">Weight</span>
-                                            <div class="bg-white rounded-xl border border-gray-100 py-1.5 flex items-center justify-center">
-                                                <span class="text-[10px] font-black text-gray-700">{{ set.weight }}</span>
+                                            <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider pl-1 transition-colors">Weight</span>
+                                            <div class="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
+                                                <span class="text-[10px] font-black text-[var(--text-muted)]">{{ set.weight }}</span>
                                             </div>
                                         </div>
 
                                         <!-- Sets Group -->
                                         <div class="w-10 flex flex-col gap-1 items-center">
-                                            <span class="text-[7px] font-black text-gray-300 uppercase tracking-wider">Sets</span>
-                                            <div class="w-full bg-white rounded-xl border border-gray-100 py-1.5 flex items-center justify-center">
-                                                <span class="text-[10px] font-black text-gray-400 font-mono">{{ idx + 1 }}</span>
+                                            <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">Sets</span>
+                                            <div class="w-full bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
+                                                <span class="text-[10px] font-black text-[var(--text-muted)]/40 font-mono transition-colors">{{ idx + 1 }}</span>
                                             </div>
                                         </div>
 
                                         <!-- Reps Group -->
                                         <div class="flex-1 flex flex-col gap-1">
-                                            <span class="text-[7px] font-black text-gray-300 uppercase tracking-wider pl-1">Reps</span>
-                                            <div class="bg-white rounded-xl border border-gray-100 py-1.5 flex items-center justify-center">
-                                                <span class="text-[10px] font-black text-gray-700">{{ set.reps }}</span>
+                                            <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider pl-1 transition-colors">Reps</span>
+                                            <div class="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
+                                                <span class="text-[10px] font-black text-[var(--text-muted)]">{{ set.reps }}</span>
                                             </div>
                                         </div>
                                     </div>

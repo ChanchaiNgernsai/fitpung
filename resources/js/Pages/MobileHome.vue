@@ -76,23 +76,22 @@ const allRecommendations = computed(() => {
     <MobileLayout>
         <Head title="FitPung - Elite Mobile" />
 
-        <!-- Header -->
-        <header class="flex items-center justify-between p-6 pb-2">
+        <header class="flex items-center justify-between p-6 pb-2 transition-colors">
             <div class="flex items-center gap-4">
-                <div class="size-16 rounded-2xl bg-white shadow-xl border border-gray-100 flex items-center justify-center p-1">
+                <div class="size-16 rounded-2xl bg-[var(--card-bg)] shadow-xl border border-[var(--border-color)] flex items-center justify-center p-1 transition-colors">
                     <img src="/images/gorila/GorillaLogo.png" class="size-12 object-contain">
                 </div>
                 <div>
-                    <h1 class="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">FitPung</h1>
+                    <h1 class="text-2xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none transition-colors">FitPung</h1>
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)] mt-1.5 ml-0.5">Elite Fitness</p>
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <button class="relative p-2 rounded-full bg-white shadow-sm border border-gray-100">
-                    <span class="material-symbols-outlined text-gray-900">notifications</span>
-                    <span class="absolute top-2.5 right-2.5 size-2 bg-[var(--theme-color)] rounded-full border-2 border-white"></span>
+                <button class="relative p-2 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] transition-colors">
+                    <span class="material-symbols-outlined text-[var(--text-main)] transition-colors">notifications</span>
+                    <span class="absolute top-2.5 right-2.5 size-2 bg-[var(--theme-color)] rounded-full border-2 border-[var(--card-bg)] transition-colors"></span>
                 </button>
-                <div class="size-10 rounded-full bg-gray-200 overflow-hidden border-2 border-[var(--theme-color)]/20">
+                <div class="size-10 rounded-full bg-[var(--page-bg)] overflow-hidden border-2 border-[var(--theme-color)]/20 transition-colors">
                     <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvptxpU7Ppa2JgT01czZwNufdNosJ_klrOU7YUBqtRumJxfPZwDuN7uT9Qls2CozEHWDlHPxZ5TpHrQ7PyGmmv_WKIoLoiUkshYos7oCbL3Tqpok8ULOd7tpyiikAog25n0DTsdWcodws94SJFGBo25tvPXAybv_E--CK3YDEJSiII5jOWQqB6XJN_RcRYFYTqV8BqdCTBJGCixQwyO3EMyFR8DvyhNacIrRKKMmV4fDSz_LVor40kj6i6e49ylZcRhNRNSfaNt3Y" alt="User" class="w-full h-full object-cover">
                 </div>
             </div>
@@ -107,7 +106,7 @@ const allRecommendations = computed(() => {
                 <div class="relative z-10 space-y-3">
                     <span class="inline-block px-3 py-1 rounded-full bg-[var(--theme-color)]/20 text-[var(--theme-color)] text-[10px] font-extrabold uppercase tracking-widest">FitPung Elite</span>
                     <h1 class="text-white text-3xl font-black leading-[0.9] tracking-tighter italic uppercase">STAY<br />FOCUSED.</h1>
-                    <p class="text-gray-400 text-[10px] max-w-[60%] leading-relaxed">Push your limits today with your personalized plan.</p>
+                    <p class="text-gray-300 text-[10px] max-w-[60%] leading-relaxed">Push your limits today with your personalized plan.</p>
                 </div>
             </div>
         </div>
@@ -115,41 +114,41 @@ const allRecommendations = computed(() => {
         <!-- Workout Stats Grid -->
         <div class="px-6 py-2">
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-6 rounded-[24px] border border-gray-50 shadow-sm flex flex-col items-center text-center">
+                <div class="bg-[var(--card-bg)] p-6 rounded-[24px] border border-[var(--border-color)] shadow-sm flex flex-col items-center text-center transition-colors">
                     <span class="material-symbols-outlined text-[var(--theme-color)] mb-2">fitness_center</span>
-                    <span class="text-2xl font-black text-gray-900 leading-none">{{ setsDone }}</span>
-                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-2">Sets Done</span>
+                    <span class="text-2xl font-black text-[var(--text-main)] leading-none transition-colors">{{ setsDone }}</span>
+                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-2 transition-colors">Sets Done</span>
                 </div>
                 <!-- Workouts Completed Card (Replaces Time) -->
-                <div class="bg-white p-6 rounded-[24px] border border-gray-50 shadow-sm flex flex-col items-center text-center">
+                <div class="bg-[var(--card-bg)] p-6 rounded-[24px] border border-[var(--border-color)] shadow-sm flex flex-col items-center text-center transition-colors">
                     <span class="material-symbols-outlined text-blue-500 mb-2">azm</span>
-                    <span class="text-2xl font-black text-gray-900 leading-none">{{ workoutsCompleted }}</span>
-                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-2">Workouts Done</span>
+                    <span class="text-2xl font-black text-[var(--text-main)] leading-none transition-colors">{{ workoutsCompleted }}</span>
+                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-2 transition-colors">Workouts Done</span>
                 </div>
             </div>
         </div>
 
         <!-- Workout Feed (Instagram Style) -->
-        <div class="px-0 py-6">
+        <div class="px-0 py-6 transition-colors">
             <div class="px-6 flex items-center justify-between mb-6">
-                <h3 class="text-lg font-black uppercase italic text-gray-900 tracking-tight">Daily Feed</h3>
-                <button class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-widest bg-[var(--theme-color)]/5 px-3 py-1.5 rounded-full">For You</button>
+                <h3 class="text-lg font-black uppercase italic text-[var(--text-main)] tracking-tight transition-colors">Daily Feed</h3>
+                <button class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-widest bg-[var(--theme-color)]/5 px-3 py-1.5 rounded-full transition-colors">For You</button>
             </div>
 
             <div class="px-6 space-y-8">
-                <div v-for="rec in allRecommendations" :key="rec.id" class="bg-white border border-gray-100 rounded-[10px] overflow-hidden shadow-sm">
+                <div v-for="rec in allRecommendations" :key="rec.id" class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-[10px] overflow-hidden shadow-sm transition-colors">
                     <!-- Post Header -->
-                    <Link :href="route('gyms.white-map', rec.gymId)" class="px-4 py-3 flex items-center gap-3 active:opacity-70 transition-opacity">
-                        <div class="size-10 rounded-full border border-gray-100 overflow-hidden bg-gray-50 flex items-center justify-center">
+                    <Link :href="route('gyms.white-map', rec.gymId)" class="px-4 py-3 flex items-center gap-3 active:opacity-70 transition-all">
+                        <div class="size-10 rounded-full border border-[var(--border-color)] overflow-hidden bg-[var(--page-bg)] flex items-center justify-center transition-colors">
                             <img v-if="rec.gymImage" :src="rec.gymImage" class="w-full h-full object-cover">
-                            <span v-else class="material-symbols-outlined text-gray-300 text-lg">fitness_center</span>
+                            <span v-else class="material-symbols-outlined text-[var(--text-muted)] text-lg transition-colors">fitness_center</span>
                         </div>
                         <div class="flex flex-col">
                             <div class="flex items-center gap-1.5">
-                                <span class="text-xs font-black text-gray-900 uppercase italic leading-none">{{ rec.gymName }}</span>
-                                <span class="material-symbols-outlined text-[10px] text-[var(--theme-color)] fill-icon">verified</span>
+                                <span class="text-xs font-black text-[var(--text-main)] uppercase italic leading-none transition-colors">{{ rec.gymName }}</span>
+                                <span class="material-symbols-outlined text-[10px] text-[var(--theme-color)] fill-icon transition-colors">verified</span>
                             </div>
-                            <span class="text-[11px] text-gray-400 font-bold uppercase tracking-tight mt-0.5">{{ rec.gymLocation }}</span>
+                            <span class="text-[11px] text-[var(--text-muted)] font-bold uppercase tracking-tight mt-0.5 transition-colors">{{ rec.gymLocation }}</span>
                         </div>
                     </Link>
 
@@ -164,38 +163,38 @@ const allRecommendations = computed(() => {
                     </div>
 
                     <!-- Interaction Bar -->
-                    <div class="px-4 pt-4 pb-2 flex items-center gap-5">
+                    <div class="px-4 pt-4 pb-2 flex items-center gap-5 transition-colors">
                         <button @click="toggleLike(rec.id)" class="transition-all active:scale-125">
                             <span class="material-symbols-outlined text-2xl transition-colors"
-                                :class="likedWorkoutIds.includes(rec.id) ? 'text-[var(--theme-color)] fill-icon' : 'text-gray-900'">
+                                :class="likedWorkoutIds.includes(rec.id) ? 'text-[var(--theme-color)] fill-icon' : 'text-[var(--text-main)]'">
                                 fitness_center
                             </span>
                         </button>
                         <button class="transition-transform active:scale-125">
-                            <span class="material-symbols-outlined text-2xl text-gray-900 leading-none">chat_bubble</span>
+                            <span class="material-symbols-outlined text-2xl text-[var(--text-main)] leading-none transition-colors">chat_bubble</span>
                         </button>
                     </div>
 
                     <!-- Post Caption & Stats -->
-                    <div class="px-4 space-y-3">
+                    <div class="px-4 space-y-3 transition-colors">
                         <div>
-                            <p class="text-xs leading-relaxed">
-                                <span class="font-black uppercase italic mr-2">{{ rec.gymName }}</span>
-                                <span class="text-gray-800 font-medium">{{ rec.title }}</span>
+                            <p class="text-xs leading-relaxed transition-colors">
+                                <span class="font-black uppercase italic mr-2 text-[var(--text-main)]">{{ rec.gymName }}</span>
+                                <span class="text-[var(--text-main)] font-medium transition-colors">{{ rec.title }}</span>
                             </p>
-                            <p v-if="rec.subtitle" class="text-[11px] text-gray-500 mt-1 leading-relaxed line-clamp-2">
+                            <p v-if="rec.subtitle" class="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2 transition-colors">
                                 {{ rec.subtitle }}
                             </p>
                         </div>
 
-                        <div class="flex items-center gap-4 py-2 opacity-60">
-                            <div class="flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-sm text-gray-400">schedule</span>
-                                <span class="text-[9px] font-black text-gray-900 uppercase tracking-widest">{{ rec.duration }} Min</span>
+                        <div class="flex items-center gap-4 py-2 opacity-60 transition-colors">
+                            <div class="flex items-center gap-1.5 transition-colors">
+                                <span class="material-symbols-outlined text-sm text-[var(--text-muted)] transition-colors">schedule</span>
+                                <span class="text-[9px] font-black text-[var(--text-main)] uppercase tracking-widest transition-colors">{{ rec.duration }} Min</span>
                             </div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-sm text-gray-400">local_fire_department</span>
-                                <span class="text-[9px] font-black text-gray-900 uppercase tracking-widest">{{ rec.calories }} kcal</span>
+                            <div class="flex items-center gap-1.5 transition-colors">
+                                <span class="material-symbols-outlined text-sm text-[var(--text-muted)] transition-colors">local_fire_department</span>
+                                <span class="text-[9px] font-black text-[var(--text-main)] uppercase tracking-widest transition-colors">{{ rec.calories }} kcal</span>
                             </div>
                         </div>
 

@@ -208,17 +208,57 @@ const svgPath = computed(() => {
     }
     return d;
 });
+
+// Daily Breakdown Section
+const dailyHistory = computed(() => {
+    const now = new Date();
+    const history = workoutHistory.value;
+    const days = [];
+    
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const thaiDays = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dateStr = d.toDateString();
+        
+        const sessions = history.filter(entry => new Date(entry.id).toDateString() === dateStr);
+        const categories = new Set();
+        let totalSets = 0;
+        
+        sessions.forEach(session => {
+            totalSets += session.sets || 0;
+            if (session.exercises) {
+                session.exercises.forEach(ex => {
+                    categories.add(categorizeExercise(ex.name));
+                });
+            }
+        });
+        
+        days.push({
+            date: d,
+            label: dayNames[d.getDay()],
+            thaiLabel: thaiDays[d.getDay()],
+            isToday: i === 0,
+            categories: Array.from(categories),
+            sets: totalSets,
+            hasData: sessions.length > 0
+        });
+    }
+    
+    return days;
+});
 </script>
 
 <template>
     <MobileLayout>
         <Head title="FitPung - Performance" />
 
-        <!-- Header -->
-        <header class="flex items-center justify-between px-6 pt-8 pb-4">
+        <header class="flex items-center justify-between px-6 pt-8 pb-4 transition-colors">
             <div class="flex flex-col">
                 <span class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)]">FitPung Elite</span>
-                <h1 class="text-3xl font-black tracking-tighter uppercase italic text-gray-900 leading-none mt-1">Performance</h1>
+                <h1 class="text-3xl font-black tracking-tighter uppercase italic text-[var(--text-main)] leading-none mt-1 transition-colors">Performance</h1>
             </div>
             <div class="relative">
                 <div class="size-10 rounded-full border-2 border-[var(--theme-color)] p-0.5">
@@ -230,61 +270,61 @@ const svgPath = computed(() => {
         <!-- Main Content -->
         <div class="px-6">
             <!-- Time Filter -->
-            <div class="mt-4 flex p-1 bg-gray-50 rounded-2xl border border-gray-100">
+            <div class="mt-4 flex p-1 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] transition-colors">
                 <button 
                     @click="activeTimeframe = 'week'"
                     :class="[
                         'flex-1 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all',
-                        activeTimeframe === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'
+                        activeTimeframe === 'week' ? 'bg-[var(--card-bg)] shadow-sm text-[var(--text-main)]' : 'text-[var(--text-muted)]'
                     ]"
                 >Week</button>
                 <button 
                     @click="activeTimeframe = 'month'"
                     :class="[
                         'flex-1 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all',
-                        activeTimeframe === 'month' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'
+                        activeTimeframe === 'month' ? 'bg-[var(--card-bg)] shadow-sm text-[var(--text-main)]' : 'text-[var(--text-muted)]'
                     ]"
                 >Month</button>
                 <button 
                     @click="activeTimeframe = 'year'"
                     :class="[
                         'flex-1 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all',
-                        activeTimeframe === 'year' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'
+                        activeTimeframe === 'year' ? 'bg-[var(--card-bg)] shadow-sm text-[var(--text-main)]' : 'text-[var(--text-muted)]'
                     ]"
                 >Year</button>
             </div>
 
             <!-- Stats Grid -->
             <div class="grid grid-cols-3 gap-3 mt-6">
-                <div class="flex flex-col items-center justify-center p-4 bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Workout Days</span>
+                <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors">
+                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 transition-colors">Workout Days</span>
                     <span class="text-2xl font-black text-[var(--theme-color)] italic leading-none">{{ stats.days }}</span>
-                    <span class="text-[9px] font-bold text-gray-400 mt-1">วันที่มาเล่น</span>
+                    <span class="text-[9px] font-bold text-[var(--text-muted)] mt-1 transition-colors">วันที่มาเล่น</span>
                 </div>
-                <div class="flex flex-col items-center justify-center p-4 bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Sets</span>
-                    <span class="text-2xl font-black text-gray-900 italic leading-none">{{ stats.sets }}</span>
-                    <span class="text-[9px] font-bold text-gray-400 mt-1">เซ็ตทั้งหมด</span>
+                <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors">
+                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 transition-colors">Total Sets</span>
+                    <span class="text-2xl font-black text-[var(--text-main)] italic leading-none transition-colors">{{ stats.sets }}</span>
+                    <span class="text-[9px] font-bold text-[var(--text-muted)] mt-1 transition-colors">เซ็ตทั้งหมด</span>
                 </div>
-                <div class="flex flex-col items-center justify-center p-4 bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Active Time</span>
-                    <span class="text-2xl font-black text-gray-900 italic leading-none">{{ stats.hours }}</span>
-                    <span class="text-[9px] font-bold text-gray-400 mt-1">ชั่วโมง (โดยประมาณ)</span>
+                <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors">
+                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 transition-colors">Active Time</span>
+                    <span class="text-2xl font-black text-[var(--text-main)] italic leading-none transition-colors">{{ stats.hours }}</span>
+                    <span class="text-[9px] font-bold text-[var(--text-muted)] mt-1 transition-colors">ชั่วโมง (โดยประมาณ)</span>
                 </div>
             </div>
 
             <!-- Chart Section -->
             <div class="mt-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Consistency (ความสม่ำเสมอ)</h2>
+                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Consistency (ความสม่ำเสมอ)</h2>
                     <span class="text-[10px] font-bold text-[var(--theme-color)] uppercase">Avg {{ (stats.sets / 4).toFixed(1) }}/wk</span>
                 </div>
-                <div class="bg-white rounded-[32px] p-6 border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+                <div class="bg-[var(--card-bg)] rounded-[32px] p-6 border border-[var(--border-color)] shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-colors">
                     <div class="relative h-40 w-full mb-4">
                         <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 100">
                             <!-- Helper Lines -->
-                            <line x1="0" y1="80" x2="300" y2="80" stroke="#f3f4f6" stroke-width="1" />
-                            <line x1="0" y1="40" x2="300" y2="40" stroke="#f3f4f6" stroke-width="1" />
+                            <line x1="0" y1="80" x2="300" y2="80" stroke="var(--border-color)" stroke-width="1" class="transition-colors" />
+                            <line x1="0" y1="40" x2="300" y2="40" stroke="var(--border-color)" stroke-width="1" class="transition-colors" />
                             
                             <!-- Main Path -->
                             <path 
@@ -312,8 +352,44 @@ const svgPath = computed(() => {
                         </svg>
                     </div>
                     <!-- X-Axis Labels -->
-                    <div class="flex justify-between px-1 text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <span v-for="(p, i) in graphPoints" :key="i">{{ p.label }}</span>
+                    <div class="flex justify-between px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
+                        <span v-for="(p, i) in graphPoints" :key="i" class="transition-colors">{{ p.label }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 mb-10">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Daily Split (ส่วนที่เล่นรายวัน)</h2>
+                </div>
+                <div class="space-y-3">
+                    <div v-for="day in dailyHistory" :key="day.label" 
+                        class="bg-[var(--card-bg)] p-4 rounded-[24px] border border-[var(--border-color)] flex items-center justify-between shadow-sm transition-colors"
+                        :class="{'border-[var(--theme-color)]/30 ring-1 ring-[var(--theme-color)]/10': day.isToday}"
+                    >
+                        <div class="flex items-center gap-4">
+                            <div class="size-10 rounded-2xl flex flex-col items-center justify-center transition-colors"
+                                :class="day.hasData ? 'bg-[var(--theme-color)] text-white' : 'bg-[var(--page-bg)] text-[var(--text-muted)]'"
+                            >
+                                <span class="text-[8px] font-black uppercase leading-none mb-1">{{ day.label }}</span>
+                                <span class="text-sm font-black italic leading-none">{{ day.date.getDate() }}</span>
+                            </div>
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase text-[var(--text-main)] tracking-widest leading-none mb-2 transition-colors">
+                                    {{ day.thaiLabel }} {{ day.isToday ? '(วันนี้)' : '' }}
+                                </h4>
+                                <div class="flex flex-wrap gap-1.5" v-if="day.hasData">
+                                    <span v-for="cat in day.categories" :key="cat" 
+                                        class="px-2 py-1 bg-[var(--page-bg)] text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] rounded-lg border border-[var(--border-color)] transition-colors"
+                                    >{{ cat }}</span>
+                                </div>
+                                <span v-else class="text-[9px] font-bold text-[var(--text-muted)]/50 uppercase tracking-widest italic transition-colors">No Workout</span>
+                            </div>
+                        </div>
+                        <div v-if="day.hasData" class="text-right">
+                            <p class="text-sm font-black text-[var(--text-main)] leading-none transition-colors">{{ day.sets }}</p>
+                            <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">Sets</p>
+                        </div>
                     </div>
                 </div>
             </div>

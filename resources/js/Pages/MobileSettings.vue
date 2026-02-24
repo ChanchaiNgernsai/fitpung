@@ -54,36 +54,36 @@ const saveChanges = () => {
             leave-from-class="transform translate-y-0 opacity-100"
             leave-to-class="transform -translate-y-full opacity-0"
         >
-            <div v-if="showNotification" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-xs">
-                <div class="bg-gray-900/90 backdrop-blur-md text-white p-4 rounded-3xl shadow-2xl flex items-center gap-4 border border-white/10">
+            <div v-if="showNotification" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-xs transition-colors">
+                <div class="bg-[var(--text-main)] backdrop-blur-md text-[var(--card-bg)] p-4 rounded-3xl shadow-2xl flex items-center gap-4 border border-[var(--border-color)] transition-colors">
                     <div class="size-10 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20">
                         <span class="material-symbols-outlined text-white text-xl">check_circle</span>
                     </div>
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Success</p>
-                        <p class="text-[11px] font-medium text-gray-300">Theme updated successfully</p>
+                        <p class="text-[11px] font-medium opacity-80 transition-colors">Theme updated successfully</p>
                     </div>
                 </div>
             </div>
         </transition>
 
         <!-- Header -->
-        <header class="flex items-center gap-4 p-6">
-            <Link :href="route('mobile.profile')" class="size-10 rounded-full bg-white  shadow-sm border border-gray-100  flex items-center justify-center">
-                <span class="material-symbols-outlined text-gray-500">arrow_back</span>
+        <header class="flex items-center gap-4 p-6 transition-colors">
+            <Link :href="route('mobile.profile')" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-colors">
+                <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">arrow_back</span>
             </Link>
-            <h1 class="text-xl font-black uppercase italic tracking-tighter text-gray-900 leading-none mt-1">Settings</h1>
+            <h1 class="text-xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none mt-1 transition-colors">Settings</h1>
         </header>
 
         <div class="px-6 py-4">
-            <section class="mb-10">
+            <section class="mb-10 transition-colors">
                 <div class="flex items-center gap-2 mb-6">
                     <span class="material-symbols-outlined text-[var(--theme-color)]">palette</span>
-                    <h2 class="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Theme Customization</h2>
+                    <h2 class="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Theme Customization</h2>
                 </div>
 
-                <div class="bg-white  rounded-[24px] p-8 border border-gray-100  shadow-sm">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 text-center">Select Accent Color</p>
+                <div class="bg-[var(--card-bg)] rounded-[24px] p-8 border border-[var(--border-color)] shadow-sm transition-colors">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-6 text-center transition-colors">Select Accent Color</p>
                     
                     <div class="grid grid-cols-3 gap-6">
                         <button v-for="color in colors" :key="color.hex"
@@ -92,20 +92,20 @@ const saveChanges = () => {
                         >
                             <div class="size-12 rounded-2xl transition-all duration-300 relative flex items-center justify-center shadow-lg"
                                 :style="{ backgroundColor: color.hex }"
-                                :class="selectedColor === color.hex ? 'scale-110 ring-4 ring-white ' : 'opacity-80 hover:opacity-100 hover:scale-105'"
+                                :class="selectedColor === color.hex ? 'scale-110 ring-4 ring-[var(--card-bg)]' : 'opacity-80 hover:opacity-100 hover:scale-105'"
                             >
                                 <span v-if="selectedColor === color.hex" class="material-symbols-outlined text-white text-xl">check</span>
                             </div>
-                            <span class="text-[8px] font-black uppercase tracking-tighter text-gray-400 text-center">{{ color.name }}</span>
+                            <span class="text-[8px] font-black uppercase tracking-tighter text-[var(--text-muted)] text-center transition-colors">{{ color.name }}</span>
                         </button>
                     </div>
 
-                    <div class="mt-10 pt-10 border-t border-gray-50 ">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 text-center">Custom Hex Code</p>
-                        <div class="flex items-center gap-3 bg-gray-50  rounded-2xl p-4 border border-gray-100 ">
+                    <div class="mt-10 pt-10 border-t border-[var(--border-color)] transition-colors">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-4 text-center transition-colors">Custom Hex Code</p>
+                        <div class="flex items-center gap-3 bg-[var(--page-bg)] rounded-2xl p-4 border border-[var(--border-color)] transition-colors">
                             <div class="size-8 rounded-lg shadow-sm" :style="{ backgroundColor: selectedColor }"></div>
                             <input type="text" v-model="selectedColor" @input="selectColor(selectedColor)" 
-                                class="flex-1 bg-transparent border-none text-sm font-black uppercase tracking-widest text-gray-900 focus:ring-0"
+                                class="flex-1 bg-transparent border-none text-sm font-black uppercase tracking-widest text-[var(--text-main)] focus:ring-0 transition-colors"
                                 placeholder="#000000"
                             />
                         </div>
@@ -121,20 +121,20 @@ const saveChanges = () => {
                 </div>
             </section>
 
-            <section class="mb-10">
+            <section class="mb-10 transition-colors">
                 <div class="flex items-center gap-2 mb-6">
-                    <span class="material-symbols-outlined text-gray-400">info</span>
-                    <h2 class="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Application Info</h2>
+                    <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">info</span>
+                    <h2 class="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Application Info</h2>
                 </div>
 
-                <div class="bg-white  rounded-[24px] overflow-hidden border border-gray-100  shadow-sm">
-                    <div class="p-5 flex items-center justify-between border-b border-gray-50 ">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-600 ">Version</span>
-                        <span class="text-[10px] font-black text-gray-400">2.4.0-ELITE</span>
+                <div class="bg-[var(--card-bg)] rounded-[24px] overflow-hidden border border-[var(--border-color)] shadow-sm transition-colors">
+                    <div class="p-5 flex items-center justify-between border-b border-[var(--border-color)] transition-colors">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] transition-colors">Version</span>
+                        <span class="text-[10px] font-black text-[var(--text-muted)] opacity-60 transition-colors">2.4.0-ELITE</span>
                     </div>
-                    <div class="p-5 flex items-center justify-between">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-600 ">Developer</span>
-                        <span class="text-[10px] font-black text-[var(--theme-color)]">ANTIGRAVITY AI</span>
+                    <div class="p-5 flex items-center justify-between transition-colors">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] transition-colors">Developer</span>
+                        <span class="text-[10px] font-black text-[var(--theme-color)] transition-colors">ANTIGRAVITY AI</span>
                     </div>
                 </div>
             </section>

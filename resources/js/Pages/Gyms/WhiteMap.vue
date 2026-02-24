@@ -506,27 +506,27 @@ onUnmounted(() => {
     <MobileLayout>
         <Head :title="'Explore Map - ' + gym.name" />
         
-        <div class="flex flex-col h-full relative bg-gray-50/50">
+        <div class="flex flex-col h-full relative bg-[var(--page-bg)] transition-colors">
             <!-- Header -->
-            <header class="flex items-center justify-between p-6 pb-4 flex-shrink-0 z-30 relative bg-white/50 backdrop-blur-sm">
+            <header class="flex items-center justify-between p-6 pb-4 flex-shrink-0 z-30 relative bg-[var(--nav-bg)] backdrop-blur-sm transition-colors">
                 <div class="flex items-center gap-3">
-                    <Link :href="route('mobile.maps')" class="size-10 rounded-full bg-white  shadow-sm border border-gray-100  flex items-center justify-center">
-                        <span class="material-symbols-outlined text-gray-600 ">arrow_back</span>
+                    <Link :href="route('mobile.maps')" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-colors">
+                        <span class="material-symbols-outlined text-[var(--text-main)] font-bold transition-colors">arrow_back</span>
                     </Link>
                     <div>
-                        <p class="text-[10px] text-gray-700 font-bold uppercase tracking-widest leading-none mb-1">Interactive Map</p>
-                        <h2 class="text-xl font-black leading-tight text-gray-900">{{ gym.name }}</h2>
+                        <p class="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest leading-none mb-1 transition-colors">Interactive Map</p>
+                        <h2 class="text-xl font-black leading-tight text-[var(--text-main)] transition-colors">{{ gym.name }}</h2>
                     </div>
                 </div>
                 <button @click="isZoomEnabled = !isZoomEnabled" 
                     class="p-2.5 rounded-2xl transition-all shadow-sm border"
-                    :class="isZoomEnabled ? 'bg-[var(--theme-color)] text-white border-[var(--theme-color)]' : 'bg-white  text-gray-600  border-gray-100 '">
+                    :class="isZoomEnabled ? 'bg-[var(--theme-color)] text-white border-[var(--theme-color)]' : 'bg-[var(--card-bg)] text-[var(--text-main)] border-[var(--border-color)]'">
                     <span class="material-symbols-outlined">{{ isZoomEnabled ? 'zoom_in' : 'lock' }}</span>
                 </button>
             </header>
 
             <!-- Map Viewport -->
-            <div class="relative flex-1 bg-white w-full overflow-hidden">
+            <div class="relative flex-1 bg-[var(--page-bg)] w-full overflow-hidden transition-colors">
                 <svg id="technique-canvas" 
                     :viewBox="viewBoxString" 
                     class="w-full h-full cursor-crosshair"
@@ -536,13 +536,13 @@ onUnmounted(() => {
                 >
                     <defs>
                         <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="currentColor" class="text-gray-500/5" stroke-width="0.5"/>
+                            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="currentColor" class="text-[var(--text-muted)] opacity-5" stroke-width="0.5"/>
                         </pattern>
                     </defs>
                     <rect :x="viewBox.x - 5000" :y="viewBox.y - 5000" width="10000" height="10000" fill="url(#grid)" />
                     
                     <polygon :points="gym.room_config.points" 
-                        class="fill-[#f8f6f6]  stroke-[var(--theme-color)]/20" 
+                        class="fill-[var(--card-bg)] stroke-[var(--theme-color)]/20 transition-colors" 
                         stroke-width="4" 
                         stroke-linejoin="round" />
                     
@@ -570,12 +570,12 @@ onUnmounted(() => {
                             cx="0" 
                             cy="0" 
                             fill="#00a18c" 
-                            stroke="white" 
+                            class="stroke-[var(--page-bg)] transition-colors" 
                             stroke-width="2" />
                         
                         <!-- Completed indicator (Checkmark) - Positioned at machine center -->
                         <g v-if="isExerciseCompleted(item.id)">
-                            <circle r="12" cx="0" cy="0" fill="#00a18c" stroke="white" stroke-width="2" />
+                            <circle r="12" cx="0" cy="0" fill="#00a18c" class="stroke-[var(--page-bg)] transition-colors" stroke-width="2" />
                             <text class="material-symbols-outlined" 
                                 x="0" y="0" 
                                 text-anchor="middle" 
@@ -593,13 +593,13 @@ onUnmounted(() => {
                 <div class="absolute bottom-8 left-6 right-6 z-20 flex items-center gap-3">
                      <!-- Gym Program Button -->
                      <button @click="isProgramModalOpen = true" 
-                        class="flex-1 bg-white/95 backdrop-blur-md p-4 rounded-[26px] shadow-[0_15px_35px_rgba(0,0,0,0.08)] border border-white/50 flex items-center gap-3 active:scale-95 transition-all hover:bg-white group">
+                        class="flex-1 bg-[var(--card-bg)] backdrop-blur-md p-4 rounded-[26px] shadow-[0_15px_35px_rgba(0,0,0,0.08)] border border-[var(--border-color)] flex items-center gap-3 active:scale-95 transition-all hover:brightness-110 group">
                         <div class="size-11 rounded-full bg-[#00a18c]/10 flex items-center justify-center group-hover:bg-[#00a18c] transition-colors">
-                            <span class="material-symbols-outlined text-[#00a18c] text-xl group-hover:text-white">fitness_center</span>
+                            <span class="material-symbols-outlined text-[#00a18c] text-xl group-hover:text-white transition-colors">fitness_center</span>
                         </div>
                         <div class="text-left">
-                            <h3 class="text-[10px] font-black uppercase italic text-gray-900 leading-none">Program</h3>
-                            <p class="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                            <h3 class="text-[10px] font-black uppercase italic text-[var(--text-main)] leading-none transition-colors">Program</h3>
+                            <p class="text-[8px] text-[var(--text-muted)] font-bold uppercase tracking-widest mt-0.5 transition-colors">
                                 {{ ownerPlans.length }} Plans
                             </p>
                         </div>
@@ -631,11 +631,11 @@ onUnmounted(() => {
             <div v-if="isProgramModalOpen" class="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-8 bg-black/60 backdrop-blur-sm">
                 <div class="absolute inset-0" @click="isProgramModalOpen = false"></div>
                 
-                <div class="bg-white w-full max-w-md md:rounded-[24px] rounded-t-[24px] overflow-hidden shadow-2xl relative animate-in slide-in-from-bottom-full duration-500 h-[80vh] flex flex-col">
-                     <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                         <h3 class="text-xl font-black uppercase italic text-gray-900">Owner's Recommendations</h3>
-                         <button @click="isProgramModalOpen = false" class="size-8 rounded-full bg-gray-50 flex items-center justify-center">
-                             <span class="material-symbols-outlined text-gray-400">close</span>
+                <div class="bg-[var(--card-bg)] w-full max-w-md md:rounded-[24px] rounded-t-[24px] overflow-hidden shadow-2xl relative animate-in slide-in-from-bottom-full duration-500 h-[80vh] flex flex-col transition-colors border-t border-[var(--border-color)]">
+                     <div class="p-6 border-b border-[var(--border-color)] flex items-center justify-between transition-colors">
+                         <h3 class="text-xl font-black uppercase italic text-[var(--text-main)] transition-colors">Owner's Recommendations</h3>
+                         <button @click="isProgramModalOpen = false" class="size-8 rounded-full bg-[var(--page-bg)] flex items-center justify-center transition-colors">
+                             <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">close</span>
                          </button>
                      </div>
 
@@ -649,20 +649,20 @@ onUnmounted(() => {
                              </div>
                              <div class="space-y-3">
                                  <div v-for="ex in group.exercises" :key="ex.name" 
-                                      class="flex flex-col gap-0 overflow-hidden rounded-[28px] border border-gray-100/50 transition-all bg-gray-50/50 shadow-sm group"
+                                      class="flex flex-col gap-0 overflow-hidden rounded-[28px] border border-[var(--border-color)] transition-all bg-[var(--page-bg)] shadow-sm group"
                                       :class="{ 'border-[#00a18c] bg-[#00a18c]/5 ring-1 ring-[#00a18c]/10': expandedProgramExName === ex.name }">
                                      
                                      <!-- Collapsed State / Card Header -->
                                      <div @click="toggleProgramEx(ex)" class="flex items-center gap-4 p-5 cursor-pointer">
-                                         <div class="size-14 rounded-2xl bg-white border border-gray-100 overflow-hidden flex items-center justify-center p-2 shadow-inner">
+                                         <div class="size-14 rounded-2xl bg-[var(--card-bg)] border border-[var(--border-color)] overflow-hidden flex items-center justify-center p-2 shadow-inner transition-colors">
                                               <img v-if="getExerciseImage(ex)" 
                                                    :src="formatImageUrl(getExerciseImage(ex))" 
                                                    class="w-full h-full object-contain">
-                                              <span v-else class="material-symbols-outlined text-gray-200 text-3xl">fitness_center</span>
+                                              <span v-else class="material-symbols-outlined text-[var(--text-muted)] opacity-20 text-3xl transition-colors">fitness_center</span>
                                          </div>
-                                         <div class="flex-1">
-                                             <h5 class="text-sm font-black uppercase italic text-gray-900 leading-tight">{{ ex.name }}</h5>
-                                             <p v-if="!sessionLog[getMapItemForEx(ex)?.id]" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                         <div class="flex-1 transition-colors">
+                                             <h5 class="text-sm font-black uppercase italic text-[var(--text-main)] leading-tight transition-colors">{{ ex.name }}</h5>
+                                             <p v-if="!sessionLog[getMapItemForEx(ex)?.id]" class="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-0.5 transition-colors">
                                                  {{ ex.sets }} Sets × {{ ex.reps }} Reps
                                              </p>
                                              <div v-else class="flex items-center gap-1.5 mt-0.5">
@@ -674,10 +674,10 @@ onUnmounted(() => {
                                          </div>
                                          <div class="flex items-center gap-2">
                                              <button @click.stop="locateProgramExercise(ex)" 
-                                                 class="size-10 rounded-full flex items-center justify-center transition-all bg-white border"
+                                                 class="size-10 rounded-full flex items-center justify-center transition-all bg-[var(--card-bg)] border transition-colors"
                                                  :class="markedItemIds.includes(getMapItemForEx(ex)?.id) 
                                                      ? 'text-[#00a18c] border-[#00a18c]/30 bg-[#00a18c]/5 shadow-[0_0_15px_rgba(0,161,140,0.15)] shadow-inner' 
-                                                     : 'text-gray-300 border-gray-100'">
+                                                     : 'text-[var(--text-muted)] border-[var(--border-color)] opacity-60'">
                                                  <span class="material-symbols-outlined text-xl" :class="{ 'fill-icon': markedItemIds.includes(getMapItemForEx(ex)?.id) }">location_on</span>
                                              </button>
                                              
@@ -708,7 +708,7 @@ onUnmounted(() => {
                                          <div v-if="expandedProgramExName === ex.name && getSessionLog(ex)" class="px-5 pb-6 pt-0 overflow-hidden">
                                              <div class="flex flex-col gap-6">
                                                  <!-- Header info -->
-                                                 <div class="flex items-center gap-6 pt-4 border-t border-gray-100">
+                                                 <div class="flex items-center gap-6 pt-4 border-t border-[var(--border-color)] transition-colors">
                                                      <!-- Progress Box -->
                                                      <div class="flex flex-col items-center">
                                                          <span class="text-[7px] font-black text-[#00a18c] uppercase tracking-widest mb-1 px-1">Progress</span>
@@ -719,20 +719,20 @@ onUnmounted(() => {
                                                          </div>
                                                      </div>
                                                  </div>
- 
+  
                                                  <!-- Workout Log UI -->
-                                                 <div class="space-y-4">
-                                                     <div class="flex items-center justify-between">
-                                                         <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Workout Log</h3>
+                                                 <div class="space-y-4 transition-colors">
+                                                     <div class="flex items-center justify-between transition-colors">
+                                                         <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Workout Log</h3>
                                                          <button @click="addSetToSession(getSessionLog(ex).id)" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#ec5b13]/20 text-[#ec5b13] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all bg-[#ec5b13]/5">
                                                              <span class="material-symbols-outlined text-[10px] font-bold">add</span>
                                                              ADD SET
                                                          </button>
                                                      </div>
- 
+  
                                                      <div class="space-y-3">
                                                          <!-- Table Header -->
-                                                         <div class="flex items-center gap-3 px-1 text-[8px] font-black text-gray-300 uppercase tracking-widest">
+                                                         <div class="flex items-center gap-3 px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
                                                              <div class="size-10"></div>
                                                              <div class="flex-1 text-center">Weight (KG)</div>
                                                              <div class="w-16 text-center">Sets</div>
@@ -746,34 +746,34 @@ onUnmounted(() => {
                                                               :class="{ 'opacity-40': set.isCompleted }">
                                                              
                                                              <!-- Remove Icon -->
-                                                             <button @click.stop="removeSetFromSession(getSessionLog(ex).id, idx)" class="size-10 flex items-center justify-center text-gray-200 hover:text-red-500 transition-colors">
+                                                             <button @click.stop="removeSetFromSession(getSessionLog(ex).id, idx)" class="size-10 flex items-center justify-center text-[var(--text-muted)] opacity-30 hover:text-red-500 hover:opacity-100 transition-all">
                                                                  <span class="material-symbols-outlined text-[18px]">close</span>
                                                              </button>
  
                                                              <!-- Weight Box -->
-                                                             <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden" @click.stop>
-                                                                 <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-gray-900 text-center bg-transparent italic appearance-none text-center-last">
+                                                             <div class="flex-1 h-14 bg-[var(--card-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-1 overflow-hidden transition-colors" @click.stop>
+                                                                 <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-[var(--text-main)] text-center bg-transparent italic appearance-none text-center-last transition-colors">
                                                                      <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
                                                                  </select>
                                                              </div>
  
                                                              <!-- Set Box -->
-                                                             <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
-                                                                 <span class="text-base font-black text-gray-900 italic font-black">{{ idx + 1 }}</span>
+                                                             <div class="w-16 h-14 bg-[var(--card-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center transition-colors">
+                                                                 <span class="text-base font-black text-[var(--text-main)] italic transition-colors">{{ idx + 1 }}</span>
                                                              </div>
  
                                                              <!-- Reps Box -->
-                                                             <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2" @click.stop>
+                                                             <div class="flex-1 h-14 bg-[var(--card-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-2 transition-colors" @click.stop>
                                                                  <input type="number" v-model="set.reps" 
-                                                                     class="w-full border-none p-0 focus:ring-0 text-base font-black text-gray-900 text-center bg-transparent italic"
+                                                                     class="w-full border-none p-0 focus:ring-0 text-base font-black text-[var(--text-main)] text-center bg-transparent italic transition-colors"
                                                                  />
                                                              </div>
  
                                                              <!-- Completion Button -->
-                                                             <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm"
+                                                             <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm transition-colors"
                                                                  :class="set.isCompleted 
                                                                      ? 'bg-[#00a18c] border-[#00a18c] text-white' 
-                                                                     : 'bg-white border-gray-100 text-gray-200'">
+                                                                     : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/20'">
                                                                  <span class="material-symbols-outlined text-xl font-bold">{{ set.isCompleted ? 'check_circle' : 'check' }}</span>
                                                              </div>
                                                          </div>
@@ -800,7 +800,7 @@ onUnmounted(() => {
             <div v-if="isModalOpen" class="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-8 bg-black/60 backdrop-blur-sm">
                 <div class="absolute inset-0" @click="saveCurrentSetsToLog"></div>
                 
-                <div class="bg-white w-full max-w-md md:rounded-[40px] rounded-t-[40px] overflow-hidden shadow-2xl relative animate-in slide-in-from-bottom-full duration-500 flex flex-col max-h-[92vh]">
+                <div class="bg-[var(--card-bg)] w-full max-w-md md:rounded-[40px] rounded-t-[40px] overflow-hidden shadow-2xl relative animate-in slide-in-from-bottom-full duration-500 flex flex-col max-h-[92vh] border-t border-[var(--border-color)] transition-colors">
                     <div class="px-8 pt-10 pb-8 space-y-8 overflow-y-auto no-scrollbar">
                         <!-- Header Section -->
                         <div class="space-y-6">
@@ -815,21 +815,21 @@ onUnmounted(() => {
                                     </div>
 
                                     <!-- Unified Title (Equipment Name) -->
-                                    <h2 class="text-[32px] font-black uppercase italic text-gray-900 leading-[0.9] tracking-tighter">
+                                    <h2 class="text-[32px] font-black uppercase italic text-[var(--text-main)] leading-[0.9] tracking-tighter transition-colors">
                                         {{ getEquipmentInfo(selectedItem)?.name || selectedItem.name }}
                                     </h2>
-                                    <p v-if="selectedPlanInfo" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 ml-0.5">
+                                    <p v-if="selectedPlanInfo" class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-2 ml-0.5 transition-colors">
                                         {{ selectedPlanInfo.category }}
                                     </p>
                                 </div>
-                                <button @click="saveCurrentSetsToLog" class="size-10 rounded-full bg-gray-50 flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-gray-400">close</span>
+                                <button @click="saveCurrentSetsToLog" class="size-10 rounded-full bg-[var(--page-bg)] flex items-center justify-center transition-colors">
+                                    <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">close</span>
                                 </button>
                             </div>
                         </div>
 
                         <!-- Video Section (Unified: Always available) -->
-                        <div class="bg-gray-100 rounded-[32px] overflow-hidden aspect-video relative group border border-gray-200">
+                        <div class="bg-[var(--page-bg)] rounded-[32px] overflow-hidden aspect-video relative group border border-[var(--border-color)] transition-colors">
                             <div v-if="!isPlaying" class="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[#1a1f2c] to-[#2a3142] text-white">
                                 <span class="material-symbols-outlined text-5xl mb-4 opacity-50">fitness_center</span>
                                 <button @click="isPlaying = true" class="bg-[var(--theme-color)] hover:scale-105 transition-transform text-white px-8 py-3 rounded-full font-black text-sm shadow-xl shadow-[var(--theme-color)]/40">
@@ -859,10 +859,10 @@ onUnmounted(() => {
                                     class="px-5 py-3 rounded-2xl border transition-all text-[10px] font-bold uppercase tracking-tight"
                                     :class="activeMuscle === m.key 
                                         ? 'bg-[var(--theme-color)] text-white border-[var(--theme-color)]' 
-                                        : 'bg-white  border-gray-100  text-gray-600 font-black'">
+                                        : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-main)] font-black'">
                                     {{ m.name_th }}
                                 </button>
-                                <div v-if="!getEquipmentInfo(selectedItem)?.target_muscles?.length" class="text-[10px] text-gray-400 italic">No muscle data available</div>
+                                <div v-if="!getEquipmentInfo(selectedItem)?.target_muscles?.length" class="text-[10px] text-[var(--text-muted)] italic transition-colors">No muscle data available</div>
                             </div>
                         </div>
 
@@ -870,7 +870,7 @@ onUnmounted(() => {
                         <div class="space-y-4 pb-4">
                             <div class="flex items-center justify-between">
                                 <div class="flex flex-col">
-                                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Workout Log</h3>
+                                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Workout Log</h3>
                                     <p v-if="selectedPlanInfo" class="text-[8px] font-black text-[#00a18c] uppercase tracking-widest mt-1">
                                         Goal: {{ selectedPlanInfo.targetSets }} Sets × {{ selectedPlanInfo.targetReps }} Reps @ {{ selectedPlanInfo.targetWeight }}KG
                                     </p>
@@ -883,7 +883,7 @@ onUnmounted(() => {
 
                             <div class="space-y-3">
                                 <!-- Table Header -->
-                                <div class="flex items-center gap-3 px-1 text-[8px] font-black text-gray-300 uppercase tracking-widest">
+                                <div class="flex items-center gap-3 px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
                                     <div class="size-10"></div>
                                     <div class="flex-1 text-center">Weight (KG)</div>
                                     <div class="w-16 text-center">Sets</div>
@@ -897,41 +897,41 @@ onUnmounted(() => {
                                     :class="{ 'opacity-40': set.isCompleted }">
                                     
                                     <!-- Remove Icon -->
-                                    <button @click.stop="removeSet(index)" class="size-10 flex items-center justify-center text-gray-200 hover:text-red-500 transition-colors">
+                                    <button @click.stop="removeSet(index)" class="size-10 flex items-center justify-center text-[var(--text-muted)] opacity-30 hover:text-red-500 hover:opacity-100 transition-all">
                                         <span class="material-symbols-outlined text-[18px]">close</span>
                                     </button>
 
                                     <!-- Weight Box -->
-                                    <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-1 overflow-hidden" @click.stop>
-                                        <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-gray-900 text-center bg-transparent italic appearance-none text-center-last">
+                                    <div class="flex-1 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-1 overflow-hidden transition-colors" @click.stop>
+                                        <select v-model="set.weight" class="w-full border-none p-0 focus:ring-0 text-sm font-black text-[var(--text-main)] text-center bg-transparent italic appearance-none text-center-last transition-colors">
                                             <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
                                         </select>
                                     </div>
 
                                     <!-- Set Box -->
-                                    <div class="w-16 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center">
-                                        <span class="text-base font-black text-gray-900 italic">{{ index + 1 }}</span>
+                                    <div class="w-16 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center transition-colors">
+                                        <span class="text-base font-black text-[var(--text-main)] italic transition-colors">{{ index + 1 }}</span>
                                     </div>
 
                                     <!-- Reps Box -->
-                                    <div class="flex-1 h-14 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-center px-2" @click.stop>
+                                    <div class="flex-1 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-2 transition-colors" @click.stop>
                                         <input type="number" v-model="set.reps" 
-                                            class="w-full border-none p-0 focus:ring-0 text-base font-black text-gray-900 text-center bg-transparent italic"
+                                            class="w-full border-none p-0 focus:ring-0 text-base font-black text-[var(--text-main)] text-center bg-transparent italic transition-colors"
                                         />
                                     </div>
 
                                     <!-- Done Button -->
-                                    <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm"
+                                    <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm transition-colors"
                                         :class="set.isCompleted 
                                             ? 'bg-[#00a18c] border-[#00a18c] text-white' 
-                                            : 'bg-white border-gray-100 text-gray-200'">
+                                            : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/20'">
                                         <span class="material-symbols-outlined text-xl font-bold">{{ set.isCompleted ? 'check_circle' : 'check' }}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <button @click="saveCurrentSetsToLog" 
-                                class="w-full bg-gray-900 text-white py-5 rounded-[28px] font-black text-sm tracking-[0.2em] shadow-xl active:scale-95 transition-all uppercase mt-6 italic">
+                                class="w-full bg-[var(--text-main)] text-[var(--card-bg)] py-5 rounded-[28px] font-black text-sm tracking-[0.2em] shadow-xl active:scale-95 transition-all uppercase mt-6 italic transition-colors">
                                 SAVE PROGRESS & CLOSE
                             </button>
                         </div>

@@ -51,7 +51,7 @@ class ProfileController extends Controller
             ]);
         }
 
-        return Redirect::route('mobile.profile')->with('status', 'Profile updated successfully!');
+        return Redirect::route('mobile.profile')->with('status', 'Profile Updated');
     }
 
     /**
