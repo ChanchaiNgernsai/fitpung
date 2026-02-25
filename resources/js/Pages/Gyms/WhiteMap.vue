@@ -951,6 +951,14 @@ onUnmounted(() => {
                              <p class="text-xs font-black uppercase tracking-widest">No plans found</p>
                          </div>
                      </div>
+
+                     <!-- Finish Workout Action (Sticky Bottom) -->
+                     <div v-if="logSessionCount > 0" class="p-6 border-t border-[var(--border-color)] bg-[var(--card-bg)] transition-colors">
+                         <button @click="finishWorkout" 
+                             class="w-full py-5 bg-[var(--theme-color)] text-white font-black italic uppercase tracking-[0.2em] rounded-[28px] shadow-2xl shadow-[var(--theme-color)]/30 active:scale-95 transition-all text-sm leading-none">
+                             Finish Workout
+                         </button>
+                     </div>
                 </div>
             </div>
         </transition>
@@ -1091,8 +1099,14 @@ onUnmounted(() => {
                             </div>
 
                             <button @click="saveCurrentSetsToLog" 
-                                class="w-full bg-[var(--text-main)] text-[var(--card-bg)] py-5 rounded-[28px] font-black text-sm tracking-[0.2em] shadow-xl active:scale-95 transition-all uppercase mt-6 italic transition-colors">
+                                class="w-full bg-[var(--page-bg)] text-[var(--text-main)] py-5 rounded-[28px] font-black text-sm tracking-[0.2em] border border-[var(--border-color)] active:scale-95 transition-all uppercase mt-6 italic transition-colors">
                                 SAVE PROGRESS & CLOSE
+                            </button>
+
+                            <!-- Finish Workout Action (Only if progress) -->
+                            <button v-if="logSessionCount > 0" @click="finishWorkout" 
+                                class="w-full bg-[var(--theme-color)] text-white py-5 rounded-[28px] font-black text-sm tracking-[0.2em] shadow-xl shadow-[var(--theme-color)]/30 active:scale-95 transition-all uppercase mt-4 italic transition-colors">
+                                Finish Workout
                             </button>
                         </div>
                     </div>

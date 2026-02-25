@@ -21,6 +21,8 @@ const selectedWorkoutIds = ref([]);
 const history = ref([]);
 const customPlans = ref([]);
 const viewMode = ref('list'); // 'list' | 'grid'
+const isShowFinishConfirm = ref(false);
+const isShowSuccessMessage = ref(false);
 
 // Load stats, history, and custom plans
 onMounted(() => {
@@ -89,7 +91,13 @@ const allEquipments = computed(() => {
                     image: formatImageUrl(item.src),
                     gymName: gym.name,
                     isEquipment: true,
-                    exercises: [{ name: name, sets: 3, reps: '12', targetWeight: '10kg' }]
+                    exercises: [{ 
+                        name: name, 
+                        sets: 3, 
+                        reps: '12', 
+                        targetWeight: '10kg',
+                        image: formatImageUrl(item.src)
+                    }]
                 });
             }
         });
@@ -221,10 +229,12 @@ const startCombinedWorkout = () => {
                     // Try to get exercise image
                     let exerciseImage = formatImageUrl(ex.image);
                     
+                    
                     if (!exerciseImage) {
                         const nameLower = ex.name.toLowerCase();
                         if (nameLower.includes('dumbbell')) exerciseImage = '/images/equipment/Dumbbells.svg';
                         else if (nameLower.includes('treadmill')) exerciseImage = '/images/equipment/Treadmill.svg';
+                        else if (nameLower.includes('incline bench')) exerciseImage = '/images/equipment/InclineBench.svg';
                         else if (nameLower.includes('bench press')) exerciseImage = '/images/equipment/BenchPress.svg';
                         else if (nameLower.includes('leg press')) exerciseImage = '/images/equipment/LegPress.svg';
                         else if (nameLower.includes('smith')) exerciseImage = '/images/equipment/SmithMachine.svg';
@@ -311,6 +321,10 @@ const toggleSet = (set) => {
     }
 };
 const finishWorkout = () => {
+    isShowFinishConfirm.value = true;
+};
+
+const confirmFinishWorkout = () => {
     // Record to history
     const session = {
         id: Date.now(),
@@ -333,6 +347,13 @@ const finishWorkout = () => {
     isWorkoutSessionActive.value = false;
     activeWorkout.value = null;
     selectedWorkoutIds.value = [];
+    isShowFinishConfirm.value = false;
+    isShowSuccessMessage.value = true;
+    
+    setTimeout(() => {
+        isShowSuccessMessage.value = false;
+        mode.value = null; // Also reset mode to show selection screen
+    }, 3000);
 };
 
 const deleteHistoryEntry = (id) => {
@@ -716,6 +737,54 @@ const mergedHistory = computed(() => {
                 </div>
             </transition>
         </div>
+
+        <!-- Success Toast (Finish Workout) -->
+        <transition 
+            enter-active-class="transition-all duration-500 ease-out"
+            enter-from-class="translate-y-[-100%] opacity-0"
+            enter-to-class="translate-y-0 opacity-100"
+            leave-active-class="transition-all duration-300 ease-in"
+            leave-from-class="translate-y-0 opacity-100"
+            leave-to-class="translate-y-[-100%] opacity-0"
+        >
+            <div v-if="isShowSuccessMessage" class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] pointer-events-none w-max">
+                <div class="bg-[#111827] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-white/10 backdrop-blur-md">
+                    <div class="size-6 rounded-full bg-[#ec5b13] flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-[14px] font-black">check</span>
+                    </div>
+                    <span class="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">บันทึกข้อมูลสำเร็จ</span>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Finish Workout Confirmation Modal -->
+        <transition name="modal">
+            <div v-if="isShowFinishConfirm" class="fixed inset-0 z-[150] flex items-center justify-center p-8 bg-black/60 backdrop-blur-sm">
+                <div class="bg-[var(--card-bg)] w-full max-w-[320px] rounded-[40px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-300 border border-[var(--border-color)]">
+                    <div class="p-8 text-center space-y-6 transition-colors">
+                        <div class="size-20 rounded-full bg-orange-500/10 flex items-center justify-center mx-auto transition-colors">
+                            <span class="material-symbols-outlined text-4xl text-orange-500">logout</span>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-xl font-black uppercase italic text-[var(--text-main)] transition-colors">Finish Workout?</h4>
+                            <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest leading-relaxed transition-colors">
+                                ต้องการหยุดการออกกำลังกาย<br/>แล้วใช่มั้ย?
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button @click="isShowFinishConfirm = false" 
+                                class="py-4 rounded-3xl bg-[var(--page-bg)] border border-[var(--border-color)] text-[var(--text-main)] text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">
+                                CANCEL
+                            </button>
+                            <button @click="confirmFinishWorkout" 
+                                class="py-4 rounded-3xl bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-orange-500/20">
+                                FINISH
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </MobileLayout>
 </template>
 
