@@ -249,6 +249,95 @@ const dailyHistory = computed(() => {
     
     return days;
 });
+
+const viewMode = ref('list'); // 'list' | 'calendar'
+const currentMonth = ref(new Date());
+const thaiMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+];
+
+const calendarDays = computed(() => {
+    const year = currentMonth.value.getFullYear();
+    const month = currentMonth.value.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const days = [];
+    const firstDayOfWeek = firstDay.getDay();
+    
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+        days.push({ date: new Date(year, month, -i), isCurrentMonth: false });
+    }
+    
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+        days.push({ date: new Date(year, month, i), isCurrentMonth: true });
+    }
+    
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+        days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
+    }
+    
+    return days.map(day => {
+        const dateStr = day.date.toDateString();
+        const sessions = workoutHistory.value.filter(entry => new Date(entry.id).toDateString() === dateStr);
+        let totalSets = 0;
+        const categories = new Set();
+        
+        sessions.forEach(session => {
+            totalSets += session.sets || 0;
+            if (session.exercises) {
+                session.exercises.forEach(ex => {
+                    categories.add(categorizeExercise(ex.name));
+                });
+            }
+        });
+        
+        return {
+            ...day,
+            hasData: sessions.length > 0,
+            sets: totalSets,
+            categories: Array.from(categories),
+            isToday: day.date.toDateString() === new Date().toDateString()
+        };
+    });
+});
+
+const nextMonth = () => {
+    currentMonth.value = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth() + 1, 1);
+};
+
+const prevMonth = () => {
+    currentMonth.value = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth() - 1, 1);
+};
+
+// Workout Detail Modal Logic
+const isDetailModalOpen = ref(false);
+const selectedDate = ref(null);
+const selectedDateSessions = ref([]);
+
+const showWorkoutDetails = (date) => {
+    selectedDate.value = date;
+    const dateStr = date.toDateString();
+    selectedDateSessions.value = workoutHistory.value.filter(entry => 
+        new Date(entry.id).toDateString() === dateStr
+    );
+    
+    if (selectedDateSessions.value.length > 0) {
+        isDetailModalOpen.value = true;
+    }
+};
+
+const formatDateThai = (date) => {
+    if (!date) return '';
+    const day = date.getDate();
+    const month = thaiMonths[date.getMonth()];
+    const year = date.getFullYear() + 543;
+    const thaiDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+    return `วัน${thaiDayNames[date.getDay()]}ที่ ${day} ${month} พ.ศ. ${year}`;
+};
 </script>
 
 <template>
@@ -361,11 +450,31 @@ const dailyHistory = computed(() => {
             <div class="mt-8 mb-10">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Daily Split (ส่วนที่เล่นรายวัน)</h2>
+                    <div class="flex p-1 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)]">
+                        <button 
+                            @click="viewMode = 'list'"
+                            :class="[
+                                'px-3 py-1 text-[8px] font-black uppercase rounded-lg transition-all',
+                                viewMode === 'list' ? 'bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)]'
+                            ]"
+                        >List</button>
+                        <button 
+                            @click="viewMode = 'calendar'"
+                            :class="[
+                                'px-3 py-1 text-[8px] font-black uppercase rounded-lg transition-all',
+                                viewMode === 'calendar' ? 'bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)]'
+                            ]"
+                        >Calendar</button>
+                    </div>
                 </div>
-                <div class="space-y-3">
+                <div v-if="viewMode === 'list'" class="space-y-3">
                     <div v-for="day in dailyHistory" :key="day.label" 
-                        class="bg-[var(--card-bg)] p-4 rounded-[24px] border border-[var(--border-color)] flex items-center justify-between shadow-sm transition-colors"
-                        :class="{'border-[var(--theme-color)]/30 ring-1 ring-[var(--theme-color)]/10': day.isToday}"
+                        @click="day.hasData && showWorkoutDetails(day.date)"
+                        class="bg-[var(--card-bg)] p-4 rounded-[24px] border border-[var(--border-color)] flex items-center justify-between shadow-sm transition-colors cursor-pointer active:scale-[0.98]"
+                        :class="[
+                            {'border-[var(--theme-color)]/30 ring-1 ring-[var(--theme-color)]/10': day.isToday},
+                            day.hasData ? '' : 'opacity-60 grayscale-[0.5]'
+                        ]"
                     >
                         <div class="flex items-center gap-4">
                             <div class="size-10 rounded-2xl flex flex-col items-center justify-center transition-colors"
@@ -392,8 +501,120 @@ const dailyHistory = computed(() => {
                         </div>
                     </div>
                 </div>
+
+                <div v-else class="bg-[var(--card-bg)] p-6 rounded-[32px] border border-[var(--border-color)] shadow-sm transition-colors">
+                    <!-- Calendar Header -->
+                    <div class="flex items-center justify-between mb-6">
+                        <button @click="prevMonth" class="p-2 hover:bg-[var(--page-bg)] rounded-xl transition-colors">
+                            <svg class="w-4 h-4 text-[var(--text-main)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div class="text-center">
+                            <h3 class="text-sm font-black uppercase tracking-widest text-[var(--text-main)] leading-none">
+                                {{ thaiMonths[currentMonth.getMonth()] }}
+                            </h3>
+                            <span class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">{{ currentMonth.getFullYear() }}</span>
+                        </div>
+                        <button @click="nextMonth" class="p-2 hover:bg-[var(--page-bg)] rounded-xl transition-colors">
+                            <svg class="w-4 h-4 text-[var(--text-main)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Weekdays -->
+                    <div class="grid grid-cols-7 mb-4 px-1">
+                        <span v-for="d in ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']" :key="d" 
+                            class="text-[8px] font-black text-center text-[var(--text-muted)] uppercase tracking-widest"
+                        >{{ d }}</span>
+                    </div>
+
+                    <!-- Days Grid -->
+                    <div class="grid grid-cols-7 gap-2">
+                        <div v-for="(day, idx) in calendarDays" :key="idx" 
+                            @click="day.hasData && showWorkoutDetails(day.date)"
+                            class="relative aspect-square flex items-center justify-center rounded-xl transition-all"
+                            :class="[
+                                !day.isCurrentMonth ? 'opacity-20' : '',
+                                day.isToday ? 'ring-2 ring-[var(--theme-color)] ring-offset-2 ring-offset-[var(--card-bg)]' : '',
+                                day.hasData ? 'bg-[var(--theme-color)] text-white shadow-lg cursor-pointer active:scale-90' : 'bg-[var(--page-bg)] text-[var(--text-muted)]'
+                            ]"
+                        >
+                            <span class="text-[11px] font-black italic">{{ day.date.getDate() }}</span>
+                            
+                            <!-- Dots for workouts -->
+                            <div v-if="day.hasData" class="absolute bottom-1 flex gap-0.5 justify-center w-full">
+                                <div class="size-1 rounded-full bg-white/60"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
+        </div>
+
+        <!-- Detail Modal -->
+        <div v-if="isDetailModalOpen" 
+            class="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-10 sm:items-center sm:p-0"
+        >
+            <div class="fixed inset-0 bg-black/40 backdrop-blur-md transition-opacity" @click="isDetailModalOpen = false"></div>
+            
+            <div class="relative w-full max-w-lg bg-[var(--page-bg)] rounded-[40px] shadow-2xl overflow-hidden animate-slide-up border border-white/20">
+                <div class="p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)]">Workout Details</span>
+                            <h2 class="text-xl font-black text-[var(--text-main)] italic uppercase mt-1">
+                                {{ formatDateThai(selectedDate) }}
+                            </h2>
+                        </div>
+                        <button @click="isDetailModalOpen = false" class="size-10 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] active:scale-95 transition-all">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="max-h-[60vh] overflow-y-auto space-y-6 pr-2 custom-scrollbar">
+                        <div v-for="(session, sIdx) in selectedDateSessions" :key="sIdx" class="space-y-4">
+                            <div v-for="(ex, eIdx) in session.exercises" :key="eIdx" 
+                                class="bg-[var(--card-bg)] p-6 rounded-[32px] border border-[var(--border-color)] shadow-sm"
+                            >
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-sm font-black uppercase tracking-wider text-[var(--text-main)]">{{ ex.name }}</h3>
+                                    <span class="px-2 py-0.5 bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[8px] font-black uppercase rounded-lg border border-[var(--theme-color)]/20">
+                                        {{ session.type || 'Strength' }}
+                                    </span>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <div v-for="(set, setIdx) in ex.sets" :key="setIdx" 
+                                        class="flex items-center justify-between p-3 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)]/50"
+                                    >
+                                        <div class="flex items-center gap-3">
+                                            <span class="size-5 rounded-md bg-[var(--theme-color)] text-[10px] font-black text-white flex items-center justify-center italic">
+                                                {{ setIdx + 1 }}
+                                            </span>
+                                            <span class="text-[10px] font-bold text-[var(--text-muted)]">Set {{ setIdx + 1 }}</span>
+                                        </div>
+                                        <div class="flex gap-4">
+                                            <div class="text-right">
+                                                <p class="text-[11px] font-black text-[var(--text-main)] leading-none italic">{{ set.weight }} KG</p>
+                                                <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Weight</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-[11px] font-black text-[var(--text-main)] leading-none italic">{{ set.reps }}</p>
+                                                <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Reps</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </MobileLayout>
 </template>
@@ -401,5 +622,25 @@ const dailyHistory = computed(() => {
 <style scoped>
 .transition-all {
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
 }
 </style>

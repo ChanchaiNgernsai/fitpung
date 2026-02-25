@@ -97,7 +97,11 @@ class GymLayoutController extends Controller
      */
     public function showMobileProfile()
     {
-        return Inertia::render('MobileProfile');
+        return Inertia::render('MobileProfile', [
+            'weightHistories' => Auth::user()->weightHistories()
+                ->orderBy('created_at', 'asc')
+                ->get()
+        ]);
     }
 
     /**

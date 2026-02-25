@@ -19,8 +19,11 @@ const isThemeDark = ref(false);
 const isProgramModalOpen = ref(false);
 const weightOptions = Array.from({ length: 80 }, (_, i) => ((i + 1) * 2.5).toFixed(1).replace(/\.0$/, '') + 'kg');
 
-const expandedProgramExName = ref(null); // Track which exercise is expanded in the program modal
 const selectedPlanInfo = ref(null); // { category: string, targetSets: number, targetReps: number }
+const workoutHistory = ref([]);
+const activeMuscleFilter = ref(null); // Muscle group selected for highlighting (Back, Arms, etc.)
+const isShowFinishConfirm = ref(false);
+const isShowSuccessMessage = ref(false);
 
 // --- Workout Tracking ---
 // sessionLog stores the history of this session: { itemId: { name, image, sets: [] } }
@@ -165,6 +168,14 @@ const toggleSetInSession = (itemId, index) => {
 
 const finishWorkout = () => {
     const exercises = Object.values(sessionLog.value)
+        .filter(entry => entry.sets.some(s => s.isCompleted));
+    
+    if (exercises.length === 0) return;
+    isShowFinishConfirm.value = true;
+};
+
+const confirmFinishWorkout = () => {
+    const exercises = Object.values(sessionLog.value)
         .filter(entry => entry.sets.some(s => s.isCompleted))
         .map(entry => ({
             name: entry.name,
@@ -175,7 +186,6 @@ const finishWorkout = () => {
             }))
         }));
 
-    if (exercises.length === 0) return;
     const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
 
     const session = {
@@ -195,7 +205,13 @@ const finishWorkout = () => {
     const currentTotal = savedSets ? parseInt(savedSets) : 0;
     localStorage.setItem('fitpung_sets_done', (currentTotal + totalSets).toString());
 
-    window.location.href = route('mobile.workout');
+    isShowFinishConfirm.value = false;
+    isShowSuccessMessage.value = true;
+
+    // Show success message briefly before redirecting
+    setTimeout(() => {
+        window.location.href = route('mobile.workout');
+    }, 2000);
 };
 
 
@@ -481,6 +497,83 @@ const groupedOwnerPlans = computed(() => {
     return groups;
 });
 
+// --- Muscle Groups & Recommendations Logic ---
+const categorizeMuscle = (name) => {
+    const n = (name || '').toLowerCase();
+    // Cardio: วิ่ง, เดิน, จักรยาน, คาอิโอ, cardio, run, walk, elliptical, stair
+    if (n.includes('cardio') || n.includes('run') || n.includes('walk') || n.includes('elliptical') || n.includes('stair') || n.includes('cycle') || n.includes('bike') || n.includes('วิ่ง') || n.includes('เดิน') || n.includes('จักรยาน') || n.includes('คาดิโอ') || n.includes('threadmill')) return 'Cardio';
+    // Legs: ขา, ก้น, น่อง
+    if (n.includes('squat') || n.includes('leg') || n.includes('calf') || n.includes('lunge') || n.includes('glute') || n.includes('hip') || n.includes('thigh') || n.includes('quad') || n.includes('ขา') || n.includes('ก้น') || n.includes('น่อง') || n.includes('hamstring')) return 'Legs';
+    // Back: หลัง, ปีก (Still categorize for logic, but UI will show Cardio)
+    if (n.includes('row') || n.includes('pull') || n.includes('deadlift') || n.includes('lat') || n.includes('back') || n.includes('หลัง') || n.includes('ปีก')) return 'Back';
+    // Chest: อก
+    if (n.includes('bench') || n.includes('press') || n.includes('push') || n.includes('chest') || n.includes('อก')) return 'Chest';
+    // Arms: แขน, หน้าแขน, หลังแขน
+    if (n.includes('bicep') || n.includes('tricep') || n.includes('arm') || n.includes('curl') || n.includes('แขน') || n.includes('หน้าแขน') || n.includes('หลังแขน') || n.includes('dip')) return 'Arms';
+    
+    return 'Other';
+};
+
+const lastWorkout = computed(() => workoutHistory.value[0] || null);
+
+const recentMuscles = computed(() => {
+    if (!lastWorkout.value) return [];
+    const muscles = new Set();
+    lastWorkout.value.exercises?.forEach(ex => {
+        const cat = categorizeMuscle(ex.name);
+        if (cat !== 'Other') muscles.add(cat);
+    });
+    return Array.from(muscles);
+});
+
+const recommendedMuscles = computed(() => {
+    const muscles = new Set();
+    ownerPlans.value.forEach(plan => {
+        plan.exercises?.forEach(ex => {
+            const name = typeof ex === 'string' ? ex : ex.name;
+            const cat = categorizeMuscle(name);
+            if (cat !== 'Other') muscles.add(cat);
+        });
+    });
+    // Ensure all 4 major groups are accounted for in the UI if we want to show badges for all
+    return ['Cardio', 'Arms', 'Legs', 'Chest'].filter(m => muscles.has(m));
+});
+
+const muscleMapping = {
+    'Cardio': { th: 'คาดิโอ', icon: 'favorite' },
+    'Arms': { th: 'แขน', icon: 'fitness_center' },
+    'Legs': { th: 'ขา', icon: 'directions_run' },
+    'Chest': { th: 'อก', icon: 'accessibility_new' }
+};
+
+const toggleMuscleFilter = (muscle) => {
+    if (activeMuscleFilter.value === muscle) {
+        activeMuscleFilter.value = null;
+    } else {
+        activeMuscleFilter.value = muscle;
+    }
+};
+
+const isMachineTargetingFilteredMuscle = (item) => {
+    if (!activeMuscleFilter.value) return false;
+    
+    const info = getEquipmentInfo(item);
+    
+    // 1. Check the primary name of the equipment
+    const targetName = info?.name || info?.name_th || item.name;
+    if (categorizeMuscle(targetName) === activeMuscleFilter.value) return true;
+    
+    // 2. Check all target muscles defined in the equipment info
+    if (info && info.target_muscles && Array.isArray(info.target_muscles)) {
+        return info.target_muscles.some(m => {
+            const muscleName = m.name || m.name_th || m.key;
+            return categorizeMuscle(muscleName) === activeMuscleFilter.value;
+        });
+    }
+    
+    return false;
+};
+
 // --- Lifecycle ---
 onMounted(() => {
     const checkTheme = () => {
@@ -489,6 +582,12 @@ onMounted(() => {
     const observer = new MutationObserver(checkTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     checkTheme();
+    
+    // Load history
+    const savedHistory = localStorage.getItem('fitpung_workout_history');
+    if (savedHistory) {
+        workoutHistory.value = JSON.parse(savedHistory);
+    }
     
     viewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 100);
     // Note: wheel event is handled directly on svg element
@@ -559,7 +658,7 @@ onUnmounted(() => {
                             :height="item.height" 
                             class="transition-all duration-300 group-hover:scale-110"
                             :style="[
-                                selectedItem?.id === item.id || markedItemIds.includes(item.id) || sessionLog[item.id]
+                                selectedItem?.id === item.id || markedItemIds.includes(item.id) || sessionLog[item.id] || isMachineTargetingFilteredMuscle(item)
                                     ? { filter: `drop-shadow(0 0 10px var(--theme-color)) ${isThemeDark ? 'invert(1) brightness(2)' : 'brightness(1.1)'}` } 
                                     : { filter: isThemeDark ? 'invert(1) opacity(0.8)' : 'opacity(0.4) grayscale(1)' }
                             ]" 
@@ -569,13 +668,13 @@ onUnmounted(() => {
                             r="8" 
                             cx="0" 
                             cy="0" 
-                            fill="#00a18c" 
+                            fill="var(--theme-color)" 
                             class="stroke-[var(--page-bg)] transition-colors" 
                             stroke-width="2" />
                         
                         <!-- Completed indicator (Checkmark) - Positioned at machine center -->
                         <g v-if="isExerciseCompleted(item.id)">
-                            <circle r="12" cx="0" cy="0" fill="#00a18c" class="stroke-[var(--page-bg)] transition-colors" stroke-width="2" />
+                            <circle r="12" cx="0" cy="0" fill="var(--theme-color)" class="stroke-[var(--page-bg)] transition-colors" stroke-width="2" />
                             <text class="material-symbols-outlined" 
                                 x="0" y="0" 
                                 text-anchor="middle" 
@@ -589,37 +688,98 @@ onUnmounted(() => {
                     </g>
                 </svg>
 
-                <!-- Floating Bottom Controls: Gym Program & Finish Workout -->
-                <div class="absolute bottom-8 left-6 right-6 z-20 flex items-center gap-3">
-                     <!-- Gym Program Button -->
-                     <button @click="isProgramModalOpen = true" 
-                        class="flex-1 bg-[var(--card-bg)] backdrop-blur-md p-4 rounded-[26px] shadow-[0_15px_35px_rgba(0,0,0,0.08)] border border-[var(--border-color)] flex items-center gap-3 active:scale-95 transition-all hover:brightness-110 group">
-                        <div class="size-11 rounded-full bg-[#00a18c]/10 flex items-center justify-center group-hover:bg-[#00a18c] transition-colors">
-                            <span class="material-symbols-outlined text-[#00a18c] text-xl group-hover:text-white transition-colors">fitness_center</span>
-                        </div>
-                        <div class="text-left">
-                            <h3 class="text-[10px] font-black uppercase italic text-[var(--text-main)] leading-none transition-colors">Program</h3>
-                            <p class="text-[8px] text-[var(--text-muted)] font-bold uppercase tracking-widest mt-0.5 transition-colors">
-                                {{ ownerPlans.length }} Plans
-                            </p>
-                        </div>
-                     </button>
+                <!-- Floating Bottom UI Layer (Unified to prevent overlap) -->
+                <div class="absolute bottom-6 left-6 right-6 z-20 flex flex-col gap-3">
+                    <!-- Recommended Muscles -->
+                    <div class="flex justify-between items-center gap-2">
+                        <div v-for="muscle in ['Cardio', 'Arms', 'Legs', 'Chest']" :key="muscle" 
+                            @click="toggleMuscleFilter(muscle)"
+                            class="flex-1 h-11 rounded-[10px] flex flex-col items-center justify-center transition-all duration-500 cursor-pointer active:scale-95 text-center relative shadow-[0_4px_12px_rgba(0,0,0,0.05)]"
+                            :class="[
+                                activeMuscleFilter === muscle
+                                    ? 'bg-[var(--theme-color)] scale-105 z-10 shadow-[0_0_20px_rgba(var(--theme-color-rgb),0.3)]'
+                                    : 'bg-[var(--card-bg)]'
+                            ]"
+                        >
+                            <!-- (Pulse effect removed as per user request) -->
 
-                     <!-- Finish Workout Button (Uniform Style) -->
-                     <transition name="up-simple">
-                        <button v-if="logSessionCount > 0" @click="finishWorkout" 
-                            class="flex-1 bg-[#00a18c] p-4 rounded-[26px] shadow-[0_15px_35px_rgba(0,161,140,0.2)] border border-[#00a18c] flex items-center gap-3 active:scale-95 transition-all text-white">
-                            <div class="size-11 rounded-full bg-white/20 flex items-center justify-center">
-                                <span class="material-symbols-outlined text-white text-xl fill-icon">check_circle</span>
+                            <span v-if="recentMuscles.includes(muscle)" 
+                                class="text-[7px] font-black uppercase leading-none mb-0.5"
+                                :class="activeMuscleFilter === muscle ? 'text-white/80' : 'text-[var(--theme-color)]'"
+                            >พึ่งเล่น</span>
+                            
+                            <span class="text-[11px] font-black uppercase tracking-tighter transition-colors"
+                                :class="[
+                                    activeMuscleFilter === muscle
+                                        ? 'text-white' 
+                                        : 'text-[var(--text-main)]'
+                                ]"
+                            >{{ muscleMapping[muscle]?.th }}</span>
+                            
+                            <!-- Filter Active Dot (Bottom) -->
+                            <div v-if="activeMuscleFilter === muscle" 
+                                class="absolute -bottom-1 size-1.5 rounded-full bg-white shadow-sm animate-pulse"></div>
+                        </div>
+                    </div>
+
+                    <!-- Rectangle: Recently Played -->
+                    <transition name="up-simple">
+                        <div v-if="recentMuscles.length > 0" 
+                            class="bg-[var(--card-bg)]/90 backdrop-blur-md p-3.5 rounded-[22px] flex items-center justify-between transition-all shadow-lg"
+                        >
+                            <div class="flex items-center gap-4">
+                                <div class="size-10 rounded-2xl bg-[#ec5b13]/10 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-[#ec5b13] text-lg">history</span>
+                                </div>
+                                <div class="transition-colors">
+                                    <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest leading-none mb-1 transition-colors">เล่นล่าสุด</p>
+                                    <div class="flex gap-2 transition-colors">
+                                        <div v-for="m in recentMuscles" :key="m" 
+                                            class="px-2 py-0.5 bg-[var(--page-bg)] rounded-lg transition-colors">
+                                            <span class="text-[9px] font-black text-[var(--text-main)] uppercase italic tracking-tighter transition-colors">{{ muscleMapping[m]?.th }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1 opacity-60">
+                                <span class="text-[7px] font-black uppercase text-[var(--text-muted)] tracking-widest transition-colors">Finished</span>
+                                <span class="material-symbols-outlined text-green-500 text-base transition-colors">check_circle</span>
+                            </div>
+                        </div>
+                    </transition>
+
+                    <!-- Bottom Controls: Program & Finish Workout -->
+                    <div class="flex items-center gap-3">
+                         <!-- Gym Program Button -->
+                         <button @click="isProgramModalOpen = true" 
+                            class="flex-1 bg-[var(--card-bg)] backdrop-blur-md p-3.5 rounded-[24px] shadow-[0_12px_30px_rgba(0,0,0,0.06)] flex items-center gap-3 active:scale-95 transition-all hover:brightness-110 group">
+                            <div class="size-10 rounded-full bg-[var(--theme-color)]/10 flex items-center justify-center group-hover:bg-[var(--theme-color)] transition-colors">
+                                <span class="material-symbols-outlined text-[var(--theme-color)] text-lg group-hover:text-white transition-colors">fitness_center</span>
                             </div>
                             <div class="text-left">
-                                <h3 class="text-[10px] font-black uppercase italic leading-none">Finish</h3>
-                                <p class="text-[8px] text-white/80 font-bold uppercase tracking-widest mt-0.5">
-                                    {{ logSessionCount }} Done
+                                <h3 class="text-[9px] font-black uppercase italic text-[var(--text-main)] leading-none transition-colors">Program</h3>
+                                <p class="text-[7px] text-[var(--text-muted)] font-bold uppercase tracking-widest mt-0.5 transition-colors">
+                                    {{ ownerPlans.length }} Plans
                                 </p>
                             </div>
-                        </button>
-                    </transition>
+                         </button>
+
+                         <!-- Finish Workout Button -->
+                         <transition name="up-simple">
+                            <button v-if="logSessionCount > 0" @click="finishWorkout" 
+                                class="flex-1 bg-[var(--theme-color)] p-3.5 rounded-[24px] shadow-[0_12px_30px_rgba(var(--theme-color-rgb),0.15)] flex items-center gap-3 active:scale-95 transition-all text-white">
+                                <div class="size-10 rounded-full bg-white/20 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-white text-lg fill-icon">check_circle</span>
+                                </div>
+                                <div class="text-left">
+                                    <h3 class="text-[9px] font-black uppercase italic leading-none">Finish</h3>
+                                    <p class="text-[7px] text-white/80 font-bold uppercase tracking-widest mt-0.5">
+                                        {{ logSessionCount }} Done
+                                    </p>
+                                </div>
+                            </button>
+                        </transition>
+                    </div>
                 </div>
             </div>
         </div>
@@ -642,15 +802,15 @@ onUnmounted(() => {
                      <div class="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
                          <div v-for="group in groupedOwnerPlans" :key="group.name" class="space-y-4">
                              <div class="flex items-center justify-between">
-                                 <h4 class="text-sm font-black uppercase tracking-widest text-[#00a18c]">{{ group.name }}</h4>
-                                 <span class="text-[8px] font-black px-2 py-0.5 rounded-full border border-[#00a18c]/20 text-[#00a18c] bg-[#00a18c]/5">
+                                 <h4 class="text-sm font-black uppercase tracking-widest text-[var(--theme-color)]">{{ group.name }}</h4>
+                                 <span class="text-[8px] font-black px-2 py-0.5 rounded-full border border-[var(--theme-color)]/20 text-[var(--theme-color)] bg-[var(--theme-color)]/5">
                                      {{ group.badge }}
                                  </span>
                              </div>
                              <div class="space-y-3">
                                  <div v-for="ex in group.exercises" :key="ex.name" 
                                       class="flex flex-col gap-0 overflow-hidden rounded-[28px] border border-[var(--border-color)] transition-all bg-[var(--page-bg)] shadow-sm group"
-                                      :class="{ 'border-[#00a18c] bg-[#00a18c]/5 ring-1 ring-[#00a18c]/10': expandedProgramExName === ex.name }">
+                                      :class="{ 'border-[var(--theme-color)] bg-[var(--theme-color)]/5 ring-1 ring-[var(--theme-color)]/10': expandedProgramExName === ex.name }">
                                      
                                      <!-- Collapsed State / Card Header -->
                                      <div @click="toggleProgramEx(ex)" class="flex items-center gap-4 p-5 cursor-pointer">
@@ -666,8 +826,8 @@ onUnmounted(() => {
                                                  {{ ex.sets }} Sets × {{ ex.reps }} Reps
                                              </p>
                                              <div v-else class="flex items-center gap-1.5 mt-0.5">
-                                                  <span class="size-1.5 rounded-full" :class="isExerciseCompleted(getMapItemForEx(ex)?.id) ? 'bg-[#00a18c]' : 'bg-orange-400'"></span>
-                                                  <span class="text-[9px] font-black uppercase tracking-widest" :class="isExerciseCompleted(getMapItemForEx(ex)?.id) ? 'text-[#00a18c]' : 'text-orange-400'">
+                                                  <span class="size-1.5 rounded-full" :class="isExerciseCompleted(getMapItemForEx(ex)?.id) ? 'bg-[var(--theme-color)]' : 'bg-orange-400'"></span>
+                                                  <span class="text-[9px] font-black uppercase tracking-widest" :class="isExerciseCompleted(getMapItemForEx(ex)?.id) ? 'text-[var(--theme-color)]' : 'text-orange-400'">
                                                       {{ isExerciseCompleted(getMapItemForEx(ex)?.id) ? 'COMPLETED' : 'In Progress' }}
                                                   </span>
                                              </div>
@@ -676,7 +836,7 @@ onUnmounted(() => {
                                              <button @click.stop="locateProgramExercise(ex)" 
                                                  class="size-10 rounded-full flex items-center justify-center transition-all bg-[var(--card-bg)] border transition-colors"
                                                  :class="markedItemIds.includes(getMapItemForEx(ex)?.id) 
-                                                     ? 'text-[#00a18c] border-[#00a18c]/30 bg-[#00a18c]/5 shadow-[0_0_15px_rgba(0,161,140,0.15)] shadow-inner' 
+                                                     ? 'text-[var(--theme-color)] border-[var(--theme-color)]/30 bg-[var(--theme-color)]/5 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.15)] shadow-inner' 
                                                      : 'text-[var(--text-muted)] border-[var(--border-color)] opacity-60'">
                                                  <span class="material-symbols-outlined text-xl" :class="{ 'fill-icon': markedItemIds.includes(getMapItemForEx(ex)?.id) }">location_on</span>
                                              </button>
@@ -684,13 +844,13 @@ onUnmounted(() => {
                                              <!-- If not started: Show START button -->
                                              <button v-if="!sessionLog[getMapItemForEx(ex)?.id]" 
                                                  @click.stop="selectProgramExercise(ex)"
-                                                 class="px-4 py-2 rounded-full bg-[#00a18c] text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm">
+                                                 class="px-4 py-2 rounded-full bg-[var(--theme-color)] text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm">
                                                  START
                                              </button>
                                              
                                              <!-- If started: Show normal expand arrow -->
                                              <span v-else class="material-symbols-outlined text-gray-300 transition-transform duration-300"
-                                                 :class="{ 'rotate-180 text-[#00a18c]': expandedProgramExName === ex.name }">
+                                                 :class="{ 'rotate-180 text-[var(--theme-color)]': expandedProgramExName === ex.name }">
                                                  expand_more
                                              </span>
                                          </div>
@@ -711,9 +871,9 @@ onUnmounted(() => {
                                                  <div class="flex items-center gap-6 pt-4 border-t border-[var(--border-color)] transition-colors">
                                                      <!-- Progress Box -->
                                                      <div class="flex flex-col items-center">
-                                                         <span class="text-[7px] font-black text-[#00a18c] uppercase tracking-widest mb-1 px-1">Progress</span>
-                                                         <div class="px-3 py-1.5 bg-[#00a18c]/5 rounded-xl border border-[#00a18c]/20 flex items-center justify-center min-w-[48px]">
-                                                             <span class="text-[11px] font-black text-[#00a18c] uppercase italic">
+                                                         <span class="text-[7px] font-black text-[var(--theme-color)] uppercase tracking-widest mb-1 px-1">Progress</span>
+                                                         <div class="px-3 py-1.5 bg-[var(--theme-color)]/5 rounded-xl border border-[var(--theme-color)]/20 flex items-center justify-center min-w-[48px]">
+                                                             <span class="text-[11px] font-black text-[var(--theme-color)] uppercase italic">
                                                                  {{ getSessionLog(ex).sets.filter(s => s.isCompleted).length }}/{{ ex.sets }}
                                                              </span>
                                                          </div>
@@ -772,7 +932,7 @@ onUnmounted(() => {
                                                              <!-- Completion Button -->
                                                              <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm transition-colors"
                                                                  :class="set.isCompleted 
-                                                                     ? 'bg-[#00a18c] border-[#00a18c] text-white' 
+                                                                     ? 'bg-[var(--theme-color)] border-[var(--theme-color)] text-white' 
                                                                      : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/20'">
                                                                  <span class="material-symbols-outlined text-xl font-bold">{{ set.isCompleted ? 'check_circle' : 'check' }}</span>
                                                              </div>
@@ -808,10 +968,10 @@ onUnmounted(() => {
                                 <div>
                                     <!-- Badges -->
                                     <div class="flex items-center gap-2 mb-2">
-                                        <span v-if="selectedPlanInfo" class="bg-[#00a18c]/10 text-[#00a18c] text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest leading-none">GUIDED</span>
+                                        <span v-if="selectedPlanInfo" class="bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest leading-none">GUIDED</span>
                                         <span v-else class="bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[9px] font-black px-2 py-0.5 rounded uppercase">Unit {{ selectedItem?.id }}</span>
                                         
-                                        <span v-if="selectedItem?.preset_sets && !selectedPlanInfo" class="text-[9px] text-[#00a18c] font-bold uppercase tracking-widest border border-[#00a18c]/20 px-2 py-0.5 rounded leading-none">Owner Preset</span>
+                                        <span v-if="selectedItem?.preset_sets && !selectedPlanInfo" class="text-[9px] text-[var(--theme-color)] font-bold uppercase tracking-widest border border-[var(--theme-color)]/20 px-2 py-0.5 rounded leading-none">Owner Preset</span>
                                     </div>
 
                                     <!-- Unified Title (Equipment Name) -->
@@ -871,7 +1031,7 @@ onUnmounted(() => {
                             <div class="flex items-center justify-between">
                                 <div class="flex flex-col">
                                     <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Workout Log</h3>
-                                    <p v-if="selectedPlanInfo" class="text-[8px] font-black text-[#00a18c] uppercase tracking-widest mt-1">
+                                    <p v-if="selectedPlanInfo" class="text-[8px] font-black text-[var(--theme-color)] uppercase tracking-widest mt-1">
                                         Goal: {{ selectedPlanInfo.targetSets }} Sets × {{ selectedPlanInfo.targetReps }} Reps @ {{ selectedPlanInfo.targetWeight }}KG
                                     </p>
                                 </div>
@@ -923,7 +1083,7 @@ onUnmounted(() => {
                                     <!-- Done Button -->
                                     <div class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm transition-colors"
                                         :class="set.isCompleted 
-                                            ? 'bg-[#00a18c] border-[#00a18c] text-white' 
+                                            ? 'bg-[var(--theme-color)] border-[var(--theme-color)] text-white' 
                                             : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/20'">
                                         <span class="material-symbols-outlined text-xl font-bold">{{ set.isCompleted ? 'check_circle' : 'check' }}</span>
                                     </div>
@@ -939,7 +1099,38 @@ onUnmounted(() => {
                 </div>
             </div>
         </transition>
-    </MobileLayout>
+
+            <!-- Confirmation Modal (Finish Workout) -->
+            <transition name="fade">
+                <div v-if="isShowFinishConfirm" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+                    <div class="bg-[var(--card-bg)] w-full max-w-xs rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div class="p-8 text-center transition-colors">
+                            <div class="size-16 rounded-full bg-[var(--theme-color)]/10 flex items-center justify-center mx-auto mb-4">
+                                <span class="material-symbols-outlined text-[var(--theme-color)] text-3xl">logout</span>
+                            </div>
+                            <h2 class="text-lg font-black text-[var(--text-main)] leading-tight mb-2 transition-colors">จบการออกกำลังกาย?</h2>
+                            <p class="text-xs text-[var(--text-muted)] font-medium transition-colors">ต้องการหยุดการออกกำลังกายแล้วใช่มั้ย?</p>
+                        </div>
+                        <div class="flex border-t border-[var(--border-color)] transition-colors">
+                            <button @click="isShowFinishConfirm = false" class="flex-1 py-4 text-sm font-bold text-[var(--text-muted)] border-r border-[var(--border-color)] active:bg-black/5 transition-colors">ยกเลิก</button>
+                            <button @click="confirmFinishWorkout" class="flex-1 py-4 text-sm font-black text-[var(--theme-color)] active:bg-[var(--theme-color)]/5 transition-colors">หยุดเลย</button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- Success Toast (Finish Workout) -->
+            <transition name="fade">
+                <div v-if="isShowSuccessMessage" class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] pointer-events-none w-max">
+                    <div class="bg-[#111827] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-white/10 backdrop-blur-md">
+                        <div class="size-6 rounded-full bg-[var(--theme-color)] flex items-center justify-center">
+                            <span class="material-symbols-outlined text-white text-[14px] font-black">check</span>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">บันทึกข้อมูลสำเร็จ</span>
+                    </div>
+                </div>
+            </transition>
+        </MobileLayout>
 </template>
 
 <style scoped>

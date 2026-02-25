@@ -335,6 +335,21 @@ const finishWorkout = () => {
     selectedWorkoutIds.value = [];
 };
 
+const deleteHistoryEntry = (id) => {
+    if (!confirm("Delete this workout from history?")) return;
+    const entryToDelete = history.value.find(h => h.id === id);
+    if (entryToDelete) {
+        // Subtract sets from total
+        const newSets = Math.max(0, setsDone.value - (entryToDelete.sets || 0));
+        setsDone.value = newSets;
+        localStorage.setItem('fitpung_sets_done', newSets.toString());
+        
+        // Remove from history
+        history.value = history.value.filter(h => h.id !== id);
+        localStorage.setItem('fitpung_workout_history', JSON.stringify(history.value));
+    }
+};
+
 // Computed property to check if user has gym workout history from localstorage 
 // (Note: This is a hacky way to merge histories, ideally should be unified)
 const mergedHistory = computed(() => {
@@ -387,7 +402,7 @@ const mergedHistory = computed(() => {
             <header class="p-6 pb-2 flex items-center justify-between sticky top-0 bg-[var(--nav-bg)] backdrop-blur-md z-30 border-b border-[var(--border-color)] transition-colors">
                 <div>
                     <h2 class="text-[10px] font-black uppercase tracking-[0.2em] mb-1"
-                        :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[#00a18c]'">
+                        :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[var(--theme-color)]'">
                         {{ activeWorkout.sessionType === 'manual' ? 'BUILD SESSION' : 'GUIDED PLAN' }}
                     </h2>
                     <h3 class="text-xl font-black uppercase italic text-[var(--text-main)] leading-tight transition-colors">{{ activeWorkout.title }}</h3>
@@ -411,19 +426,19 @@ const mergedHistory = computed(() => {
                         <div class="flex-1 min-w-0">
                             <div class="mb-4">
                                 <h4 class="text-[28px] font-black uppercase italic text-[var(--text-main)] leading-[0.9] tracking-tighter transition-colors">{{ exercise.name }}</h4>
-                                <span v-if="exercise.isMerged" class="inline-block mt-2 px-2 py-0.5 rounded-md bg-[#00a18c]/10 text-[#00a18c] text-[8px] font-black uppercase italic tracking-wider">Merged</span>
+                                <span v-if="exercise.isMerged" class="inline-block mt-2 px-2 py-0.5 rounded-md bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[8px] font-black uppercase italic tracking-wider">Merged</span>
                             </div>
                             <div class="flex items-center gap-3">
                                 <!-- Progress Box -->
                                 <div class="flex flex-col items-center">
                                     <span class="text-[7px] font-black uppercase tracking-widest mb-1 px-1"
-                                        :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[#00a18c]'">
+                                        :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[var(--theme-color)]'">
                                         {{ activeWorkout.sessionType === 'manual' ? 'SETS TOTAL' : 'SETS DONE' }}
                                     </span>
                                     <div class="px-3 py-1.5 rounded-xl border flex items-center justify-center min-w-[48px]"
                                         :class="activeWorkout.sessionType === 'manual' 
                                             ? 'bg-blue-50/50 border-blue-100 text-blue-500' 
-                                            : 'bg-[#00a18c]/10 border-[#00a18c]/20 text-[#00a18c]'">
+                                            : 'bg-[var(--theme-color)]/10 border-[var(--theme-color)]/20 text-[var(--theme-color)]'">
                                         <span class="text-[11px] font-black uppercase italic">
                                             {{ activeWorkout.sessionType === 'manual' 
                                                 ? exercise.workoutLogs.length 
@@ -499,7 +514,7 @@ const mergedHistory = computed(() => {
                             <!-- Done Button -->
                             <button @click="toggleSet(set)" 
                                 class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm active:scale-95"
-                                :class="set.completed ? 'bg-[#00a18c] border-[#00a18c] text-white' : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/30'">
+                                :class="set.completed ? 'bg-[var(--theme-color)] border-[var(--theme-color)] text-white' : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/30'">
                                 <span class="material-symbols-outlined text-xl font-bold">{{ set.completed ? 'check_circle' : 'check' }}</span>
                             </button>
                         </div>
@@ -585,17 +600,17 @@ const mergedHistory = computed(() => {
                         <div v-for="workout in (activeTab === 'equipments' ? allEquipments : userSavedPlans)" :key="workout.id" 
                             @click="toggleSelection(workout.id)"
                             class="bg-[var(--card-bg)] p-4 rounded-[32px] border transition-all duration-300 flex items-center gap-4 group"
-                            :class="selectedWorkoutIds.includes(workout.id) ? 'border-[#00a18c] ring-1 ring-[#00a18c]/5' : 'border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.015)]'">
+                            :class="selectedWorkoutIds.includes(workout.id) ? 'border-[var(--theme-color)] ring-1 ring-[var(--theme-color)]/5' : 'border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.015)]'">
                             
                             <div class="size-16 rounded-[24px] overflow-hidden relative border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center bg-[var(--page-bg)] transition-colors">
                                 <img v-if="workout.image && !workout.isCustom" :src="workout.image" class="w-full h-full object-contain">
-                                <div v-else class="flex flex-col items-center justify-center text-[#00a18c] transition-opacity opacity-60">
+                                <div v-else class="flex flex-col items-center justify-center text-[var(--theme-color)] transition-opacity opacity-60">
                                     <span class="material-symbols-outlined text-3xl">fitness_center</span>
                                 </div>
                             </div>
 
                             <div class="flex-1 min-w-0 transition-colors">
-                                <span class="text-[6px] font-black uppercase tracking-[0.1em] text-[#00a18c] opacity-60">
+                                <span class="text-[6px] font-black uppercase tracking-[0.1em] text-[var(--theme-color)] opacity-60">
                                     {{ workout.gymName }}
                                 </span>
                                 <h4 class="text-[17px] font-black uppercase italic text-[var(--text-main)] truncate leading-none tracking-tighter my-0.5 transition-colors">{{ workout.title }}</h4>
@@ -607,7 +622,7 @@ const mergedHistory = computed(() => {
                             <div class="flex items-center">
                                 <!-- Selection Circle -->
                                 <div class="size-8 rounded-full flex items-center justify-center border transition-all"
-                                    :class="selectedWorkoutIds.includes(workout.id) ? 'bg-[#00a18c] border-[#00a18c] text-white shadow-lg' : 'border-[var(--border-color)] text-transparent'">
+                                    :class="selectedWorkoutIds.includes(workout.id) ? 'bg-[var(--theme-color)] border-[var(--theme-color)] text-white shadow-lg' : 'border-[var(--border-color)] text-transparent'">
                                     <span v-if="selectedWorkoutIds.includes(workout.id)" class="material-symbols-outlined text-white text-lg font-black">check</span>
                                 </div>
                             </div>
@@ -633,9 +648,14 @@ const mergedHistory = computed(() => {
                 
                 <div v-for="entry in mergedHistory" :key="entry.id" class="space-y-6 transition-colors">
                     <!-- Session Header (Date & Title) -->
-                    <div class="px-2 transition-colors">
-                        <span class="text-[10px] font-black text-[#00a18c] uppercase tracking-[0.2em] mb-1 block">{{ entry.date }}</span>
-                        <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tighter transition-colors">{{ entry.title }}</h4>
+                    <div class="px-2 flex items-center justify-between transition-colors">
+                        <div>
+                            <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-[0.2em] mb-1 block">{{ entry.date }}</span>
+                            <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tighter transition-colors">{{ entry.title }}</h4>
+                        </div>
+                        <button @click="deleteHistoryEntry(entry.id)" class="size-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center active:scale-95 transition-all">
+                            <span class="material-symbols-outlined text-xl">delete</span>
+                        </button>
                     </div>
                     
                     <!-- Detailed Exercise List -->
@@ -689,7 +709,7 @@ const mergedHistory = computed(() => {
             <transition name="up">
                 <div v-if="selectedWorkoutIds.length > 0" class="fixed bottom-24 left-10 right-10 z-40 flex justify-center">
                     <button @click="startCombinedWorkout" 
-                        class="w-full max-w-[280px] py-3.5 rounded-full bg-[#00a18c] text-white font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 active:scale-95 hover:brightness-110 transition-all text-[10px] italic">
+                        class="w-full max-w-[280px] py-3.5 rounded-full bg-[var(--theme-color)] text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-[var(--theme-color)]/30 flex items-center justify-center gap-3 active:scale-95 hover:brightness-110 transition-all text-[10px] italic">
                         <span class="material-symbols-outlined fill-icon text-lg">play_arrow</span>
                         START SELECTION ({{ selectedWorkoutIds.length }})
                     </button>
