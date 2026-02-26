@@ -6,19 +6,11 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\GymLayoutController;
-
 use App\Models\GymLayout;
-
 use App\Http\Controllers\AdminController;
 
 Route::get('/', [GymLayoutController::class, 'showSelection'])->name('selection');
 Route::get('/home', [GymLayoutController::class, 'showHome'])->name('home');
-Route::get('/mobile', [GymLayoutController::class, 'showMobileHome'])->name('mobile.home');
-Route::get('/mobile/maps', [GymLayoutController::class, 'showMobileMaps'])->name('mobile.maps');
-Route::get('/mobile/workout', [GymLayoutController::class, 'showMobileWorkout'])->name('mobile.workout');
-Route::get('/mobile/stats', [GymLayoutController::class, 'showMobileStats'])->name('mobile.stats');
-Route::get('/mobile/profile', [GymLayoutController::class, 'showMobileProfile'])->name('mobile.profile');
-Route::get('/mobile/settings', [GymLayoutController::class, 'showMobileSettings'])->name('mobile.settings');
 
 Route::get('/gyms/{id}', [GymLayoutController::class, 'showPublic'])->name('gyms.show');
 Route::get('/gyms/{id}/map', [GymLayoutController::class, 'showMap'])->name('gyms.map');
@@ -60,10 +52,23 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Mobile Routes
+    Route::get('/mobile/home', [GymLayoutController::class, 'showMobileHome'])->name('mobile.home');
+    Route::get('/mobile/maps', [GymLayoutController::class, 'showMobileMaps'])->name('mobile.maps');
+    Route::get('/mobile/workout', [GymLayoutController::class, 'showMobileWorkout'])->name('mobile.workout');
+    Route::get('/mobile/stats', [GymLayoutController::class, 'showMobileStats'])->name('mobile.stats');
+    Route::get('/mobile/profile', [GymLayoutController::class, 'showMobileProfile'])->name('mobile.profile');
+    Route::get('/mobile/settings', [GymLayoutController::class, 'showMobileSettings'])->name('mobile.settings');
+
     // Workout Plans (Mobile API-like)
     Route::get('/api/workout-plans', [\App\Http\Controllers\WorkoutPlanController::class, 'index']);
     Route::post('/api/workout-plans', [\App\Http\Controllers\WorkoutPlanController::class, 'store']);
     Route::delete('/api/workout-plans/{workoutPlan}', [\App\Http\Controllers\WorkoutPlanController::class, 'destroy']);
+
+    // Workout Sessions
+    Route::get('/api/workout-sessions', [\App\Http\Controllers\WorkoutSessionController::class, 'index']);
+    Route::post('/api/workout-sessions', [\App\Http\Controllers\WorkoutSessionController::class, 'store']);
+    Route::delete('/api/workout-sessions/{workoutSession}', [\App\Http\Controllers\WorkoutSessionController::class, 'destroy']);
 });
 
 require __DIR__ . '/auth.php';

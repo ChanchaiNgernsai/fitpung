@@ -41,7 +41,27 @@ onMounted(() => {
     
     // Sync from database
     refreshPlans();
+    fetchWorkoutHistory();
 });
+
+const fetchWorkoutHistory = async () => {
+    try {
+        const response = await axios.get('/api/workout-sessions');
+        // Map backend structure to local structure
+        const dbSessions = response.data.data.map(s => ({
+            id: s.id,
+            apiId: s.id, // Keep original ID for deletion
+            date: new Date(s.workout_date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+            title: s.data?.title || 'Workout Session',
+            exercises: s.data?.exercises || [],
+            sets: s.data?.sets || 0
+        }));
+        history.value = dbSessions;
+        localStorage.setItem('fitpung_workout_history', JSON.stringify(dbSessions));
+    } catch (e) {
+        console.error("Failed to fetch workout history from DB", e);
+    }
+};
 
 const refreshPlans = async () => {
     try {
@@ -344,6 +364,19 @@ const confirmFinishWorkout = () => {
         sets: activeWorkout.value.exercises.reduce((sum, ex) => sum + ex.workoutLogs.filter(s => s.completed).length, 0)
     };
 
+    // Save to DB
+    const sessionData = {
+        workout_date: new Date().toISOString().split('T')[0],
+        data: {
+            title: session.title,
+            exercises: session.exercises,
+            sets: session.sets
+        }
+    };
+
+    axios.post('/api/workout-sessions', sessionData)
+        .catch(e => console.error("Failed to save workout session to DB", e));
+
     history.value.unshift(session);
     localStorage.setItem('fitpung_workout_history', JSON.stringify(history.value));
 
@@ -359,10 +392,21 @@ const confirmFinishWorkout = () => {
     }, 3000);
 };
 
-const deleteHistoryEntry = (id) => {
+const deleteHistoryEntry = async (id) => {
     if (!confirm("Delete this workout from history?")) return;
     const entryToDelete = history.value.find(h => h.id === id);
     if (entryToDelete) {
+        // Delete from API if it has an apiId
+        if (entryToDelete.apiId) {
+            try {
+                await axios.delete(`/api/workout-sessions/${entryToDelete.apiId}`);
+            } catch (e) {
+                console.error("Failed to delete session from API", e);
+                alert("Failed to delete from server. Try again.");
+                return;
+            }
+        }
+
         // Subtract sets from total
         const newSets = Math.max(0, setsDone.value - (entryToDelete.sets || 0));
         setsDone.value = newSets;
@@ -379,6 +423,19 @@ const deleteHistoryEntry = (id) => {
 const mergedHistory = computed(() => {
     return history.value;
 });
+const getExerciseImage = (ex) => {
+    if (ex.image) return ex.image;
+    
+    const nameLower = ex.name.toLowerCase();
+    if (nameLower.includes('dumbbell')) return '/images/equipment/Dumbbells.svg';
+    if (nameLower.includes('treadmill')) return '/images/equipment/Treadmill.svg';
+    if (nameLower.includes('elliptical')) return '/images/equipment/Elliptical.svg';
+    if (nameLower.includes('bench press')) return '/images/equipment/BenchPress.svg';
+    if (nameLower.includes('leg press')) return '/images/equipment/LegPress.svg';
+    if (nameLower.includes('smith')) return '/images/equipment/SmithMachine.svg';
+    
+    return null;
+};
 </script>
 
 <template>
@@ -675,7 +732,7 @@ const mergedHistory = computed(() => {
                     <div class="px-2 flex items-center justify-between transition-colors">
                         <div>
                             <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-wider mb-1 block">{{ entry.date }}</span>
-                            <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tight transition-colors">{{ entry.title }}</h4>
+                            <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tight transition-colors">{{ entry.title || 'Workout Session' }}</h4>
                         </div>
                         <button @click="deleteHistoryEntry(entry.id)" class="size-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center active:scale-95 transition-all">
                             <span class="material-symbols-outlined text-xl">delete</span>
@@ -687,7 +744,7 @@ const mergedHistory = computed(() => {
                         <div v-for="ex in entry.exercises" :key="ex.name" class="flex gap-4 items-start bg-[var(--card-bg)] rounded-[32px] p-5 border border-[var(--border-color)] shadow-sm transition-colors">
                             <!-- Machine Image -->
                             <div class="size-20 rounded-2xl bg-[var(--page-bg)] overflow-hidden border border-[var(--border-color)] flex-shrink-0 p-2 shadow-inner transition-colors">
-                                <img v-if="ex.image" :src="ex.image" class="w-full h-full object-contain">
+                                <img v-if="getExerciseImage(ex)" :src="getExerciseImage(ex)" class="w-full h-full object-contain">
                                 <div v-else class="w-full h-full flex items-center justify-center opacity-10 transition-colors">
                                     <span class="material-symbols-outlined text-2xl text-[var(--text-main)]">fitness_center</span>
                                 </div>

@@ -27,6 +27,9 @@ watch(() => user.value.weight, (newVal) => {
 const isInitialSync = ref(true);
 const isEditModalOpen = ref(false);
 const isWeightModalOpen = ref(false);
+const isFullHistoryModalOpen = ref(false);
+const currentWeekIndex = ref(0);
+const historyWeekOffset = ref(0);
 const errors = ref({});
 const editForm = ref({
     name: '',
@@ -34,28 +37,58 @@ const editForm = ref({
     goal: ''
 });
 
+const latestWeightRecord = computed(() => {
+    if (!props.weightHistories || props.weightHistories.length === 0) return { weight: user.value.weight || 0, created_at: new Date() };
+    return [...props.weightHistories].sort((a, b) => {
+        const dateDiff = new Date(b.created_at) - new Date(a.created_at);
+        if (dateDiff !== 0) return dateDiff;
+        return b.id - a.id;
+    })[0];
+});
+
 const weightDiff = computed(() => {
-    if (!props.weightHistories || props.weightHistories.length < 2) return null;
-    const sorted = [...props.weightHistories].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    const currentWeight = user.value.weight; // Use actual current weight
-    const previousWeight = sorted[0].id === 'current' ? sorted[1].weight : sorted[0].weight; 
-    // Wait, the logic for weightDiff needs to be simple: current profile weight vs last history record
-    const lastRecord = sorted[0];
-    const diff = currentWeight - lastRecord.weight;
+    const sorted = [...props.weightHistories].sort((a, b) => {
+        const dateDiff = new Date(b.created_at) - new Date(a.created_at);
+        if (dateDiff !== 0) return dateDiff;
+        return b.id - a.id;
+    });
+    
+    if (sorted.length < 2) return null;
+    
+    // Total Change is global since the first record
+    const latest = sorted[0].weight;
+    const first = sorted[sorted.length - 1].weight;
+    const diff = latest - first;
     
     return {
         value: Math.abs(diff).toFixed(1),
         isIncrease: diff > 0,
         isDecrease: diff < 0,
-        // Swap colors here: Success (Green) for Decrease, Warning (Red) for Increase
         type: diff < 0 ? 'success' : (diff > 0 ? 'warning' : 'neutral')
+    };
+});
+
+const weeklyProgress = computed(() => {
+    const points = graphPoints.value;
+    if (points.length < 2) return null;
+    
+    // Find the first and last points that have either real data or are the first/last of the week
+    const firstWeight = points[0].weight;
+    const lastWeight = points[points.length - 1].weight;
+    const diff = lastWeight - firstWeight;
+    
+    return {
+        value: Math.abs(diff).toFixed(1),
+        isIncrease: diff > 0,
+        isDecrease: diff < 0
     };
 });
 
 const totalChange = computed(() => {
     if (!props.weightHistories || props.weightHistories.length < 2) return null;
-    const currentWeight = props.weightHistories[props.weightHistories.length - 1].weight;
-    const firstWeight = props.weightHistories[0].weight;
+    const sorted = [...props.weightHistories].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const currentWeight = latestWeightRecord.value.weight;
+    const firstWeight = sorted[0].weight;
     const diff = currentWeight - firstWeight;
     return {
         value: Math.abs(diff).toFixed(1),
@@ -64,61 +97,344 @@ const totalChange = computed(() => {
     };
 });
 
+// Helper to get local date key YYYY-MM-DD
+const getLocalDateKey = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getMonday = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay() || 7; // 1-7 (Mon-Sun)
+    d.setDate(d.getDate() - day + 1);
+    return d;
+};
+
+const weeklyHistoryTableData = computed(() => {
+    if (!historyByWeek.value || historyByWeek.value.length === 0) return [];
+    const week = historyByWeek.value[historyWeekOffset.value];
+    return week ? week.entries.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) : [];
+});
+
+const currentWeekLabel = computed(() => {
+    if (!historyByWeek.value || historyByWeek.value.length === 0) return '';
+    const week = historyByWeek.value[historyWeekOffset.value];
+    return week ? week.key : '';
+});
+
 const sortedHistory = computed(() => {
     return [...props.weightHistories].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 });
 
 const graphPoints = computed(() => {
-    if (!props.weightHistories) return [];
+    if (!historyByWeek.value || historyByWeek.value.length === 0) return [];
     
-    // Take the last 6 entries for the graph
-    let recentHistories = props.weightHistories.slice(-6);
+    const currentWeek = historyByWeek.value[historyWeekOffset.value];
+    if (!currentWeek) return [];
     
-    // Check if the current user.weight is different from the last history record to show the most recent change
-    const lastHistory = recentHistories.length > 0 ? recentHistories[recentHistories.length - 1] : null;
-    const currentWeight = user.value.weight;
+    const entriesByDate = new Map();
+    // Use the same stable sort for graph points
+    [...props.weightHistories]
+        .sort((a, b) => {
+            const dateDiff = new Date(a.created_at) - new Date(b.created_at);
+            if (dateDiff !== 0) return dateDiff;
+            return a.id - b.id;
+        })
+        .forEach(h => {
+            const dateKey = getLocalDateKey(h.created_at);
+            entriesByDate.set(dateKey, h);
+        });
     
-    // If current weight is different from last recorded weight, or no records exist, add it as the present point
-    const displayHistories = [...recentHistories];
-    if (!lastHistory || lastHistory.weight !== currentWeight) {
-        displayHistories.push({
-            weight: currentWeight,
-            created_at: new Date().toISOString()
+    const points = [];
+    const width = 300;
+    
+    // Find last known weight BEFORE this week for interpolation
+    let lastKnownGlobal = null;
+    const allSorted = [...props.weightHistories].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    allSorted.forEach(h => {
+        if (new Date(h.created_at) < currentWeek.monday) {
+            lastKnownGlobal = h.weight;
+        }
+    });
+
+    const now = new Date();
+    const todayKey = getLocalDateKey(now);
+    const isCurrentWeek = historyWeekOffset.value === 0;
+
+    for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(currentWeek.monday);
+        dayDate.setDate(currentWeek.monday.getDate() + i);
+        const dateKey = getLocalDateKey(dayDate);
+        
+        // Skip future days if viewing the current week
+        if (isCurrentWeek && dayDate > now && dateKey !== todayKey) {
+            continue;
+        }
+
+        let weight = null;
+        let hasData = false;
+        const isToday = dateKey === todayKey;
+        
+        if (entriesByDate.has(dateKey)) {
+            weight = entriesByDate.get(dateKey).weight;
+            hasData = true;
+        } else if (isToday) {
+            // If no history today, fallback to the latest known historical weight OR profile weight
+            weight = latestWeightRecord.value.weight;
+            hasData = true;
+        } else if (dayDate < now) {
+            weight = lastKnownGlobal;
+            hasData = false; 
+        }
+
+        if (hasData) {
+            lastKnownGlobal = weight;
+        }
+
+        points.push({
+            x: 0, // Will recalculate X positions
+            weight: weight || lastKnownGlobal,
+            hasData: hasData,
+            isToday: isToday,
+            date: dayDate,
+            label: dayDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { weekday: 'short' }),
+            dateLabel: dayDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' })
         });
     }
+
+    // Recalculate X positions based on visible points
+    const visiblePointsCount = points.length;
+    points.forEach((p, i) => {
+        p.x = (i / Math.max(visiblePointsCount - 1, 1)) * width;
+    });
+
+    const weights = points.filter(p => p.weight !== null).map(p => Number(p.weight));
+    const minWeight = weights.length > 0 ? Math.min(...weights) - 1 : 0;
+    const maxWeight = weights.length > 0 ? Math.max(...weights) + 1 : 100;
+    const range = Math.max(maxWeight - minWeight, 2);
     
-    // Limit to 7 points total for a clean trend
-    const finalPoints = displayHistories.slice(-7);
+    return points.map((p, i) => ({
+        ...p,
+        y: p.weight !== null ? 100 - ((p.weight - minWeight) / range) * 75 - 15 : 100,
+        // active: Point has REAL historical data OR is "Today"
+        active: p.hasData,
+        isLatest: p.isToday,
+        label: p.isToday ? t('common.present') : p.label
+    }));
+});
+
+const fullGraphPoints = computed(() => {
+    if (!props.weightHistories || props.weightHistories.length === 0) return [];
     
+    // Group histories by date and take the last one for each day
+    const entriesByDate = new Map();
+    props.weightHistories.forEach(h => {
+        const dateKey = new Date(h.created_at).toISOString().split('T')[0];
+        entriesByDate.set(dateKey, h);
+    });
+    
+    const dailyHistories = Array.from(entriesByDate.values())
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    // Show up to 14 latest daily points
+    const finalPoints = dailyHistories.slice(-14);
     const weights = finalPoints.map(h => h.weight);
     const minWeight = Math.min(...weights) - 1;
     const maxWeight = Math.max(...weights) + 1;
     const range = Math.max(maxWeight - minWeight, 2);
     
-    return finalPoints.map((h, i) => {
-        const x = (i / (finalPoints.length - 1)) * 300;
-        const y = 100 - ((h.weight - minWeight) / range) * 75 - 15;
-        const date = new Date(h.created_at);
-        const isLatest = i === finalPoints.length - 1;
+    const width = Math.max(finalPoints.length * 60, 300); // 60px per point for breathing room
+    
+    return {
+        width,
+        points: finalPoints.map((h, i) => {
+            const x = (i / (finalPoints.length - 1)) * width;
+            const y = 150 - ((h.weight - minWeight) / range) * 120 - 20;
+            const date = new Date(h.created_at);
+            
+            return {
+                x,
+                y,
+                weight: Number(h.weight) || 0,
+                dateLabel: date.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }),
+                timeLabel: date.toLocaleTimeString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).replace(' AM', 'A').replace(' PM', 'P')
+            };
+        })
+    };
+});
+
+const historyByWeek = computed(() => {
+    const weeks = [];
+    const now = new Date();
+    const currentMonday = getMonday(now);
+    
+    // Always ensure the current week is at the top
+    const currentSunday = new Date(currentMonday);
+    currentSunday.setDate(currentMonday.getDate() + 6);
+    currentSunday.setHours(23, 59, 59, 999);
+    
+    const getWeekLabel = (mon, sun) => {
+        return mon.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }) + 
+               ' - ' + 
+               sun.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    weeks.push({
+        key: getWeekLabel(currentMonday, currentSunday),
+        monday: new Date(currentMonday),
+        sunday: new Date(currentSunday),
+        entries: []
+    });
+
+    if (props.weightHistories) {
+        props.weightHistories.forEach(h => {
+            const date = new Date(h.created_at);
+            const mon = getMonday(date);
+            const sun = new Date(mon);
+            sun.setDate(mon.getDate() + 6);
+            sun.setHours(23, 59, 59, 999);
+            
+            const weekKey = getWeekLabel(mon, sun);
+            let week = weeks.find(w => w.key === weekKey);
+            
+            if (!week) {
+                week = { 
+                    key: weekKey, 
+                    monday: new Date(mon),
+                    sunday: new Date(sun),
+                    entries: [] 
+                };
+                weeks.push(week);
+            }
+            week.entries.push({
+                ...h,
+                dayIndex: date.getDay() || 7 // 1-7 (Mon-Sun)
+            });
+            // Stable sort entries within the week: Newest first
+            week.entries.sort((a, b) => {
+                const dateDiff = new Date(b.created_at) - new Date(a.created_at);
+                if (dateDiff !== 0) return dateDiff;
+                return b.id - a.id;
+            });
+        });
+    }
+    
+    return weeks.sort((a, b) => b.monday - a.monday);
+});
+
+const weeklyGraphData = computed(() => {
+    const currentWeek = historyByWeek.value[currentWeekIndex.value];
+    if (!currentWeek) return { width: 300, points: [] };
+    
+    const points = [];
+    const width = 600; // Fixed width for 7 days
+    
+    // We need 7 points (Mon-Sun)
+    for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(currentWeek.monday);
+        dayDate.setDate(currentWeek.monday.getDate() + i);
         
+        // Find the latest entry for this specific day
+        const dayEntries = currentWeek.entries.filter(e => {
+            const d = new Date(e.created_at);
+            return d.getFullYear() === dayDate.getFullYear() && 
+                   d.getMonth() === dayDate.getMonth() && 
+                   d.getDate() === dayDate.getDate();
+        });
+        
+        const lastEntry = dayEntries.length > 0 ? dayEntries[dayEntries.length - 1] : null;
+        
+        points.push({
+            x: (i / 6) * width,
+            weight: lastEntry ? Number(lastEntry.weight) : null,
+            label: dayDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { weekday: 'short' }),
+            dateLabel: dayDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }),
+            hasData: !!lastEntry
+        });
+    }
+    
+    // Calculate Y positions
+    const validWeights = points.filter(p => p.hasData).map(p => p.weight);
+    const minWeight = validWeights.length > 0 ? Math.min(...validWeights) - 1 : 0;
+    const maxWeight = validWeights.length > 0 ? Math.max(...validWeights) + 1 : 100;
+    const range = Math.max(maxWeight - minWeight, 2);
+    
+    // Fill in gaps for the line path if any
+    let lastKnownWeight = null;
+    const processedPoints = points.map(p => {
+        if (p.hasData) {
+            lastKnownWeight = p.weight;
+        }
+        const displayWeight = p.hasData ? p.weight : lastKnownWeight;
         return {
-            x,
-            y,
-            weight: h.weight,
-            label: isLatest ? t('common.present') : date.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }),
-            active: true
+            ...p,
+            y: displayWeight !== null ? 150 - ((displayWeight - minWeight) / range) * 120 - 20 : 150
         };
     });
+    
+    return {
+        width,
+        points: processedPoints
+    };
+});
+
+const weeklySvgPath = computed(() => {
+    const data = weeklyGraphData.value.points.filter(p => p.hasData || (p.y !== 150)); // Only draw if we have Y
+    if (data.length < 2) return '';
+    
+    let path = `M ${data[0].x} ${data[0].y}`;
+    for (let i = 1; i < data.length; i++) {
+        path += ` L ${data[i].x} ${data[i].y}`;
+    }
+    return path;
 });
 
 const recentLogs = computed(() => {
-    // Show only 5 most recent to keep it clean
-    return sortedHistory.value.slice(0, 5);
+    if (!props.weightHistories) return [];
+    return [...props.weightHistories].sort((a, b) => {
+        const dateDiff = new Date(b.created_at) - new Date(a.created_at);
+        if (dateDiff !== 0) return dateDiff;
+        return b.id - a.id;
+    }).slice(0, 10); // Show up to 10 for better coverage
 });
 
 const svgPath = computed(() => {
     const points = graphPoints.value;
     if (points.length < 2) return '';
+    
+    const isCurrentWeek = historyWeekOffset.value === 0;
+    
+    // For historical weeks, we want the line to go all the way to Sunday
+    // For current week, we stop at Today
+    let lastActiveIndex = points.length - 1;
+    if (isCurrentWeek) {
+        for (let i = points.length - 1; i >= 0; i--) {
+            if (points[i].active) {
+                lastActiveIndex = i;
+                break;
+            }
+        }
+    }
+
+    if (lastActiveIndex <= 0) return '';
+
+    let d = `M ${points[0].x},${points[0].y}`;
+    for (let i = 0; i < lastActiveIndex; i++) {
+        const p0 = points[i];
+        const p1 = points[i + 1];
+        const cp1x = p0.x + (p1.x - p0.x) / 2;
+        d += ` C ${cp1x},${p0.y} ${cp1x},${p1.y} ${p1.x},${p1.y}`;
+    }
+    return d;
+});
+
+const fullSvgPath = computed(() => {
+    const points = fullGraphPoints.value.points;
+    if (!points || points.length < 2) return '';
     
     let d = `M ${points[0].x},${points[0].y}`;
     for (let i = 0; i < points.length - 1; i++) {
@@ -201,7 +517,7 @@ const saveWeightToServer = (weight) => {
         weight: weight 
     }, {
         preserveScroll: true,
-        only: ['auth', 'flash'],
+        only: ['auth', 'flash', 'weightHistories'],
         onSuccess: () => {
             isWeightModalOpen.value = false;
         },
@@ -342,7 +658,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                         <span class="absolute top-4 text-[8px] font-black uppercase tracking-wider text-[var(--text-muted)]">{{ t('profile.weight') }}</span>
                         <div class="flex flex-col items-center mt-2 relative">
                             <div class="flex items-baseline gap-0.5">
-                                <span class="text-2xl font-black text-[var(--theme-color)] italic leading-none">{{ Number(user.weight).toFixed(1) }}</span>
+                                <span class="text-2xl font-black text-[var(--theme-color)] italic leading-none">{{ latestWeightRecord.weight.toFixed(1) }}</span>
                                 <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">KG</span>
                             </div>
                             
@@ -383,22 +699,29 @@ watch(() => page.props.flash.status, (newStatus) => {
                 </div>
             </section>
 
-            <!-- Weight Trends Graph -->
-            <section class="px-6 py-4" v-if="graphPoints.length > 0">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">Weight Trends</h3>
-                    <div v-if="totalChange" class="flex items-center gap-2">
-                        <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">Total Change</span>
-                        <div class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)]">
-                            <span :class="totalChange.isDecrease ? 'text-green-500' : (totalChange.isIncrease ? 'text-red-500' : 'text-[var(--text-muted)]')" class="text-[10px] font-black tabular-nums transition-colors">
-                                {{ totalChange.isIncrease ? '+' : (totalChange.isDecrease ? '-' : '') }}{{ totalChange.value }}
+            <!-- Weight Trend & History Section -->
+            <section class="px-6 py-4">
+                <!-- Weight Trend Graph -->
+                <div class="bg-[var(--card-bg)] rounded-[32px] p-6 border border-[var(--border-color)] shadow-sm transition-colors mb-6">
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="flex flex-col gap-1">
+                            <h3 class="text-[12px] font-black uppercase text-[var(--text-main)] tracking-[0.2em] transition-colors">{{ t('profile.weight_trends') }}</h3>
+                            <p class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{{ historyWeekOffset === 0 ? 'Current Week' : currentWeekLabel }}</p>
+                        </div>
+                        
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                                {{ historyWeekOffset === 0 ? 'Total Change' : 'Weekly Progress' }}
                             </span>
-                            <span class="text-[7px] font-black text-[var(--text-muted)] transition-colors">KG</span>
+                            <div v-if="historyWeekOffset === 0 ? totalChange : weeklyProgress" class="flex items-center gap-1.5 bg-[var(--page-bg)] px-3 py-1.5 rounded-full border border-[var(--border-color)]">
+                                <span class="text-[10px] font-black italic" :class="(historyWeekOffset === 0 ? totalChange.isDecrease : weeklyProgress.isDecrease) ? 'text-[#22c55e]' : ((historyWeekOffset === 0 ? totalChange.isIncrease : weeklyProgress.isIncrease) ? 'text-[#ef4444]' : 'text-[var(--text-muted)]')">
+                                    {{ (historyWeekOffset === 0 ? totalChange.isIncrease : weeklyProgress.isIncrease) ? '+' : ((historyWeekOffset === 0 ? totalChange.isDecrease : weeklyProgress.isDecrease) ? '-' : '') }}{{ historyWeekOffset === 0 ? totalChange.value : weeklyProgress.value }}
+                                </span>
+                                <span class="text-[7px] font-black text-[var(--text-muted)] uppercase">KG</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="bg-[var(--card-bg)] rounded-[32px] p-6 border border-[var(--border-color)] shadow-sm transition-colors">
                     <div class="relative h-36 w-full mb-4">
                         <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 120">
                              <!-- Helper Lines -->
@@ -415,27 +738,23 @@ watch(() => page.props.flash.status, (newStatus) => {
                                 class="transition-all duration-1000"
                             />
                             
-                            <!-- Dots & Values -->
+                            <!-- Dots -->
                             <template v-for="(p, i) in graphPoints" :key="i">
-                                <!-- Weight Value Above Point -->
+                                <circle 
+                                    :cx="p.x" 
+                                    :cy="p.y" 
+                                    :r="p.isToday ? 6 : 4" 
+                                    class="transition-all duration-500 fill-[var(--theme-color)] stroke-[var(--card-bg)] shadow-sm"
+                                    :class="p.isToday ? 'stroke-[3px]' : 'stroke-2'"
+                                />
                                 <text 
                                     :x="p.x" 
                                     :y="p.y - 12" 
                                     text-anchor="middle" 
-                                    class="text-[10px] font-black fill-[var(--text-main)] tracking-tighter"
+                                    class="text-[9px] font-black fill-[var(--text-main)] tabular-nums transition-all"
                                 >
                                     {{ p.weight.toFixed(1) }}
                                 </text>
-
-                                <circle 
-                                    :cx="p.x" 
-                                    :cy="p.y" 
-                                    fill="var(--theme-color)" 
-                                    r="6" 
-                                    stroke="var(--card-bg)" 
-                                    stroke-width="3" 
-                                    class="transition-all"
-                                />
                             </template>
                         </svg>
                     </div>
@@ -445,41 +764,49 @@ watch(() => page.props.flash.status, (newStatus) => {
                     </div>
                 </div>
 
-                <!-- Weight History Table (Immediately after graph) -->
-                <div class="mt-6 space-y-3">
-                    <div class="flex items-center justify-between px-2">
-                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Recent History</h3>
-                        <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Last {{ recentLogs.length }} Records</span>
+                <!-- Recent Weight History Table -->
+                <div class="mt-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="flex flex-col gap-1">
+                            <h3 class="text-[12px] font-black uppercase text-[var(--text-main)] tracking-[0.2em] transition-colors">
+                                {{ t('profile.history') }}
+                            </h3>
+                            <p class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{{ historyWeekOffset === 0 ? t('common.present') : currentWeekLabel }}</p>
+                        </div>
+                        
+                        <!-- Weekly Pagination -->
+                        <div class="flex items-center gap-2">
+                            <button 
+                                @click="historyWeekOffset++" 
+                                :disabled="!historyByWeek[historyWeekOffset + 1]"
+                                class="size-8 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] flex items-center justify-center disabled:opacity-20 disabled:pointer-events-none transition-all hover:border-[var(--theme-color)]"
+                            >
+                                <span class="material-symbols-outlined text-sm">chevron_left</span>
+                            </button>
+                            <button 
+                                @click="historyWeekOffset--" 
+                                :disabled="historyWeekOffset <= 0"
+                                class="size-8 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] flex items-center justify-center disabled:opacity-20 disabled:pointer-events-none transition-all hover:border-[var(--theme-color)]"
+                            >
+                                <span class="material-symbols-outlined text-sm">chevron_right</span>
+                            </button>
+                        </div>
                     </div>
-                    
+
                     <div class="bg-[var(--card-bg)] rounded-[32px] border border-[var(--border-color)] overflow-hidden shadow-sm">
-                        <div v-if="recentLogs.length === 0" class="p-10 text-center">
-                            <span class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">No weight history yet</span>
+                        <div v-if="(historyWeekOffset === 0 ? recentLogs : weeklyHistoryTableData).length === 0" class="p-10 text-center">
+                            <span class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">No weight history for this period</span>
                         </div>
                         <div v-else class="divide-y divide-[var(--border-color)]/50">
-                            <div v-for="(history, index) in recentLogs" :key="history.id" class="p-5 flex items-center justify-between transition-colors">
+                            <div v-for="(log, i) in (historyWeekOffset === 0 ? recentLogs : weeklyHistoryTableData)" :key="log.id" 
+                                class="flex items-center justify-between p-6 transition-all hover:bg-[var(--theme-color)]/[0.02] active:scale-[0.99]">
                                 <div class="flex flex-col gap-1">
-                                    <span class="text-[10px] font-black text-[var(--text-main)] tabular-nums">{{ new Date(history.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) }}</span>
-                                    <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{{ new Date(history.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                                    <span class="text-[10px] font-black text-[var(--text-main)] tabular-nums">{{ new Date(log.created_at).toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }) }}</span>
+                                    <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{{ new Date(log.created_at).toLocaleTimeString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' }) }}</span>
                                 </div>
                                 
-                                <!-- Change relative to previous -->
-                                <div v-if="index < recentLogs.length - 1" class="flex flex-col items-end">
-                                    <div class="flex items-center gap-1">
-                                        <span class="text-[10px] font-black tabular-nums" :class="(history.weight - recentLogs[index + 1].weight) < 0 ? 'text-[#22c55e]' : ((history.weight - recentLogs[index + 1].weight) > 0 ? 'text-[#ef4444]' : 'text-[var(--text-muted)]')">
-                                            {{ (history.weight - recentLogs[index + 1].weight) > 0 ? '+' : '' }}{{ (history.weight - recentLogs[index + 1].weight).toFixed(1) }}
-                                        </span>
-                                        <span v-if="(history.weight - recentLogs[index + 1].weight) !== 0" class="text-[8px]" :class="(history.weight - recentLogs[index + 1].weight) < 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
-                                            {{ (history.weight - recentLogs[index + 1].weight) > 0 ? '▲' : '▼' }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div v-else class="flex flex-col items-end">
-                                    <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Initial</span>
-                                </div>
-
                                 <div class="flex items-baseline gap-0.5 bg-[var(--page-bg)] px-3 py-1.5 rounded-full border border-[var(--border-color)]">
-                                    <span class="text-xs font-black text-[var(--theme-color)] italic tabular-nums">{{ history.weight.toFixed(1) }}</span>
+                                    <span class="text-xs font-black text-[var(--theme-color)] italic tabular-nums">{{ Number(log.weight).toFixed(1) }}</span>
                                     <span class="text-[7px] font-black text-[var(--text-muted)] uppercase">KG</span>
                                 </div>
                             </div>
@@ -663,6 +990,125 @@ watch(() => page.props.flash.status, (newStatus) => {
                 </div>
             </div>
         </div>
+
+        <!-- Full History Modal -->
+        <transition name="modal">
+            <div v-if="isFullHistoryModalOpen" class="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-8 bg-black/80 backdrop-blur-md">
+                <div class="absolute inset-0" @click="isFullHistoryModalOpen = false"></div>
+                
+                <div class="bg-[var(--card-bg)] w-full max-w-2xl md:rounded-[40px] rounded-t-[40px] overflow-hidden shadow-2xl relative animate-in slide-in-from-bottom-full duration-500 h-[85vh] flex flex-col transition-colors border-t border-[var(--border-color)]">
+                    <div class="p-8 border-b border-[var(--border-color)] flex items-center justify-between transition-colors shrink-0">
+                        <div>
+                            <h3 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none transition-colors">Weight Journey</h3>
+                            <p class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mt-3 transition-colors">Detailed Progress Visualization</p>
+                        </div>
+                        <button @click="isFullHistoryModalOpen = false" class="size-12 rounded-full bg-[var(--page-bg)] flex items-center justify-center transition-all active:scale-90 border border-[var(--border-color)]">
+                            <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">close</span>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 overflow-x-auto overflow-y-hidden no-scrollbar p-8 pb-12 cursor-grab active:cursor-grabbing shrink-0">
+                        <div :style="{ width: weeklyGraphData.width + 'px' }" class="h-full relative flex flex-col justify-center">
+                            <div class="h-64 w-full relative">
+                                <svg class="w-full h-full overflow-visible" :viewBox="`0 0 ${weeklyGraphData.width} 200`" preserveAspectRatio="none">
+                                    <!-- Grid Lines -->
+                                    <line v-for="i in 5" :key="i" x1="0" :y1="i * 40" :x2="weeklyGraphData.width" :y2="i * 40" stroke="var(--border-color)" stroke-width="1" class="opacity-10" />
+                                    
+                                    <!-- Path (dashed for missing segments) -->
+                                    <path 
+                                        :d="weeklySvgPath" 
+                                        fill="none" 
+                                        stroke="var(--theme-color)" 
+                                        stroke-width="5" 
+                                        stroke-linecap="round" 
+                                        class="transition-all duration-1000"
+                                    />
+                                    
+                                    <!-- Points -->
+                                    <template v-for="(p, i) in weeklyGraphData.points" :key="i">
+                                        <g v-if="p.hasData" class="transition-all duration-300">
+                                            <text 
+                                                :x="p.x" 
+                                                :y="p.y - 15" 
+                                                text-anchor="middle" 
+                                                class="text-[12px] font-black fill-[var(--text-main)] tracking-tighter"
+                                            >
+                                                {{ p.weight.toFixed(1) }}
+                                            </text>
+                                            <circle 
+                                                :cx="p.x" 
+                                                :cy="p.y" 
+                                                fill="var(--theme-color)" 
+                                                r="7" 
+                                                stroke="var(--card-bg)" 
+                                                stroke-width="4" 
+                                            />
+                                        </g>
+                                        <!-- Placeholder for missing days -->
+                                        <circle v-else :cx="p.x" :cy="p.y" r="2" fill="var(--border-color)" class="opacity-30" />
+                                    </template>
+                                </svg>
+                            </div>
+                            
+                            <!-- Detailed Labels -->
+                            <div class="flex justify-between w-full mt-8 relative h-10">
+                                <div v-for="(p, i) in weeklyGraphData.points" :key="i" class="absolute -translate-x-1/2 flex flex-col items-center gap-1" :style="{ left: p.x + 'px' }">
+                                    <span class="text-[9px] font-black italic text-[var(--text-main)] uppercase whitespace-nowrap">{{ p.label }}</span>
+                                    <span class="text-[7px] font-bold text-[var(--text-muted)] uppercase tracking-tighter whitespace-nowrap">{{ p.dateLabel }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly History Table with Navigation -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar px-8 pb-12 flex flex-col">
+                        <div class="flex items-center justify-between mb-8 sticky top-0 bg-[var(--card-bg)] py-4 z-10">
+                            <button 
+                                @click="currentWeekIndex++" 
+                                :disabled="currentWeekIndex >= historyByWeek.length - 1"
+                                class="size-10 rounded-full bg-[var(--page-bg)] border border-[var(--border-color)] flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none transition-all"
+                            >
+                                <span class="material-symbols-outlined text-lg">chevron_left</span>
+                            </button>
+                            
+                            <div class="text-center">
+                                <h4 class="text-[12px] font-black uppercase text-[var(--text-main)] tracking-widest transition-colors">
+                                    {{ historyByWeek[currentWeekIndex]?.key || 'History' }}
+                                </h4>
+                                <p class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mt-1 transition-colors">Weekly Overview</p>
+                            </div>
+
+                            <button 
+                                @click="currentWeekIndex--" 
+                                :disabled="currentWeekIndex <= 0"
+                                class="size-10 rounded-full bg-[var(--page-bg)] border border-[var(--border-color)] flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none transition-all"
+                            >
+                                <span class="material-symbols-outlined text-lg">chevron_right</span>
+                            </button>
+                        </div>
+
+                        <div v-if="historyByWeek[currentWeekIndex]" class="grid gap-3 mb-8">
+                            <div v-for="entry in historyByWeek[currentWeekIndex].entries" :key="entry.id" 
+                                class="flex items-center justify-between p-5 bg-[var(--page-bg)] rounded-[24px] border border-[var(--border-color)] transition-all hover:border-[var(--theme-color)]/20 active:scale-[0.98]">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-[12px] font-black text-[var(--text-main)] transition-colors">{{ entry.formattedDate }}</span>
+                                    <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase italic transition-colors">{{ entry.formattedTime }}</span>
+                                </div>
+                                <div class="flex items-end gap-1.5">
+                                    <span class="text-xl font-black italic text-[var(--text-main)] leading-none transition-colors">{{ entry.weight.toFixed(1) }}</span>
+                                    <span class="text-[9px] font-black text-[var(--text-muted)] mb-0.5 uppercase tracking-tighter">kg</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="flex-1 flex flex-col items-center justify-center py-20 opacity-20">
+                            <span class="material-symbols-outlined text-6xl">history</span>
+                            <p class="text-[10px] font-black uppercase tracking-widest mt-4">No data for this period</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </MobileLayout>
 </template>
 

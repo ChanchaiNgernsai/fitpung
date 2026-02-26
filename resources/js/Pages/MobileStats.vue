@@ -9,11 +9,50 @@ const { t, currentLanguage } = useI18n();
 const workoutHistory = ref([]);
 const activeTimeframe = ref('week'); // 'week' | 'month' | 'year'
 
-onMounted(() => {
-    const savedHistory = localStorage.getItem('fitpung_workout_history');
-    if (savedHistory) {
-        workoutHistory.value = JSON.parse(savedHistory);
+// Pagination state
+const isLoading = ref(false);
+const currentPage = ref(1);
+const lastPage = ref(1);
+const totalSessions = ref(0);
+
+const fetchWorkoutHistory = async (page = 1) => {
+    if (isLoading.value || (page > 1 && page > lastPage.value)) return;
+    
+    isLoading.value = true;
+    try {
+        const response = await fetch(`/api/workout-sessions?page=${page}`);
+        const data = await response.json();
+        
+        if (page === 1) {
+            workoutHistory.value = data.data;
+        } else {
+            workoutHistory.value = [...workoutHistory.value, ...data.data];
+        }
+        
+        currentPage.value = data.current_page;
+        lastPage.value = data.last_page;
+        totalSessions.value = data.total;
+
+        // Sync with localStorage for other components that might still use it
+        localStorage.setItem('fitpung_workout_history', JSON.stringify(workoutHistory.value));
+    } catch (error) {
+        console.error('Failed to fetch workout history:', error);
+    } finally {
+        isLoading.value = false;
     }
+};
+
+const handleScroll = (e) => {
+    const element = e.target;
+    if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
+        if (!isLoading.value && currentPage.value < lastPage.value) {
+            fetchWorkoutHistory(currentPage.value + 1);
+        }
+    }
+};
+
+onMounted(() => {
+    fetchWorkoutHistory();
 });
 
 const categorizeExercise = (name) => {
@@ -55,27 +94,27 @@ const periods = computed(() => {
 
 const filteredHistory = computed(() => {
     const { cutoff } = periods.value;
-    return workoutHistory.value.filter(entry => new Date(entry.id) >= cutoff);
+    return workoutHistory.value.filter(entry => new Date(entry.workout_date) >= cutoff);
 });
 
 const prevFilteredHistory = computed(() => {
     const { cutoff, prevCutoff } = periods.value;
     return workoutHistory.value.filter(entry => {
-        const d = new Date(entry.id);
+        const d = new Date(entry.workout_date);
         return d >= prevCutoff && d < cutoff;
     });
 });
 
 const calculateStats = (history) => {
-    const uniqueDays = new Set(history.map(entry => new Date(entry.id).toDateString())).size;
-    const totalSets = history.reduce((sum, entry) => sum + (entry.sets || 0), 0);
+    const uniqueDays = new Set(history.map(entry => new Date(entry.workout_date).toDateString())).size;
+    const totalSets = history.reduce((sum, entry) => sum + (entry.data?.sets || 0), 0);
     const totalHours = (totalSets * 2.5 / 60).toFixed(1);
     
     // Category Breakdown
     const categories = { Push: 0, Pull: 0, Legs: 0, Core: 0, Cardio: 0, Other: 0 };
     history.forEach(entry => {
-        if (entry.exercises) {
-            entry.exercises.forEach(ex => {
+        if (entry.data?.exercises) {
+            entry.data.exercises.forEach(ex => {
                 const cat = categorizeExercise(ex.name);
                 if (categories[cat] !== undefined) {
                     categories[cat] += (ex.sets?.length || 0);
@@ -131,7 +170,7 @@ const graphPoints = computed(() => {
         const counts = Array(7).fill(0);
         
         history.forEach(entry => {
-            const entryDate = new Date(entry.id);
+            const entryDate = new Date(entry.workout_date);
             const diffDays = Math.floor((now - entryDate) / (1000 * 60 * 60 * 24));
             if (diffDays < 7) {
                 const dayIndex = entryDate.getDay();
@@ -154,7 +193,7 @@ const graphPoints = computed(() => {
         // Show last 4 weeks
         const weekCounts = [0, 0, 0, 0];
         history.forEach(entry => {
-            const entryDate = new Date(entry.id);
+            const entryDate = new Date(entry.workout_date);
             const diffDays = Math.floor((now - entryDate) / (1000 * 60 * 60 * 24));
             const weekIdx = Math.floor(diffDays / 7);
             if (weekIdx >= 0 && weekIdx < 4) {
@@ -180,7 +219,7 @@ const graphPoints = computed(() => {
             labels.push(months[d.getMonth()]);
             
             history.forEach(entry => {
-                const entryDate = new Date(entry.id);
+                const entryDate = new Date(entry.workout_date);
                 if (entryDate.getMonth() === d.getMonth() && entryDate.getFullYear() === d.getFullYear()) {
                     monthCounts[5 - i]++;
                 }
@@ -212,45 +251,83 @@ const svgPath = computed(() => {
     return d;
 });
 
-// Daily Breakdown Section
+// Daily Breakdown Section (Updated for backend sessions)
 const dailyHistory = computed(() => {
-    const now = new Date();
-    const history = workoutHistory.value;
     const days = [];
-    
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const thaiDays = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
     
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(now.getDate() - i);
-        const dateStr = d.toDateString();
+    // Use workoutHistory directly since it's already sorted by workout_date desc from backend
+    // We want to show a continuous list of 20 days starting from today,
+    // but the user wants "เลื่อนทีละ 20 วัน เรียงล่าสุดอยู่บนสุด"
+    // So we'll generate the days based on the earliest date in our current workoutHistory
+    // or just a fixed window. Let's follow the requirement: Recent on top, paginated by 20.
+    
+    // Instead of fixed 7 days, we'll show all downloaded sessions + gaps
+    if (workoutHistory.value.length === 0) return [];
+
+    const now = new Date();
+    const history = workoutHistory.value;
+    
+    // Get the range of dates we have
+    const latestDate = new Date(history[0].workout_date);
+    const earliestDate = new Date(history[history.length - 1].workout_date);
+    
+    // We want to show a 20-day window per "page" of real time
+    // But since the user wants infinite scroll, we just keep adding days.
+    
+    // Let's generate a list of days from Today down to the earliest date we've loaded
+    const daysList = [];
+    let currentDate = new Date(now);
+    currentDate.setHours(0, 0, 0, 0);
+    
+    const targetEndDate = new Date(earliestDate);
+    targetEndDate.setHours(0, 0, 0, 0);
+
+    while (currentDate >= targetEndDate) {
+        // Use local date formatting (YYYY-MM-DD) to match backend date cast
+        const y = currentDate.getFullYear();
+        const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const d = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
         
-        const sessions = history.filter(entry => new Date(entry.id).toDateString() === dateStr);
+        const sessions = history.filter(entry => {
+            // entry.workout_date might be a string "YYYY-MM-DD" or a more complex string
+            // depending on the API response. Let's ensure we match correctly.
+            const entryDateStr = entry.workout_date.includes('T') 
+                ? entry.workout_date.split('T')[0] 
+                : entry.workout_date;
+            return entryDateStr === dateStr;
+        });
+        
         const categories = new Set();
         let totalSets = 0;
         
         sessions.forEach(session => {
-            totalSets += session.sets || 0;
-            if (session.exercises) {
-                session.exercises.forEach(ex => {
+            const sessionData = session.data;
+            totalSets += sessionData.sets || 0;
+            if (sessionData.exercises) {
+                sessionData.exercises.forEach(ex => {
                     categories.add(categorizeExercise(ex.name));
                 });
             }
         });
-        
-        days.push({
-            date: d,
-            label: dayNames[d.getDay()],
-            thaiLabel: thaiDays[d.getDay()],
-            isToday: i === 0,
+
+        daysList.push({
+            date: new Date(currentDate),
+            label: dayNames[currentDate.getDay()],
+            thaiLabel: thaiDays[currentDate.getDay()],
+            isToday: currentDate.toDateString() === now.toDateString(),
             categories: Array.from(categories),
             sets: totalSets,
-            hasData: sessions.length > 0
+            hasData: sessions.length > 0,
+            originalSessions: sessions // Store actual session objects for the modal
         });
+
+        currentDate.setDate(currentDate.getDate() - 1);
     }
-    
-    return days;
+
+    return daysList;
 });
 
 const viewMode = ref('list'); // 'list' | 'calendar'
@@ -293,7 +370,7 @@ const calendarDays = computed(() => {
     
     return days.map(day => {
         const dateStr = day.date.toDateString();
-        const sessions = workoutHistory.value.filter(entry => new Date(entry.id).toDateString() === dateStr);
+        const sessions = workoutHistory.value.filter(entry => new Date(entry.workout_date).toDateString() === dateStr);
         let totalSets = 0;
         const categories = new Set();
         
@@ -329,12 +406,13 @@ const isDetailModalOpen = ref(false);
 const selectedDate = ref(null);
 const selectedDateSessions = ref([]);
 
-const showWorkoutDetails = (date) => {
-    selectedDate.value = date;
-    const dateStr = date.toDateString();
-    selectedDateSessions.value = workoutHistory.value.filter(entry => 
-        new Date(entry.id).toDateString() === dateStr
-    );
+const showWorkoutDetails = (day) => {
+    selectedDate.value = day.date;
+    selectedDateSessions.value = day.originalSessions.map(s => ({
+        ...s.data,
+        id: s.id,
+        workout_date: s.workout_date
+    }));
     
     if (selectedDateSessions.value.length > 0) {
         isDetailModalOpen.value = true;
@@ -479,9 +557,12 @@ const formatDateLocal = (date) => {
                         >{{ t('stats.calendar') }}</button>
                     </div>
                 </div>
-                <div v-if="viewMode === 'list'" class="space-y-3">
-                    <div v-for="day in dailyHistory" :key="day.label" 
-                        @click="day.hasData && showWorkoutDetails(day.date)"
+                <div v-if="viewMode === 'list'" 
+                    class="space-y-3 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar"
+                    @scroll="handleScroll"
+                >
+                    <div v-for="day in dailyHistory" :key="day.date.getTime()" 
+                        @click="day.hasData && showWorkoutDetails(day)"
                         class="bg-[var(--card-bg)] p-4 rounded-[24px] border border-[var(--border-color)] flex items-center justify-between shadow-sm transition-colors cursor-pointer active:scale-[0.98]"
                         :class="[
                             {'border-[var(--theme-color)]/30 ring-1 ring-[var(--theme-color)]/10': day.isToday},
@@ -511,6 +592,11 @@ const formatDateLocal = (date) => {
                             <p class="text-base font-black text-[var(--text-main)] leading-none transition-colors">{{ day.sets }}</p>
                             <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">{{ t('stats.sets') }}</p>
                         </div>
+                    </div>
+                    
+                    <!-- Loading Indicator -->
+                    <div v-if="isLoading" class="flex justify-center py-4">
+                        <div class="size-6 border-2 border-[var(--theme-color)] border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 </div>
 

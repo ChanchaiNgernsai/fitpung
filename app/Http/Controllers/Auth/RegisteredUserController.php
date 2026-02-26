@@ -50,6 +50,13 @@ class RegisteredUserController extends Controller
             'goal' => $request->goal,
         ]);
 
+        // Log initial weight history if provided
+        if ($user->weight) {
+            $user->weightHistories()->create([
+                'weight' => $user->weight,
+            ]);
+        }
+
         event(new Registered($user));
 
         Auth::login($user);
