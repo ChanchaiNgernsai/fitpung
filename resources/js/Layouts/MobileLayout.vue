@@ -1,6 +1,9 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from '@/language';
+
+const { t } = useI18n();
 
 const page = usePage();
 const currentRoute = computed(() => page.props.ziggy.location);
@@ -23,11 +26,11 @@ const applyDarkMode = (dark) => {
 };
 
 const navItems = [
-    { name: 'Home', routeName: 'mobile.home', icon: 'home', pattern: /mobile$/ },
-    { name: 'Maps', routeName: 'mobile.maps', icon: 'map', pattern: /(\/mobile\/maps|\/gyms\/.*\/white-map)/ },
-    { name: 'Workout', routeName: 'mobile.workout', icon: 'fitness_center', pattern: /mobile\/workout/ },
-    { name: 'Stats', routeName: 'mobile.stats', icon: 'analytics', pattern: /mobile\/stats/ },
-    { name: 'Profile', routeName: 'mobile.profile', icon: 'person', pattern: /mobile\/profile/ },
+    { name: 'nav.home', routeName: 'mobile.home', icon: 'home', pattern: /mobile$/ },
+    { name: 'nav.maps', routeName: 'mobile.maps', icon: 'map', pattern: /(\/mobile\/maps|\/gyms\/.*\/white-map)/ },
+    { name: 'nav.workout', routeName: 'mobile.workout', icon: 'fitness_center', pattern: /mobile\/workout/ },
+    { name: 'nav.stats', routeName: 'mobile.stats', icon: 'analytics', pattern: /mobile\/stats/ },
+    { name: 'nav.profile', routeName: 'mobile.profile', icon: 'person', pattern: /mobile\/profile/ },
 ];
 
 const isActive = (item) => {
@@ -100,8 +103,8 @@ onMounted(() => {
                     <span class="material-symbols-outlined" :class="{ 'fill-icon': isActive(item) }">
                         {{ item.icon }}
                     </span>
-                    <span class="text-[9px] font-black uppercase tracking-widest leading-none">
-                        {{ item.name }}
+                    <span class="text-[10px] font-black uppercase tracking-tight leading-none text-center">
+                        {{ t(item.name) }}
                     </span>
                 </Link>
             </nav>

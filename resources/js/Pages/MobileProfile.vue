@@ -2,6 +2,9 @@
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
 import { computed, onMounted, ref, watch, nextTick } from 'vue';
+import { useI18n } from '@/language';
+
+const { t, currentLanguage, toggleLanguage } = useI18n();
 
 const props = defineProps({
     weightHistories: {
@@ -102,7 +105,7 @@ const graphPoints = computed(() => {
             x,
             y,
             weight: h.weight,
-            label: isLatest ? 'ปัจจุบัน' : date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+            label: isLatest ? t('common.present') : date.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }),
             active: true
         };
     });
@@ -286,8 +289,15 @@ watch(() => page.props.flash.status, (newStatus) => {
             <button @click="goBack" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-colors">
                 <span class="material-symbols-outlined text-[var(--text-main)] font-bold">arrow_back</span>
             </button>
-            <h1 class="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] transition-colors">Account Profile</h1>
+            <h1 class="text-[11px] font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">{{ t('profile.title') }}</h1>
             <div class="flex items-center gap-2">
+                <!-- Language Toggle -->
+                <button @click="toggleLanguage" class="px-3 h-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-all active:scale-90 gap-1.5 focus:outline-none">
+                    <span class="text-[10px] font-black transition-colors" :class="currentLanguage === 'TH' ? 'text-[var(--theme-color)]' : 'text-[var(--text-muted)]'">TH</span>
+                    <div class="w-[1px] h-3 bg-[var(--border-color)]"></div>
+                    <span class="text-[10px] font-black transition-colors" :class="currentLanguage === 'EN' ? 'text-[var(--theme-color)]' : 'text-[var(--text-muted)]'">EN</span>
+                </button>
+
                 <button @click="toggleDarkMode" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-all active:scale-90">
                     <span class="material-symbols-outlined text-[var(--text-main)] font-bold text-xl">
                         {{ isDarkMode ? 'light_mode' : 'dark_mode' }}
@@ -315,11 +325,11 @@ watch(() => page.props.flash.status, (newStatus) => {
                 </div>
                 <div class="text-center mb-8">
                     <h2 class="text-3xl font-black italic uppercase tracking-tighter text-[var(--text-main)] leading-none transition-colors">{{ user.name || 'User' }}</h2>
-                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)] mt-3">Elite Athlete • Level 42</p>
+                    <p class="text-[10px] font-black uppercase tracking-wider text-[var(--theme-color)] mt-3">Elite Athlete • Level 42</p>
                 </div>
 
-                <button @click="openEditModal" class="w-full py-5 bg-[var(--theme-color)] text-white font-black italic uppercase tracking-widest rounded-[24px] shadow-xl shadow-[var(--theme-color)]/30 active:scale-95 transition-all mb-10">
-                    Edit Profile
+                <button @click="openEditModal" class="w-full py-5 bg-[var(--theme-color)] text-white font-black italic uppercase tracking-normal rounded-[24px] shadow-xl shadow-[var(--theme-color)]/30 active:scale-95 transition-all mb-10 text-base">
+                    {{ t('profile.edit') }}
                 </button>
             </div>
 
@@ -329,7 +339,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                 <div class="grid grid-cols-3 gap-3">
                     <!-- Weight Card -->
                     <div class="bg-[var(--card-bg)] p-4 rounded-[32px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center relative h-[140px] transition-colors">
-                        <span class="absolute top-4 text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Weight</span>
+                        <span class="absolute top-4 text-[8px] font-black uppercase tracking-wider text-[var(--text-muted)]">{{ t('profile.weight') }}</span>
                         <div class="flex flex-col items-center mt-2 relative">
                             <div class="flex items-baseline gap-0.5">
                                 <span class="text-2xl font-black text-[var(--theme-color)] italic leading-none">{{ Number(user.weight).toFixed(1) }}</span>
@@ -354,7 +364,7 @@ watch(() => page.props.flash.status, (newStatus) => {
 
                     <!-- Height Section -->
                     <div class="bg-[var(--card-bg)] p-4 rounded-[32px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center relative h-[140px] transition-colors">
-                        <span class="absolute top-4 text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Height</span>
+                        <span class="absolute top-4 text-[8px] font-black uppercase tracking-wider text-[var(--text-muted)]">{{ t('profile.height') }}</span>
                         <div class="flex flex-col items-center mt-2">
                             <div class="flex items-baseline gap-0.5">
                                 <span class="text-2xl font-black text-[var(--text-main)] italic leading-none">{{ user.height || 0 }}</span>
@@ -365,9 +375,9 @@ watch(() => page.props.flash.status, (newStatus) => {
 
                     <!-- Goal Section -->
                     <div class="bg-[var(--card-bg)] p-4 rounded-[32px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center relative h-[140px] transition-colors">
-                        <span class="absolute top-4 text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Goal</span>
+                        <span class="absolute top-4 text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">{{ t('profile.goal') }}</span>
                         <div class="flex flex-col items-center mt-2">
-                            <span class="text-[11px] font-black text-[var(--text-main)] uppercase leading-tight tracking-tighter h-8 flex items-center justify-center">{{ user.goal || 'No Goal' }}</span>
+                        <span class="text-[13px] font-black text-[var(--text-main)] uppercase leading-tight tracking-tighter h-8 flex items-center justify-center">{{ user.goal || 'No Goal' }}</span>
                         </div>
                     </div>
                 </div>
@@ -376,9 +386,9 @@ watch(() => page.props.flash.status, (newStatus) => {
             <!-- Weight Trends Graph -->
             <section class="px-6 py-4" v-if="graphPoints.length > 0">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] transition-colors">Weight Trends</h3>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">Weight Trends</h3>
                     <div v-if="totalChange" class="flex items-center gap-2">
-                        <span class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">Total Change</span>
+                        <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">Total Change</span>
                         <div class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)]">
                             <span :class="totalChange.isDecrease ? 'text-green-500' : (totalChange.isIncrease ? 'text-red-500' : 'text-[var(--text-muted)]')" class="text-[10px] font-black tabular-nums transition-colors">
                                 {{ totalChange.isIncrease ? '+' : (totalChange.isDecrease ? '-' : '') }}{{ totalChange.value }}
@@ -430,7 +440,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                         </svg>
                     </div>
                     <!-- Labels -->
-                    <div class="flex justify-between px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
+                    <div class="flex justify-between px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">
                         <span v-for="(p, i) in graphPoints" :key="i">{{ p.label }}</span>
                     </div>
                 </div>

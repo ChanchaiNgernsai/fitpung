@@ -2,6 +2,9 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
 import { ref, onMounted } from 'vue';
+import { useI18n } from '@/language';
+
+const { t } = useI18n();
 
 const colors = [
     { name: 'FitPung Orange', hex: '#ec5b13' },
@@ -60,8 +63,8 @@ const saveChanges = () => {
                         <span class="material-symbols-outlined text-white text-xl">check_circle</span>
                     </div>
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Success</p>
-                        <p class="text-[11px] font-medium opacity-80 transition-colors">Theme updated successfully</p>
+                        <p class="text-xs font-black uppercase tracking-widest leading-none mb-1">Success</p>
+                        <p class="text-xs font-medium opacity-80 transition-colors">Theme updated successfully</p>
                     </div>
                 </div>
             </div>
@@ -72,18 +75,18 @@ const saveChanges = () => {
             <Link :href="route('mobile.profile')" class="size-10 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] flex items-center justify-center transition-colors">
                 <span class="material-symbols-outlined text-[var(--text-muted)] transition-colors">arrow_back</span>
             </Link>
-            <h1 class="text-xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none mt-1 transition-colors">Settings</h1>
+            <h1 class="text-xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none mt-1 transition-colors">{{ t('settings.title') }}</h1>
         </header>
 
         <div class="px-6 py-4">
             <section class="mb-10 transition-colors">
                 <div class="flex items-center gap-2 mb-6">
                     <span class="material-symbols-outlined text-[var(--theme-color)]">palette</span>
-                    <h2 class="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Theme Customization</h2>
+                    <h2 class="text-sm font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">{{ t('settings.appearance') }}</h2>
                 </div>
 
                 <div class="bg-[var(--card-bg)] rounded-[24px] p-8 border border-[var(--border-color)] shadow-sm transition-colors">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-6 text-center transition-colors">Select Accent Color</p>
+                    <p class="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-6 text-center transition-colors">Select Accent Color</p>
                     
                     <div class="grid grid-cols-3 gap-6">
                         <button v-for="color in colors" :key="color.hex"
@@ -96,7 +99,7 @@ const saveChanges = () => {
                             >
                                 <span v-if="selectedColor === color.hex" class="material-symbols-outlined text-white text-xl">check</span>
                             </div>
-                            <span class="text-[8px] font-black uppercase tracking-tighter text-[var(--text-muted)] text-center transition-colors">{{ color.name }}</span>
+                            <span class="text-[10px] font-black uppercase tracking-tighter text-[var(--text-muted)] text-center transition-colors">{{ color.name }}</span>
                         </button>
                     </div>
 

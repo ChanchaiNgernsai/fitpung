@@ -2,6 +2,9 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from '@/language';
+
+const { t, currentLanguage } = useI18n();
 
 const workoutHistory = ref([]);
 const activeTimeframe = ref('week'); // 'week' | 'month' | 'year'
@@ -252,10 +255,18 @@ const dailyHistory = computed(() => {
 
 const viewMode = ref('list'); // 'list' | 'calendar'
 const currentMonth = ref(new Date());
-const thaiMonths = [
+
+const monthNamesEN = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const monthNamesTH = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
     'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
 ];
+
+const thaiMonths = monthNamesTH; // For backward compatibility if any
 
 const calendarDays = computed(() => {
     const year = currentMonth.value.getFullYear();
@@ -330,13 +341,17 @@ const showWorkoutDetails = (date) => {
     }
 };
 
-const formatDateThai = (date) => {
+const formatDateLocal = (date) => {
     if (!date) return '';
-    const day = date.getDate();
-    const month = thaiMonths[date.getMonth()];
-    const year = date.getFullYear() + 543;
-    const thaiDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-    return `วัน${thaiDayNames[date.getDay()]}ที่ ${day} ${month} พ.ศ. ${year}`;
+    if (currentLanguage.value === 'TH') {
+        const day = date.getDate();
+        const month = monthNamesTH[date.getMonth()];
+        const year = date.getFullYear() + 543;
+        const thaiDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+        return `วัน${thaiDayNames[date.getDay()]}ที่ ${day} ${month} พ.ศ. ${year}`;
+    } else {
+        return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
 };
 </script>
 
@@ -346,8 +361,8 @@ const formatDateThai = (date) => {
 
         <header class="flex items-center justify-between px-6 pt-8 pb-4 transition-colors">
             <div class="flex flex-col">
-                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)]">FitPung Elite</span>
-                <h1 class="text-3xl font-black tracking-tighter uppercase italic text-[var(--text-main)] leading-none mt-1 transition-colors">Performance</h1>
+                <span class="text-sm font-black uppercase tracking-tight text-[var(--theme-color)]">{{ t('home.elite') }}</span>
+                <h1 class="text-3xl font-black tracking-tighter uppercase italic text-[var(--text-main)] leading-none mt-1 transition-colors">{{ t('stats.title') }}</h1>
             </div>
             <div class="relative">
                 <div class="size-10 rounded-full border-2 border-[var(--theme-color)] p-0.5">
@@ -363,50 +378,47 @@ const formatDateThai = (date) => {
                 <button 
                     @click="activeTimeframe = 'week'"
                     :class="[
-                        'flex-1 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all',
+                        'flex-1 py-2 text-xs font-black rounded-xl uppercase tracking-widest transition-all',
                         activeTimeframe === 'week' ? 'bg-[var(--card-bg)] shadow-sm text-[var(--text-main)]' : 'text-[var(--text-muted)]'
                     ]"
-                >Week</button>
+                >{{ t('stats.week') }}</button>
                 <button 
                     @click="activeTimeframe = 'month'"
                     :class="[
-                        'flex-1 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all',
+                        'flex-1 py-2 text-xs font-black rounded-xl uppercase tracking-widest transition-all',
                         activeTimeframe === 'month' ? 'bg-[var(--card-bg)] shadow-sm text-[var(--text-main)]' : 'text-[var(--text-muted)]'
                     ]"
-                >Month</button>
+                >{{ t('stats.month') }}</button>
                 <button 
                     @click="activeTimeframe = 'year'"
                     :class="[
-                        'flex-1 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all',
+                        'flex-1 py-2 text-xs font-black rounded-xl uppercase tracking-widest transition-all',
                         activeTimeframe === 'year' ? 'bg-[var(--card-bg)] shadow-sm text-[var(--text-main)]' : 'text-[var(--text-muted)]'
                     ]"
-                >Year</button>
+                >{{ t('stats.year') }}</button>
             </div>
 
             <!-- Stats Grid -->
             <div class="grid grid-cols-3 gap-3 mt-6">
                 <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors">
-                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 transition-colors">Workout Days</span>
+                    <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-1 transition-colors text-center leading-tight">{{ t('stats.workout_days') }}</span>
                     <span class="text-2xl font-black text-[var(--theme-color)] italic leading-none">{{ stats.days }}</span>
-                    <span class="text-[9px] font-bold text-[var(--text-muted)] mt-1 transition-colors">วันที่มาเล่น</span>
                 </div>
-                <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors">
-                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 transition-colors">Total Sets</span>
+                <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors text-center">
+                    <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-1 transition-colors leading-tight">{{ t('stats.total_sets') }}</span>
                     <span class="text-2xl font-black text-[var(--text-main)] italic leading-none transition-colors">{{ stats.sets }}</span>
-                    <span class="text-[9px] font-bold text-[var(--text-muted)] mt-1 transition-colors">เซ็ตทั้งหมด</span>
                 </div>
-                <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors">
-                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 transition-colors">Active Time</span>
+                <div class="flex flex-col items-center justify-center p-4 bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-colors text-center">
+                    <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-1 transition-colors leading-tight">{{ t('stats.active_time') }}</span>
                     <span class="text-2xl font-black text-[var(--text-main)] italic leading-none transition-colors">{{ stats.hours }}</span>
-                    <span class="text-[9px] font-bold text-[var(--text-muted)] mt-1 transition-colors">ชั่วโมง (โดยประมาณ)</span>
                 </div>
             </div>
 
             <!-- Chart Section -->
             <div class="mt-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Consistency (ความสม่ำเสมอ)</h2>
-                    <span class="text-[10px] font-bold text-[var(--theme-color)] uppercase">Avg {{ (stats.sets / 4).toFixed(1) }}/wk</span>
+                    <h2 class="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">{{ t('stats.consistency') }}</h2>
+                    <span class="text-xs font-bold text-[var(--theme-color)] uppercase">{{ t('stats.avg') }} {{ (stats.sets / 4).toFixed(1) }}/{{ t('stats.wk') }}</span>
                 </div>
                 <div class="bg-[var(--card-bg)] rounded-[32px] p-6 border border-[var(--border-color)] shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-colors">
                     <div class="relative h-40 w-full mb-4">
@@ -441,7 +453,7 @@ const formatDateThai = (date) => {
                         </svg>
                     </div>
                     <!-- X-Axis Labels -->
-                    <div class="flex justify-between px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
+                    <div class="flex justify-between px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">
                         <span v-for="(p, i) in graphPoints" :key="i" class="transition-colors">{{ p.label }}</span>
                     </div>
                 </div>
@@ -449,22 +461,22 @@ const formatDateThai = (date) => {
 
             <div class="mt-8 mb-10">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Daily Split (ส่วนที่เล่นรายวัน)</h2>
+                    <h2 class="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">{{ t('stats.daily_split') }}</h2>
                     <div class="flex p-1 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)]">
                         <button 
                             @click="viewMode = 'list'"
                             :class="[
-                                'px-3 py-1 text-[8px] font-black uppercase rounded-lg transition-all',
+                                'px-3 py-1 text-xs font-black uppercase rounded-lg transition-all',
                                 viewMode === 'list' ? 'bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)]'
                             ]"
-                        >List</button>
+                        >{{ t('stats.list') }}</button>
                         <button 
                             @click="viewMode = 'calendar'"
                             :class="[
-                                'px-3 py-1 text-[8px] font-black uppercase rounded-lg transition-all',
+                                'px-3 py-1 text-xs font-black uppercase rounded-lg transition-all',
                                 viewMode === 'calendar' ? 'bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)]'
                             ]"
-                        >Calendar</button>
+                        >{{ t('stats.calendar') }}</button>
                     </div>
                 </div>
                 <div v-if="viewMode === 'list'" class="space-y-3">
@@ -484,20 +496,20 @@ const formatDateThai = (date) => {
                                 <span class="text-sm font-black italic leading-none">{{ day.date.getDate() }}</span>
                             </div>
                             <div>
-                                <h4 class="text-[10px] font-black uppercase text-[var(--text-main)] tracking-widest leading-none mb-2 transition-colors">
-                                    {{ day.thaiLabel }} {{ day.isToday ? '(วันนี้)' : '' }}
-                                </h4>
+                                <span class="text-xs font-black uppercase text-[var(--text-main)] tracking-wider leading-none mb-2 transition-colors">
+                                    {{ currentLanguage === 'TH' ? day.thaiLabel : day.label }} {{ day.isToday ? '(' + t('common.today') + ')' : '' }}
+                                </span>
                                 <div class="flex flex-wrap gap-1.5" v-if="day.hasData">
                                     <span v-for="cat in day.categories" :key="cat" 
-                                        class="px-2 py-1 bg-[var(--page-bg)] text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] rounded-lg border border-[var(--border-color)] transition-colors"
+                                        class="px-2 py-1 bg-[var(--page-bg)] text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] rounded-lg border border-[var(--border-color)] transition-colors"
                                     >{{ cat }}</span>
                                 </div>
-                                <span v-else class="text-[9px] font-bold text-[var(--text-muted)]/50 uppercase tracking-widest italic transition-colors">No Workout</span>
+                                <span v-else class="text-xs font-bold text-[var(--text-muted)]/50 uppercase tracking-widest italic transition-colors">{{ t('stats.no_workout') }}</span>
                             </div>
                         </div>
                         <div v-if="day.hasData" class="text-right">
-                            <p class="text-sm font-black text-[var(--text-main)] leading-none transition-colors">{{ day.sets }}</p>
-                            <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">Sets</p>
+                            <p class="text-base font-black text-[var(--text-main)] leading-none transition-colors">{{ day.sets }}</p>
+                            <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">{{ t('stats.sets') }}</p>
                         </div>
                     </div>
                 </div>
@@ -511,10 +523,10 @@ const formatDateThai = (date) => {
                             </svg>
                         </button>
                         <div class="text-center">
-                            <h3 class="text-sm font-black uppercase tracking-widest text-[var(--text-main)] leading-none">
-                                {{ thaiMonths[currentMonth.getMonth()] }}
+                            <h3 class="text-base font-black uppercase tracking-wider text-[var(--text-main)] leading-none">
+                                {{ currentLanguage === 'TH' ? monthNamesTH[currentMonth.getMonth()] : monthNamesEN[currentMonth.getMonth()] }}
                             </h3>
-                            <span class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">{{ currentMonth.getFullYear() }}</span>
+                            <span class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-tight">{{ currentLanguage === 'TH' ? currentMonth.getFullYear() + 543 : currentMonth.getFullYear() }}</span>
                         </div>
                         <button @click="nextMonth" class="p-2 hover:bg-[var(--page-bg)] rounded-xl transition-colors">
                             <svg class="w-4 h-4 text-[var(--text-main)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -525,8 +537,8 @@ const formatDateThai = (date) => {
 
                     <!-- Weekdays -->
                     <div class="grid grid-cols-7 mb-4 px-1">
-                        <span v-for="d in ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']" :key="d" 
-                            class="text-[8px] font-black text-center text-[var(--text-muted)] uppercase tracking-widest"
+                        <span v-for="d in (currentLanguage === 'TH' ? ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])" :key="d" 
+                            class="text-[9px] font-black text-center text-[var(--text-muted)] uppercase tracking-wider"
                         >{{ d }}</span>
                     </div>
 
@@ -564,9 +576,9 @@ const formatDateThai = (date) => {
                 <div class="p-8">
                     <div class="flex items-center justify-between mb-6">
                         <div>
-                            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)]">Workout Details</span>
+                            <span class="text-xs font-black uppercase tracking-wider text-[var(--theme-color)]">{{ t('stats.details') }}</span>
                             <h2 class="text-xl font-black text-[var(--text-main)] italic uppercase mt-1">
-                                {{ formatDateThai(selectedDate) }}
+                                {{ formatDateLocal(selectedDate) }}
                             </h2>
                         </div>
                         <button @click="isDetailModalOpen = false" class="size-10 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] active:scale-95 transition-all">
@@ -596,16 +608,16 @@ const formatDateThai = (date) => {
                                             <span class="size-5 rounded-md bg-[var(--theme-color)] text-[10px] font-black text-white flex items-center justify-center italic">
                                                 {{ setIdx + 1 }}
                                             </span>
-                                            <span class="text-[10px] font-bold text-[var(--text-muted)]">Set {{ setIdx + 1 }}</span>
+                                            <span class="text-xs font-bold text-[var(--text-muted)]">{{ t('stats.sets') }} {{ setIdx + 1 }}</span>
                                         </div>
                                         <div class="flex gap-4">
                                             <div class="text-right">
-                                                <p class="text-[11px] font-black text-[var(--text-main)] leading-none italic">{{ set.weight }} KG</p>
-                                                <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Weight</p>
+                                                <p class="text-xs font-black text-[var(--text-main)] leading-none italic">{{ set.weight }} {{ t('common.kg') }}</p>
+                                                <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">{{ t('stats.weight') }}</p>
                                             </div>
                                             <div class="text-right">
-                                                <p class="text-[11px] font-black text-[var(--text-main)] leading-none italic">{{ set.reps }}</p>
-                                                <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Reps</p>
+                                                <p class="text-xs font-black text-[var(--text-main)] leading-none italic">{{ set.reps }}</p>
+                                                <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">{{ t('stats.reps') }}</p>
                                             </div>
                                         </div>
                                     </div>

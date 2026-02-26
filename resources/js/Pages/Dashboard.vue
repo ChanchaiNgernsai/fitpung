@@ -2,6 +2,9 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useI18n } from '@/language';
+
+const { t } = useI18n();
 
 defineProps({
     layouts: Array
@@ -337,11 +340,11 @@ const formatImageUrl = (path) => {
             <div class="relative flex items-center justify-center py-2 h-10 w-full px-4">
                 <!-- Title Centered -->
                 <h2 class="text-3xl font-bold leading-tight text-base-content absolute left-1/2 -translate-x-1/2">
-                    My Gym Designs
+                    {{ t('dashboard.title') }}
                 </h2>
                 <!-- Button Right Aligned -->
                 <Link :href="route('gym-builder.create')" class="btn btn-primary btn-sm ml-auto absolute right-0">
-                    + New Design
+                    + {{ t('dashboard.create_new') }}
                 </Link>
             </div>
         </template>
@@ -400,7 +403,7 @@ const formatImageUrl = (path) => {
                         <!-- Card Info Section -->
                         <div class="p-8 pt-6 flex flex-col flex-1 items-center bg-gradient-to-b from-transparent to-base-200/30">
                             <h2 class="text-2xl font-black italic uppercase text-base-content tracking-tighter mb-1">{{ layout.name }}</h2>
-                            <p class="text-[10px] uppercase font-bold tracking-[0.25em] opacity-40 mb-8">Ref: {{ new Date(layout.updated_at).toLocaleDateString() }}</p>
+                            <p class="text-xs uppercase font-bold opacity-40 mb-8">Ref: {{ new Date(layout.updated_at).toLocaleDateString() }}</p>
                             
                             <!-- Action Buttons Row -->
                             <div class="flex items-center justify-center gap-4 w-full border-t border-base-content/5 pt-8">
@@ -412,8 +415,8 @@ const formatImageUrl = (path) => {
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 </button>
                                 
-                                <Link :href="route('gym-builder.edit', layout.id)" class="btn btn-primary btn-md px-10 rounded-2xl font-black italic uppercase tracking-widest shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all duration-300">
-                                    Edit
+                                <Link :href="route('gym-builder.edit', layout.id)" class="btn btn-primary btn-md px-10 rounded-2xl font-black italic uppercase shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all duration-300">
+                                    {{ t('dashboard.edit_gym') }}
                                 </Link>
                                 
                                 <button @click="deleteLayout(layout.id)" class="btn btn-circle btn-ghost btn-sm bg-error/5 text-error hover:bg-red-500 hover:text-white border-none transition-all duration-300" title="Destroy Design">

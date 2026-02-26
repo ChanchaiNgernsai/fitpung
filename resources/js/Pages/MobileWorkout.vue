@@ -2,7 +2,10 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from '@/language';
 import axios from 'axios';
+
+const { t } = useI18n();
 
 const props = defineProps({
     gyms: { type: Array, default: () => [] }
@@ -385,8 +388,8 @@ const mergedHistory = computed(() => {
         <!-- Mode Selection View -->
         <div v-if="!mode && !isWorkoutSessionActive" class="min-h-full bg-[var(--page-bg)] p-6 flex flex-col items-center justify-center space-y-6 transition-colors">
             <div class="text-center mb-8">
-                 <h1 class="text-3xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none mt-1 transition-colors">Choose Mode</h1>
-                 <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mt-2 transition-colors">Select how you want to train today</p>
+                  <h1 class="text-3xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-[0.85] mt-1 transition-colors">{{ t('workout.choose_mode') }}</h1>
+                  <p class="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider mt-2 transition-colors">{{ t('workout.select_train') }}</p>
             </div>
 
             <!-- Gym Mode Card -->
@@ -395,10 +398,10 @@ const mergedHistory = computed(() => {
                     <span class="material-symbols-outlined text-9xl text-[#00a18c]">map</span>
                 </div>
                 <div class="relative z-10 flex flex-col items-start text-left">
-                    <span class="bg-[#00a18c]/10 text-[#00a18c] px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-4">Interactive</span>
-                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">Gym Workout</h2>
-                    <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
-                        Select a gym, use the map, and follow owner-set programs.
+                    <span class="bg-[#00a18c]/10 text-[#00a18c] px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-4">{{ t('workout.interactive') }}</span>
+                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">{{ t('workout.gym_workout') }}</h2>
+                    <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
+                        {{ t('workout.gym_subtitle') }}
                     </p>
                 </div>
             </button>
@@ -409,10 +412,10 @@ const mergedHistory = computed(() => {
                     <span class="material-symbols-outlined text-9xl text-blue-500">fitness_center</span>
                 </div>
                 <div class="relative z-10 flex flex-col items-start text-left">
-                    <span class="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-4">Manual</span>
-                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">Free Workout</h2>
-                    <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
-                        Choose exercises manually and track your own sets.
+                    <span class="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-4">{{ t('workout.manual') }}</span>
+                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">{{ t('workout.free_workout') }}</h2>
+                    <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
+                        {{ t('workout.free_subtitle') }}
                     </p>
                 </div>
             </button>
@@ -422,7 +425,7 @@ const mergedHistory = computed(() => {
         <div v-else-if="isWorkoutSessionActive && activeWorkout" class="min-h-full bg-[var(--app-bg)] transition-colors">
             <header class="p-6 pb-2 flex items-center justify-between sticky top-0 bg-[var(--nav-bg)] backdrop-blur-md z-30 border-b border-[var(--border-color)] transition-colors">
                 <div>
-                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] mb-1"
+                    <h2 class="text-[10px] font-black uppercase tracking-wider mb-1"
                         :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[var(--theme-color)]'">
                         {{ activeWorkout.sessionType === 'manual' ? 'BUILD SESSION' : 'GUIDED PLAN' }}
                     </h2>
@@ -447,7 +450,7 @@ const mergedHistory = computed(() => {
                         <div class="flex-1 min-w-0">
                             <div class="mb-4">
                                 <h4 class="text-[28px] font-black uppercase italic text-[var(--text-main)] leading-[0.9] tracking-tighter transition-colors">{{ exercise.name }}</h4>
-                                <span v-if="exercise.isMerged" class="inline-block mt-2 px-2 py-0.5 rounded-md bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[8px] font-black uppercase italic tracking-wider">Merged</span>
+                                <span v-if="exercise.isMerged" class="inline-block mt-2 px-2 py-0.5 rounded-md bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[8px] font-black uppercase italic tracking-normal">Merged</span>
                             </div>
                             <div class="flex items-center gap-3">
                                 <!-- Progress Box -->
@@ -470,7 +473,7 @@ const mergedHistory = computed(() => {
                                 </div>
                                 <!-- Weight Box -->
                                 <div class="flex flex-col items-center">
-                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 px-1 transition-colors">Target</span>
+                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1 px-1 transition-colors">Target</span>
                                     <div class="px-3 py-1.5 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)] flex items-center justify-center min-w-[48px] transition-colors">
                                         <span class="text-[11px] font-black text-[var(--text-main)] uppercase italic transition-colors">
                                             {{ exercise.targetWeight || (exercise.workoutLogs.length > 0 ? exercise.workoutLogs[0].weight : '0kg') }}
@@ -479,7 +482,7 @@ const mergedHistory = computed(() => {
                                 </div>
                                 <!-- Reps Box -->
                                 <div class="flex flex-col items-center">
-                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1 px-1 transition-colors">Reps</span>
+                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1 px-1 transition-colors">Reps</span>
                                     <div class="px-3 py-1.5 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)] flex items-center justify-center min-w-[48px] transition-colors">
                                         <span class="text-[11px] font-black text-[var(--text-main)] uppercase italic transition-colors">{{ exercise.reps }}</span>
                                     </div>
@@ -489,8 +492,8 @@ const mergedHistory = computed(() => {
                     </div>
 
                     <div class="flex items-center justify-between mt-8 mb-4">
-                        <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">Workout Log</h4>
-                        <button @click="addSet(exercise)" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#ec5b13]/20 text-[#ec5b13] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all bg-[#ec5b13]/5">
+                        <h4 class="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">Workout Log</h4>
+                        <button @click="addSet(exercise)" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#ec5b13]/20 text-[#ec5b13] text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all bg-[#ec5b13]/5">
                             <span class="material-symbols-outlined text-[10px] font-bold">add</span>
                             ADD SET
                         </button>
@@ -498,7 +501,7 @@ const mergedHistory = computed(() => {
 
                     <div class="space-y-3">
                         <!-- Table Header -->
-                        <div class="flex items-center gap-3 px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
+                        <div class="flex items-center gap-3 px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">
                             <div class="size-10"></div>
                             <div class="flex-1 text-center">Weight (KG)</div>
                             <div class="w-16 text-center">Sets</div>
@@ -551,12 +554,12 @@ const mergedHistory = computed(() => {
 
             <div class="px-6 py-4 flex flex-col gap-4 mt-4 transition-colors">
                 <button @click="saveAsCustomPlan(activeWorkout)" 
-                    class="w-full py-4 rounded-[24px] bg-[var(--card-bg)] border-2 border-blue-600 text-blue-600 font-black uppercase tracking-[0.2em] shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+                    class="w-full py-4 rounded-[24px] bg-[var(--card-bg)] border-2 border-blue-600 text-blue-600 font-black uppercase tracking-wider shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined">bookmark</span>
                     Save as My Plan
                 </button>
                 <button @click="finishWorkout" 
-                    class="w-full py-5 rounded-[24px] bg-[var(--text-main)] text-[var(--card-bg)] font-black uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">
+                    class="w-full py-5 rounded-[24px] bg-[var(--text-main)] text-[var(--card-bg)] font-black uppercase tracking-wider shadow-xl active:scale-95 transition-all">
                     Finish & Log Session
                 </button>
             </div>
@@ -567,8 +570,8 @@ const mergedHistory = computed(() => {
             <!-- Header Tabs -->
             <header class="p-6 pb-2 transition-colors">
                 <div class="flex flex-col items-center mb-4 transition-colors">
-                    <p class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500 mb-1">Free Mode</p>
-                    <h1 class="text-[26px] font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none transition-colors">Select Workout</h1>
+                    <p class="text-xs font-black uppercase tracking-wider text-blue-500 mb-1">{{ t('workout.manual') }}</p>
+                    <h1 class="text-[26px] font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none transition-colors">{{ t('workout.search_exercises') }}</h1>
                 </div>
 
                 <!-- Simple Back Button -->
@@ -579,16 +582,16 @@ const mergedHistory = computed(() => {
                 <!-- Tabs -->
                 <div class="flex gap-8 border-b border-[var(--border-color)] px-2 transition-colors">
                     <button @click="activeTab = 'equipments'; selectedWorkoutIds = []" 
-                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'equipments' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
-                        Equipment Pool
+                        :class="['pb-4 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap', activeTab === 'equipments' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
+                        {{ t('workout.equipment_pool') }}
                     </button>
                     <button @click="activeTab = 'plans'; selectedWorkoutIds = []" 
-                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'plans' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
-                        My Plans
+                        :class="['pb-4 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap', activeTab === 'plans' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
+                        {{ t('workout.my_plans') }}
                     </button>
                     <button @click="activeTab = 'history'" 
-                        :class="['pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap', activeTab === 'history' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
-                        History
+                        :class="['pb-4 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap', activeTab === 'history' ? 'text-[var(--text-main)] border-b-2 border-[var(--text-main)]' : 'text-[var(--text-muted)]']">
+                        {{ t('workout.history') }}
                     </button>
                 </div>
             </header>
@@ -598,8 +601,8 @@ const mergedHistory = computed(() => {
                     <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xl transition-colors">search</span>
                     <input v-model="searchQuery" 
                         type="text" 
-                        placeholder="Search exercises..." 
-                        class="w-full pl-12 pr-6 py-4 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-full text-xs text-[var(--text-main)] focus:ring-0 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)] outline-none placeholder:text-[var(--text-muted)]/40"
+                        :placeholder="t('workout.search_exercises') + '...'" 
+                        class="w-full pl-12 pr-6 py-4 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-full text-[13px] text-[var(--text-main)] focus:ring-0 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)] outline-none placeholder:text-[var(--text-muted)]/40"
                     >
                  </div>
             </div>
@@ -609,9 +612,9 @@ const mergedHistory = computed(() => {
                 <div class="py-6 transition-colors">
                     <div class="px-8 flex items-center justify-between mb-2">
                         <div class="flex flex-col">
-                            <h3 class="text-lg font-black uppercase italic text-[var(--text-main)] tracking-tight leading-none transition-colors">Build Your Session</h3>
-                            <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-1 transition-colors">
-                                {{ selectedWorkoutIds.length }} Items Selected
+                            <h3 class="text-lg font-black uppercase italic text-[var(--text-main)] tracking-tight leading-none transition-colors">{{ t('workout.build_session') }}</h3>
+                            <p class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-wider mt-1 transition-colors">
+                                {{ selectedWorkoutIds.length }} {{ t('workout.items_selected') }}
                             </p>
                         </div>
                     </div>
@@ -634,8 +637,8 @@ const mergedHistory = computed(() => {
                                 <span class="text-[6px] font-black uppercase tracking-[0.1em] text-[var(--theme-color)] opacity-60">
                                     {{ workout.gymName }}
                                 </span>
-                                <h4 class="text-[17px] font-black uppercase italic text-[var(--text-main)] truncate leading-none tracking-tighter my-0.5 transition-colors">{{ workout.title }}</h4>
-                                <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-colors">
+                                <h4 class="text-[17px] font-black uppercase italic text-[var(--text-main)] truncate leading-none tracking-tight my-0.5 transition-colors">{{ workout.title }}</h4>
+                                <p class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">
                                     {{ workout.exercises?.length || 1 }} EXERCISES
                                 </p>
                             </div>
@@ -653,8 +656,8 @@ const mergedHistory = computed(() => {
                     <!-- No Results -->
                     <div v-if="(activeTab === 'equipments' ? allEquipments : userSavedPlans).length === 0" class="py-20 text-center opacity-20">
                          <span class="material-symbols-outlined text-6xl">bookmark_border</span>
-                         <p class="text-xs font-black uppercase tracking-widest mt-4">
-                             {{ activeTab === 'plans' ? 'No saved plans yet' : 'No results found' }}
+                         <p class="text-xs font-black uppercase tracking-wider mt-4">
+                             {{ activeTab === 'plans' ? t('workout.no_saved_plans') : t('workout.no_results') }}
                          </p>
                     </div>
                 </div>
@@ -664,15 +667,15 @@ const mergedHistory = computed(() => {
             <div v-else class="px-6 py-4 space-y-10 transition-colors">
                 <div v-if="mergedHistory.length === 0" class="py-20 text-center opacity-30 transition-colors">
                     <span class="material-symbols-outlined text-6xl text-[var(--text-muted)]">history</span>
-                    <p class="text-xs font-black uppercase tracking-widest mt-4 text-[var(--text-muted)]">No workout history yet</p>
+                    <p class="text-xs font-black uppercase tracking-wider mt-4 text-[var(--text-muted)]">No workout history yet</p>
                 </div>
                 
                 <div v-for="entry in mergedHistory" :key="entry.id" class="space-y-6 transition-colors">
                     <!-- Session Header (Date & Title) -->
                     <div class="px-2 flex items-center justify-between transition-colors">
                         <div>
-                            <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-[0.2em] mb-1 block">{{ entry.date }}</span>
-                            <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tighter transition-colors">{{ entry.title }}</h4>
+                            <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-wider mb-1 block">{{ entry.date }}</span>
+                            <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tight transition-colors">{{ entry.title }}</h4>
                         </div>
                         <button @click="deleteHistoryEntry(entry.id)" class="size-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center active:scale-95 transition-all">
                             <span class="material-symbols-outlined text-xl">delete</span>
@@ -730,9 +733,9 @@ const mergedHistory = computed(() => {
             <transition name="up">
                 <div v-if="selectedWorkoutIds.length > 0" class="fixed bottom-24 left-10 right-10 z-40 flex justify-center">
                     <button @click="startCombinedWorkout" 
-                        class="w-full max-w-[280px] py-3.5 rounded-full bg-[var(--theme-color)] text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-[var(--theme-color)]/30 flex items-center justify-center gap-3 active:scale-95 hover:brightness-110 transition-all text-[10px] italic">
+                        class="w-full max-w-[280px] py-3.5 rounded-full bg-[var(--theme-color)] text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-[var(--theme-color)]/30 flex items-center justify-center gap-3 active:scale-95 hover:brightness-110 transition-all text-xs italic">
                         <span class="material-symbols-outlined fill-icon text-lg">play_arrow</span>
-                        START SELECTION ({{ selectedWorkoutIds.length }})
+                        {{ t('workout.start') }} ({{ selectedWorkoutIds.length }})
                     </button>
                 </div>
             </transition>
@@ -752,7 +755,7 @@ const mergedHistory = computed(() => {
                     <div class="size-6 rounded-full bg-[#ec5b13] flex items-center justify-center">
                         <span class="material-symbols-outlined text-white text-[14px] font-black">check</span>
                     </div>
-                    <span class="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">บันทึกข้อมูลสำเร็จ</span>
+                    <span class="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">บันทึกข้อมูลสำเร็จ</span>
                 </div>
             </div>
         </transition>
@@ -767,17 +770,17 @@ const mergedHistory = computed(() => {
                         </div>
                         <div class="space-y-2">
                             <h4 class="text-xl font-black uppercase italic text-[var(--text-main)] transition-colors">Finish Workout?</h4>
-                            <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest leading-relaxed transition-colors">
+                            <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider leading-relaxed transition-colors">
                                 ต้องการหยุดการออกกำลังกาย<br/>แล้วใช่มั้ย?
                             </p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-2">
                             <button @click="isShowFinishConfirm = false" 
-                                class="py-4 rounded-3xl bg-[var(--page-bg)] border border-[var(--border-color)] text-[var(--text-main)] text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">
+                                class="py-4 rounded-3xl bg-[var(--page-bg)] border border-[var(--border-color)] text-[var(--text-main)] text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all">
                                 CANCEL
                             </button>
                             <button @click="confirmFinishWorkout" 
-                                class="py-4 rounded-3xl bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-orange-500/20">
+                                class="py-4 rounded-3xl bg-orange-500 text-white text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-orange-500/20">
                                 FINISH
                             </button>
                         </div>

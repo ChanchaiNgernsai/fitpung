@@ -2,6 +2,9 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref, onMounted } from 'vue';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
+import { useI18n } from '@/language';
+
+const { t } = useI18n();
 
 const props = defineProps({
     featuredGyms: Array
@@ -83,7 +86,7 @@ const allRecommendations = computed(() => {
                 </div>
                 <div>
                     <h1 class="text-2xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none transition-colors">FitPung</h1>
-                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)] mt-1.5 ml-0.5">Elite Fitness</p>
+                    <p class="text-sm font-black uppercase tracking-tight text-[var(--theme-color)] mt-0.5 ml-0.5">{{ t('home.elite') }}</p>
                 </div>
             </div>
             <div class="flex items-center gap-3">
@@ -104,9 +107,9 @@ const allRecommendations = computed(() => {
                      <img src="/images/gorila/ConcentrationCurl.png" class="w-full h-full object-contain object-right opacity-90 brightness-110 translate-x-6 scale-110">
                 </div>
                 <div class="relative z-10 space-y-3">
-                    <span class="inline-block px-3 py-1 rounded-full bg-[var(--theme-color)]/20 text-[var(--theme-color)] text-[10px] font-extrabold uppercase tracking-widest">FitPung Elite</span>
-                    <h1 class="text-white text-3xl font-black leading-[0.9] tracking-tighter italic uppercase">STAY<br />FOCUSED.</h1>
-                    <p class="text-gray-300 text-[10px] max-w-[60%] leading-relaxed">Push your limits today with your personalized plan.</p>
+                    <span class="inline-block px-3 py-1 rounded-full bg-[var(--theme-color)]/20 text-[var(--theme-color)] text-xs font-extrabold uppercase tracking-wider">{{ t('home.elite') }}</span>
+                    <h1 class="text-white text-3xl font-black leading-[0.9] tracking-tighter italic uppercase whitespace-pre-wrap">{{ t('home.stay_focused') }}</h1>
+                    <p class="text-gray-300 text-xs max-w-[60%] leading-relaxed">{{ t('home.hero_subtitle') }}</p>
                 </div>
             </div>
         </div>
@@ -117,13 +120,13 @@ const allRecommendations = computed(() => {
                 <div class="bg-[var(--card-bg)] p-6 rounded-[24px] border border-[var(--border-color)] shadow-sm flex flex-col items-center text-center transition-colors">
                     <span class="material-symbols-outlined text-[var(--theme-color)] mb-2">fitness_center</span>
                     <span class="text-2xl font-black text-[var(--text-main)] leading-none transition-colors">{{ setsDone }}</span>
-                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-2 transition-colors">Sets Done</span>
+                    <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mt-2 transition-colors">{{ t('home.sets_done') }}</span>
                 </div>
                 <!-- Workouts Completed Card (Replaces Time) -->
                 <div class="bg-[var(--card-bg)] p-6 rounded-[24px] border border-[var(--border-color)] shadow-sm flex flex-col items-center text-center transition-colors">
                     <span class="material-symbols-outlined text-blue-500 mb-2">azm</span>
                     <span class="text-2xl font-black text-[var(--text-main)] leading-none transition-colors">{{ workoutsCompleted }}</span>
-                    <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-2 transition-colors">Workouts Done</span>
+                    <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mt-2 transition-colors">{{ t('home.workouts_done') }}</span>
                 </div>
             </div>
         </div>
@@ -131,8 +134,8 @@ const allRecommendations = computed(() => {
         <!-- Workout Feed (Instagram Style) -->
         <div class="px-0 py-6 transition-colors">
             <div class="px-6 flex items-center justify-between mb-6">
-                <h3 class="text-lg font-black uppercase italic text-[var(--text-main)] tracking-tight transition-colors">Daily Feed</h3>
-                <button class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-widest bg-[var(--theme-color)]/5 px-3 py-1.5 rounded-full transition-colors">For You</button>
+                <h3 class="text-lg font-black uppercase italic text-[var(--text-main)] tracking-tight transition-colors">{{ t('home.daily_feed') }}</h3>
+                <button class="text-xs font-black text-[var(--theme-color)] uppercase tracking-wider bg-[var(--theme-color)]/5 px-3 py-1.5 rounded-full transition-colors">{{ t('home.for_you') }}</button>
             </div>
 
             <div class="px-6 space-y-8">
@@ -156,7 +159,7 @@ const allRecommendations = computed(() => {
                     <div class="px-4">
                         <div class="relative w-full aspect-square bg-gray-100 overflow-hidden rounded-[10px]">
                             <img :src="rec.image" class="w-full h-full object-cover">
-                            <div class="absolute top-4 right-4 h-8 px-3 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-[9px] font-black uppercase tracking-widest">
+                            <div class="absolute top-4 right-4 h-8 px-3 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-xs font-black uppercase tracking-wider">
                                 <span class="block translate-y-[0.5px]">{{ rec.badge }}</span>
                             </div>
                         </div>
@@ -198,9 +201,9 @@ const allRecommendations = computed(() => {
                             </div>
                         </div>
 
-                        <Link :href="route('gyms.recommend', rec.gymId)" class="w-full bg-[var(--theme-color)] text-white font-black uppercase tracking-widest py-2.5 rounded-[10px] flex items-center justify-center gap-2 shadow-md shadow-[var(--theme-color)]/10 active:scale-95 transition-all italic text-[11px] mt-4 mb-2">
+                        <Link :href="route('gyms.recommend', rec.gymId)" class="w-full bg-[var(--theme-color)] text-white font-black uppercase tracking-wider py-2.5 rounded-[10px] flex items-center justify-center gap-2 shadow-md shadow-[var(--theme-color)]/10 active:scale-95 transition-all italic text-xs mt-4 mb-2">
                             <span class="material-symbols-outlined fill-icon text-sm">play_arrow</span>
-                            Start Guided Workout
+                            {{ t('home.start_guided') }}
                         </Link>
                     </div>
                 </div>

@@ -1,6 +1,9 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
+import { useI18n } from '@/language';
+
+const { t } = useI18n();
 
 const isThemeDark = ref(false);
 
@@ -29,7 +32,7 @@ onMounted(() => {
                 <h1 class="text-4xl font-black italic tracking-tighter uppercase leading-none text-[var(--text-main)] transition-colors">
                     <span class="text-[var(--text-main)]">Fit</span><span class="text-[#ec5b13]">Pung</span>
                 </h1>
-                <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-[0.3em] transition-colors">Select Experience</p>
+                <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">Select Experience</p>
             </div>
 
             <!-- Choice Cards -->
@@ -47,7 +50,7 @@ onMounted(() => {
                             <h2 class="text-2xl font-black uppercase italic leading-none mb-2 text-[var(--text-main)] transition-colors">Desktop View</h2>
                             <p class="text-xs text-[var(--text-muted)] font-medium leading-relaxed transition-colors">The original full-featured workspace for planning and building layouts.</p>
                         </div>
-                        <div class="flex items-center gap-2 text-[#ec5b13] font-black text-[10px] uppercase tracking-widest">
+                        <div class="flex items-center gap-2 text-[#ec5b13] font-black text-xs uppercase tracking-wider">
                             Continue Legacy
                             <span class="material-symbols-outlined text-sm">arrow_forward</span>
                         </div>
@@ -67,7 +70,7 @@ onMounted(() => {
                             <h2 class="text-2xl font-black uppercase italic leading-none mb-2 text-[var(--text-main)] transition-colors">Mobile Elite</h2>
                             <p class="text-xs text-[var(--text-muted)] font-medium leading-relaxed transition-colors">Simplified, premium experience optimized for your phone screens.</p>
                         </div>
-                        <div class="flex items-center gap-2 text-[#ec5b13] font-black text-[10px] uppercase tracking-widest">
+                        <div class="flex items-center gap-2 text-[#ec5b13] font-black text-xs uppercase tracking-wider">
                             Go Mobile
                             <span class="material-symbols-outlined text-sm">arrow_forward</span>
                         </div>
@@ -76,7 +79,7 @@ onMounted(() => {
             </div>
 
             <!-- Footer info -->
-            <div class="pt-8 opacity-30 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors">
+            <div class="pt-8 opacity-30 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] transition-colors">
                 FitPung Industries &copy; 2026
             </div>
         </div>

@@ -2,6 +2,9 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
+import { useI18n } from '@/language';
+
+const { t } = useI18n();
 
 const props = defineProps({
     gyms: Array,
@@ -50,8 +53,8 @@ const formatImageUrl = (path) => {
         <!-- Header -->
         <header class="flex items-center justify-between p-6 pb-4 bg-[var(--nav-bg)] backdrop-blur-md sticky top-0 z-20 border-b border-[var(--border-color)] transition-colors">
             <div class="flex flex-col">
-                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--theme-color)]">FitPung Elite</span>
-                <h1 class="text-2xl font-black tracking-tighter uppercase italic text-[var(--text-main)] leading-none mt-1 transition-colors">Explore Gyms</h1>
+                <span class="text-sm font-black uppercase tracking-tight text-[var(--theme-color)]">{{ t('home.elite') }}</span>
+                <h1 class="text-2xl font-black tracking-tighter uppercase italic text-[var(--text-main)] leading-none mt-1 transition-colors">{{ t('maps.title') }}</h1>
             </div>
             <button class="relative p-2 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] transition-colors">
                 <span class="material-symbols-outlined text-[var(--text-main)] transition-colors">search</span>
@@ -63,15 +66,15 @@ const formatImageUrl = (path) => {
             <div class="flex items-center justify-between mb-8">
                 <div class="flex gap-4">
                     <button @click="currentTab = 'all'" 
-                        :class="['text-[10px] font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2', currentTab === 'all' ? 'text-[var(--text-main)] border-[var(--theme-color)]' : 'text-[var(--text-muted)] border-transparent']">
-                        All Gyms
+                        :class="['text-xs font-black uppercase tracking-wider transition-all pb-1 border-b-2', currentTab === 'all' ? 'text-[var(--text-main)] border-[var(--theme-color)]' : 'text-[var(--text-muted)] border-transparent']">
+                        {{ t('maps.all_gyms') }}
                     </button>
                     <button @click="currentTab = 'favorites'" 
-                        :class="['text-[10px] font-black uppercase tracking-[0.2em] transition-all pb-1 border-b-2', currentTab === 'favorites' ? 'text-[var(--text-main)] border-[var(--theme-color)]' : 'text-[var(--text-muted)] border-transparent']">
-                        Favorites ({{ favoriteGymIds.length }})
+                        :class="['text-xs font-black uppercase tracking-wider transition-all pb-1 border-b-2', currentTab === 'favorites' ? 'text-[var(--text-main)] border-[var(--theme-color)]' : 'text-[var(--text-muted)] border-transparent']">
+                        {{ t('maps.favorites') }} ({{ favoriteGymIds.length }})
                     </button>
                 </div>
-                <span class="bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Active</span>
+                <span class="bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[xs] font-black px-2 py-0.5 rounded uppercase tracking-wider text-xs">{{ t('common.active') }}</span>
             </div>
 
             <div class="space-y-4 transition-colors">
@@ -87,7 +90,7 @@ const formatImageUrl = (path) => {
                               <h4 class="text-base font-black uppercase italic leading-none truncate text-[var(--text-main)] transition-colors">{{ gym.name }}</h4>
                               <span class="material-symbols-outlined text-[var(--theme-color)] text-sm fill-icon transition-colors">verified</span>
                          </div>
-                        <p class="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest truncate transition-colors">{{ gym.location || 'Professional Workout Space' }}</p>
+                        <p class="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider truncate transition-colors">{{ gym.location || 'Professional Workout Space' }}</p>
                     </div>
                     <div class="flex items-center gap-4">
                         <button @click="(e) => toggleFavorite(e, gym.id)" class="transition-all active:scale-125">
