@@ -30,6 +30,7 @@ class ProfileUpdateRequest extends FormRequest
             'height' => ['nullable', 'numeric', 'min:50', 'max:250'],
             'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
             'goal' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

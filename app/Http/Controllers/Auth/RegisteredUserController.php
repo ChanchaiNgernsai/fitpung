@@ -38,7 +38,13 @@ class RegisteredUserController extends Controller
             'height' => 'nullable|numeric|min:50|max:250',
             'gender' => 'nullable|string|in:Male,Female,Other',
             'goal' => 'nullable|string',
+            'photo' => 'nullable|image|max:2048',
         ]);
+
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('profile-photos', 'public');
+        }
 
         $user = User::create([
             'name' => $request->name,
@@ -48,6 +54,7 @@ class RegisteredUserController extends Controller
             'height' => $request->height,
             'gender' => $request->gender,
             'goal' => $request->goal,
+            'profile_photo_path' => $photoPath,
         ]);
 
         // Log initial weight history if provided

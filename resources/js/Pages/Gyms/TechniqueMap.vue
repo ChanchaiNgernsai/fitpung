@@ -1,7 +1,8 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, onMounted, computed } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
     gym: Object,
@@ -53,9 +54,26 @@ const handleMuscleClick = (muscleKey) => {
 };
 
 // Tactical Workout Tracking (Multi-Set System)
+const sessionLog = ref({}); // { itemId: { name, image, sets: [] } }
 const workoutSets = ref([
     { weight: 10, reps: 12, isCompleted: false }
 ]);
+
+const updateSessionLog = () => {
+    if (selectedItem.value) {
+        const hasProgress = workoutSets.value.some(s => s.isCompleted);
+        const info = getEquipmentInfo(selectedItem.value);
+        
+        if (hasProgress || sessionLog.value[selectedItem.value.id]) {
+            sessionLog.value[selectedItem.value.id] = {
+                id: selectedItem.value.id,
+                name: info?.name || selectedItem.value.name,
+                image: info?.image || selectedItem.value.src,
+                sets: JSON.parse(JSON.stringify(workoutSets.value))
+            };
+        }
+    }
+};
 
 const addNewSet = () => {
     const lastSet = workoutSets.value[workoutSets.value.length - 1];
@@ -64,16 +82,19 @@ const addNewSet = () => {
         reps: lastSet ? lastSet.reps : 12,
         isCompleted: false
     });
+    updateSessionLog();
 };
 
 const removeSet = (index) => {
     if (workoutSets.value.length > 1) {
         workoutSets.value.splice(index, 1);
+        updateSessionLog();
     }
 };
 
 const toggleSetCompletion = (index) => {
     workoutSets.value[index].isCompleted = !workoutSets.value[index].isCompleted;
+    updateSessionLog();
 };
 
 const muscleImage = computed(() => {
@@ -314,7 +335,84 @@ const selectItem = (item) => {
     selectedItem.value = item;
     activeMuscle.value = null; // Reset muscle selection when opening new item
     isPlaying.value = false; // Reset play state
+    
+    if (sessionLog.value[item.id]) {
+        workoutSets.value = JSON.parse(JSON.stringify(sessionLog.value[item.id].sets));
+    } else {
+        const info = getEquipmentInfo(item);
+        workoutSets.value = [{ 
+            weight: info?.target_weight || 10, 
+            reps: info?.reps || 12, 
+            isCompleted: false 
+        }];
+    }
     isModalOpen.value = true;
+};
+
+const confirmFinishWorkout = async () => {
+    const exercises = Object.values(sessionLog.value)
+        .filter(entry => entry.sets.some(s => s.isCompleted))
+        .map(entry => ({
+            name: entry.name,
+            image: entry.image,
+            sets: entry.sets.filter(s => s.isCompleted).map(s => ({
+                weight: String(s.weight).toLowerCase().includes('kg') ? s.weight : s.weight + 'kg',
+                reps: s.reps
+            }))
+        }));
+
+    if (exercises.length === 0) {
+        alert("Please log at least one completed set before finishing.");
+        return;
+    }
+
+    const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+
+    const sessionData = {
+        workout_date: new Date().toISOString().split('T')[0],
+        data: {
+            title: `${props.gym.name} Tactical Workout`,
+            exercises: exercises,
+            sets: totalSets
+        }
+    };
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+        }
+
+        const response = await axios.post('/api/workout-sessions', sessionData);
+        const newSession = response.data;
+        
+        // Sync local storage history immediately
+        const savedHistory = localStorage.getItem('fitpung_workout_history');
+        const history = savedHistory ? JSON.parse(savedHistory) : [];
+        
+        const localEntry = {
+            id: newSession.id || Date.now(),
+            apiId: newSession.id,
+            date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+            title: sessionData.data.title,
+            exercises: exercises,
+            sets: totalSets
+        };
+        
+        history.unshift(localEntry);
+        localStorage.setItem('fitpung_workout_history', JSON.stringify(history));
+
+        const savedSets = localStorage.getItem('fitpung_sets_done');
+        const currentTotal = savedSets ? parseInt(savedSets) : 0;
+        localStorage.setItem('fitpung_sets_done', (currentTotal + totalSets).toString());
+
+        isModalOpen.value = false;
+        alert("บันทึกข้อมูลสำเร็จ!");
+        router.get(route('mobile.workout'));
+    } catch (e) {
+        console.error("Failed to save workout session from Tactical Map", e);
+        alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
 };
 
 const getEquipmentInfo = (item) => {
@@ -810,7 +908,7 @@ onMounted(() => {
 
                             <!-- Action Button (Pinned to bottom) -->
                             <div class="p-8 md:p-8 pt-0">
-                                <button @click="isModalOpen = false" 
+                                <button @click="confirmFinishWorkout" 
                                     class="group relative w-full h-16 md:h-20 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl overflow-hidden transition-all duration-300 active:scale-[0.98] shadow-[0_20px_40px_-15px_rgba(59,130,246,0.4)]">
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                                     <span class="relative z-10 text-sm font-black italic uppercase tracking-[0.3em]">FINISH MISSIONS</span>

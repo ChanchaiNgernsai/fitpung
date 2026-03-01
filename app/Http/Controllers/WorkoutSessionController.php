@@ -11,8 +11,8 @@ class WorkoutSessionController extends Controller
     public function index(Request $request)
     {
         $sessions = WorkoutSession::where('user_id', Auth::id())
-            ->orderBy('workout_date', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->latest() // Order by created_at desc
+            ->orderBy('id', 'desc')
             ->paginate(20);
 
         return response()->json($sessions);

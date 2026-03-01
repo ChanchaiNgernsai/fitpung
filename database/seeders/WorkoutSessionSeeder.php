@@ -11,13 +11,15 @@ class WorkoutSessionSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::first();
-        if (!$user)
+        $user = User::where('email', 'ball@gmail.com')->first();
+        if (!$user) {
+            echo "USER ball@gmail.com NOT FOUND\n";
             return;
+        }
+        echo "SEEDING FOR USER: " . $user->email . " (ID: " . $user->id . ")\n";
 
-        // Clear existing histories
-        \App\Models\WeightHistory::where('user_id', $user->id)->delete();
-        \App\Models\WorkoutSession::where('user_id', $user->id)->delete();
+        // Don't clear manually added histories - only add mock ones if missing?
+        // Actually, just remove the hard delete of user-generated data.
 
         $now = Carbon::now();
         $categories = [
@@ -28,15 +30,14 @@ class WorkoutSessionSeeder extends Seeder
             'Cardio' => ['Treadmill', 'Elliptical', 'Stationary Bike'],
         ];
 
-        $currentWeight = 85.0; // Initial weight 200 days ago
+        $currentWeight = 82.5;
 
-        for ($i = 200; $i >= 0; $i--) {
+        for ($i = 90; $i >= 0; $i--) {
             $date = $now->copy()->subDays($i);
 
-            // Record weight history every ~10 days
-            if ($i % 10 === 0) {
-                // Slight downward trend with some randomness
-                $currentWeight -= rand(-10, 30) / 100;
+            // Record weight history every ~7 days
+            if ($i % 7 === 0) {
+                $currentWeight -= rand(-5, 15) / 100;
                 \App\Models\WeightHistory::create([
                     'user_id' => $user->id,
                     'weight' => round($currentWeight, 1),
@@ -44,15 +45,12 @@ class WorkoutSessionSeeder extends Seeder
                 ]);
             }
 
-            // 2-3 rest days per week (approx 35% chance)
-            if (rand(1, 100) <= 35) {
+            // 3 rest days per week
+            if (rand(1, 100) <= 40)
                 continue;
-            }
 
             $sessionType = array_keys($categories)[rand(0, 4)];
             $exercises = [];
-
-            // 3-5 exercises per session
             $numEx = rand(3, 5);
             $selectedEx = (array) array_rand(array_flip($categories[$sessionType]), min($numEx, count($categories[$sessionType])));
 
@@ -61,12 +59,11 @@ class WorkoutSessionSeeder extends Seeder
                 $numSets = rand(3, 4);
                 for ($s = 1; $s <= $numSets; $s++) {
                     $sets[] = [
-                        'weight' => rand(10, 100),
+                        'weight' => rand(20, 80),
                         'reps' => rand(8, 12),
                     ];
                 }
 
-                // Image mapping
                 $image = null;
                 $nameLower = strtolower($exName);
                 if (str_contains($nameLower, 'bench press'))
@@ -75,11 +72,7 @@ class WorkoutSessionSeeder extends Seeder
                     $image = '/images/equipment/Dumbbells.svg';
                 else if (str_contains($nameLower, 'treadmill'))
                     $image = '/images/equipment/Treadmill.svg';
-                else if (str_contains($nameLower, 'elliptical'))
-                    $image = '/images/equipment/Elliptical.svg';
-                else if (str_contains($nameLower, 'leg press'))
-                    $image = '/images/equipment/LegPress.svg';
-                else if (str_contains($nameLower, 'smith'))
+                else
                     $image = '/images/equipment/SmithMachine.svg';
 
                 $exercises[] = [
@@ -100,7 +93,6 @@ class WorkoutSessionSeeder extends Seeder
             ]);
         }
 
-        // Sync user's current weight attribute
         $user->update(['weight' => round($currentWeight, 1)]);
     }
 }

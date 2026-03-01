@@ -1,8 +1,8 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
 import { ref, onMounted, computed, onUnmounted } from 'vue';
-// Reverting axios as My Plans are not intended for Map view per user feedback
+import axios from 'axios';
 
 const props = defineProps({
     gym: Object,
@@ -174,7 +174,7 @@ const finishWorkout = () => {
     isShowFinishConfirm.value = true;
 };
 
-const confirmFinishWorkout = () => {
+const confirmFinishWorkout = async () => {
     const exercises = Object.values(sessionLog.value)
         .filter(entry => entry.sets.some(s => s.isCompleted))
         .map(entry => ({
@@ -188,30 +188,54 @@ const confirmFinishWorkout = () => {
 
     const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
 
-    const session = {
-        id: Date.now(),
-        date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
-        title: `${props.gym.name} Workout`,
-        exercises: exercises,
-        sets: totalSets
+    const sessionData = {
+        workout_date: new Date().toISOString().split('T')[0],
+        data: {
+            title: `${props.gym.name} Workout`,
+            exercises: exercises,
+            sets: totalSets
+        }
     };
 
-    const savedHistory = localStorage.getItem('fitpung_workout_history');
-    const history = savedHistory ? JSON.parse(savedHistory) : [];
-    history.unshift(session);
-    localStorage.setItem('fitpung_workout_history', JSON.stringify(history));
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+        }
 
-    const savedSets = localStorage.getItem('fitpung_sets_done');
-    const currentTotal = savedSets ? parseInt(savedSets) : 0;
-    localStorage.setItem('fitpung_sets_done', (currentTotal + totalSets).toString());
+        const response = await axios.post('/api/workout-sessions', sessionData);
+        const newSession = response.data; // Server usually returns the created session
+        
+        // Sync local storage history immediately if server returns it
+        const savedHistory = localStorage.getItem('fitpung_workout_history');
+        const history = savedHistory ? JSON.parse(savedHistory) : [];
+        
+        const localEntry = {
+            id: newSession.id || Date.now(),
+            apiId: newSession.id,
+            date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+            title: sessionData.data.title,
+            exercises: exercises,
+            sets: totalSets
+        };
+        
+        history.unshift(localEntry);
+        localStorage.setItem('fitpung_workout_history', JSON.stringify(history));
 
-    isShowFinishConfirm.value = false;
-    isShowSuccessMessage.value = true;
+        const savedSets = localStorage.getItem('fitpung_sets_done');
+        const currentTotal = savedSets ? parseInt(savedSets) : 0;
+        localStorage.setItem('fitpung_sets_done', (currentTotal + totalSets).toString());
 
-    // Show success message briefly before redirecting
-    setTimeout(() => {
-        window.location.href = route('mobile.workout');
-    }, 2000);
+        isShowFinishConfirm.value = false;
+        isShowSuccessMessage.value = true;
+
+        setTimeout(() => {
+            router.get(route('mobile.workout'));
+        }, 2000);
+    } catch (e) {
+        console.error("Failed to save workout session from Map", e);
+        alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
 };
 
 
@@ -220,7 +244,7 @@ const viewBox = ref({ x: 0, y: 0, w: 1000, h: 800 });
 const isPanning = ref(false);
 const lastMousePos = ref({ x: 0, y: 0 });
 
-const getInitialBounds = (pointsStr, items = [], padding = 150) => {
+const getInitialBounds = (pointsStr, items = [], leftPadding = 40, rightPadding = 40, topPadding = 40, bottomPadding = 40) => {
     const defaultBounds = { x: 0, y: 0, w: 1000, h: 800 };
     if (!pointsStr) return defaultBounds;
 
@@ -251,12 +275,14 @@ const getInitialBounds = (pointsStr, items = [], padding = 150) => {
         });
     }
 
-    const targetW = (maxX - minX) + (padding * 2);
+    const targetW = (maxX - minX) + leftPadding + rightPadding;
+    const targetH = (maxY - minY) + topPadding + bottomPadding;
+    
     return { 
-        x: minX - padding,
-        y: minY - padding, 
+        x: minX - leftPadding,
+        y: minY - topPadding, 
         w: targetW,
-        h: targetW * 1.6 
+        h: targetH 
     };
 };
 
@@ -314,7 +340,7 @@ const handleMouseUp = () => {
 };
 
 const resetZoom = () => {
-    viewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 100);
+    viewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 120, 20, 60, 810);
 };
 
 // --- Interaction Helpers ---
@@ -540,10 +566,10 @@ const recommendedMuscles = computed(() => {
 });
 
 const muscleMapping = {
-    'Cardio': { th: 'คาดิโอ', icon: 'favorite' },
-    'Arms': { th: 'แขน', icon: 'fitness_center' },
-    'Legs': { th: 'ขา', icon: 'directions_run' },
-    'Chest': { th: 'อก', icon: 'accessibility_new' }
+    'Cardio': { th: 'คาดิโอ', icon: '❤️', isEmoji: true },
+    'Arms': { th: 'แขน', icon: '💪🏻', isEmoji: true },
+    'Legs': { th: 'ขา', icon: '🦵🏻', isEmoji: true },
+    'Chest': { th: 'อก', icon: '🏋🏻‍♂️', isEmoji: true }
 };
 
 const toggleMuscleFilter = (muscle) => {
@@ -589,7 +615,7 @@ onMounted(() => {
         workoutHistory.value = JSON.parse(savedHistory);
     }
     
-    viewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 100);
+    viewBox.value = getInitialBounds(props.gym.room_config.points, props.gym.items, 120, 20, 60, 810);
     // Note: wheel event is handled directly on svg element
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
@@ -694,7 +720,7 @@ onUnmounted(() => {
                     <div class="flex justify-between items-center gap-2">
                         <div v-for="muscle in ['Cardio', 'Arms', 'Legs', 'Chest']" :key="muscle" 
                             @click="toggleMuscleFilter(muscle)"
-                            class="flex-1 h-11 rounded-[10px] flex flex-col items-center justify-center transition-all duration-500 cursor-pointer active:scale-95 text-center relative shadow-[0_4px_12px_rgba(0,0,0,0.05)]"
+                            class="flex-1 h-[58px] rounded-[10px] flex flex-col items-center justify-center gap-0.5 transition-all duration-500 cursor-pointer active:scale-95 text-center relative shadow-[0_4px_12px_rgba(0,0,0,0.05)] py-1.5"
                             :class="[
                                 activeMuscleFilter === muscle
                                     ? 'bg-[var(--theme-color)] scale-105 z-10 shadow-[0_0_20px_rgba(var(--theme-color-rgb),0.3)]'
@@ -704,15 +730,28 @@ onUnmounted(() => {
                             <!-- (Pulse effect removed as per user request) -->
 
                             <span v-if="recentMuscles.includes(muscle)" 
-                                class="text-[7px] font-black uppercase leading-none mb-0.5"
+                                class="text-[8px] font-bold uppercase leading-none"
                                 :class="activeMuscleFilter === muscle ? 'text-white/80' : 'text-[var(--theme-color)]'"
                             >พึ่งเล่น</span>
                             
-                            <span class="text-[11px] font-black uppercase tracking-tighter transition-colors"
+                            <span :class="[
+                                    muscleMapping[muscle]?.isEmoji ? '' : 'material-symbols-outlined',
+                                    'transition-all duration-300'
+                                ]"
+                                :style="{ 
+                                    fontSize: muscleMapping[muscle]?.isEmoji ? '20px' : (muscle === 'Arms' ? '24px' : '20px'),
+                                    filter: muscleMapping[muscle]?.isEmoji ? (activeMuscleFilter === muscle ? 'grayscale(1) brightness(2)' : 'grayscale(1) brightness(0.5)') : 'none',
+                                    color: !muscleMapping[muscle]?.isEmoji ? (activeMuscleFilter === muscle ? 'white' : 'var(--text-main)') : 'inherit'
+                                }"
+                            >
+                                {{ muscleMapping[muscle]?.icon }}
+                            </span>
+
+                            <span class="text-[10px] font-bold transition-colors"
                                 :class="[
                                     activeMuscleFilter === muscle
-                                        ? 'text-white' 
-                                        : 'text-[var(--text-main)]'
+                                        ? 'text-white/70' 
+                                        : 'text-[var(--text-muted)]'
                                 ]"
                             >{{ muscleMapping[muscle]?.th }}</span>
                             
@@ -732,17 +771,17 @@ onUnmounted(() => {
                                     <span class="material-symbols-outlined text-[#ec5b13] text-lg">history</span>
                                 </div>
                                 <div class="transition-colors">
-                                    <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest leading-none mb-1 transition-colors">เล่นล่าสุด</p>
+                                    <p class="text-[8px] font-bold text-[var(--text-muted)] uppercase leading-none mb-1 transition-colors">เล่นล่าสุด</p>
                                     <div class="flex gap-2 transition-colors">
                                         <div v-for="m in recentMuscles" :key="m" 
                                             class="px-2 py-0.5 bg-[var(--page-bg)] rounded-lg transition-colors">
-                                            <span class="text-[9px] font-black text-[var(--text-main)] uppercase italic tracking-tighter transition-colors">{{ muscleMapping[m]?.th }}</span>
+                                            <span class="text-[9px] font-bold text-[var(--text-main)] uppercase transition-colors">{{ muscleMapping[m]?.th }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-1 opacity-60">
-                                <span class="text-[7px] font-black uppercase text-[var(--text-muted)] tracking-widest transition-colors">Finished</span>
+                                <span class="text-[7px] font-bold uppercase text-[var(--text-muted)] transition-colors">Finished</span>
                                 <span class="material-symbols-outlined text-green-500 text-base transition-colors">check_circle</span>
                             </div>
                         </div>

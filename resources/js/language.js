@@ -56,6 +56,8 @@ const translations = {
             daily_feed: 'ฟีดรายวัน',
             for_you: 'สำหรับคุณ',
             start_guided: 'เริ่มโปรแกรมแนะนำ',
+            hire_trainer: 'จ้างเทรนเนอร์ส่วนตัว',
+            personal_coaching: 'แผนการฝึกแบบเฉพาะบุคคล',
         },
         stats: {
             title: 'ประสิทธิภาพ',
@@ -77,6 +79,7 @@ const translations = {
             today: 'วันนี้',
             avg: 'เฉลี่ย',
             wk: 'สัปดาห์',
+            load_more: 'โหลดเพิ่ม',
         },
         workout: {
             choose_mode: 'เลือกโหมดการเล่น',
@@ -98,6 +101,21 @@ const translations = {
             no_saved_plans: 'ยังไม่มีแผนที่บันทึกไว้',
             no_results: 'ไม่พบข้อมูล',
         },
+        trainer: {
+            title: 'เทรนเนอร์ส่วนตัว',
+            choose_trainer: 'เลือกเทรนเนอร์ของคุณ',
+            available_slots: 'เวลาที่ว่าง',
+            request_mentorship: 'สมัครเรียน',
+            motivation: 'ต้องการแรงบันดาลใจ?',
+            help_subtitle: 'ให้เทรนเนอร์ช่วยดูแลและติดตามการพัฒนาของคุณ',
+            price: 'ราคา',
+            progress_tracking: 'ติดตามพัฒนาการ',
+            refuse: 'ปฏิเสธ',
+            accept: 'ยอมรับ',
+            attendance: 'การเข้าสอน',
+            trainers: 'เทรนเนอร์',
+            courses: 'คอร์ส',
+        },
         settings: {
             title: 'การตั้งค่า',
             appearance: 'รูปลักษณ์',
@@ -110,6 +128,7 @@ const translations = {
             home: 'หน้าแรก',
             maps: 'แผนที่',
             workout: 'เริ่มออกกำลังกาย',
+            trainer: 'เทรนเนอร์',
             stats: 'สถิติ',
             profile: 'โปรไฟล์',
         }
@@ -165,6 +184,8 @@ const translations = {
             daily_feed: 'Daily Feed',
             for_you: 'For You',
             start_guided: 'Start Guided Workout',
+            hire_trainer: 'Hire Elite Trainer',
+            personal_coaching: 'Personalized Coaching Plans',
         },
         stats: {
             title: 'Performance',
@@ -186,6 +207,7 @@ const translations = {
             today: 'Today',
             avg: 'Avg',
             wk: 'wk',
+            load_more: 'Load More',
         },
         workout: {
             choose_mode: 'Choose Mode',
@@ -207,6 +229,21 @@ const translations = {
             no_saved_plans: 'No saved plans yet',
             no_results: 'No results found',
         },
+        trainer: {
+            title: 'Personal Trainer',
+            choose_trainer: 'Choose Your Trainer',
+            available_slots: 'Available Slots',
+            request_mentorship: 'Enroll Now',
+            motivation: 'Need Motivation?',
+            help_subtitle: 'Let a trainer guide and track your progress.',
+            price: 'Price',
+            progress_tracking: 'Progress Tracking',
+            refuse: 'Refuse',
+            accept: 'Accept',
+            attendance: 'Attendance',
+            trainers: 'Trainers',
+            courses: 'Courses',
+        },
         settings: {
             title: 'Settings',
             appearance: 'Appearance',
@@ -219,6 +256,7 @@ const translations = {
             home: 'Home',
             maps: 'Maps',
             workout: 'Workout',
+            trainer: 'Trainer',
             stats: 'Stats',
             profile: 'Profile',
         }

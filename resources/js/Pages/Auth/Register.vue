@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -11,7 +12,24 @@ const form = useForm({
     weight: '',
     height: '',
     goal: '',
+    photo: null,
 });
+
+const photoPreview = ref(null);
+const photoInput = ref(null);
+
+const previewPhoto = () => {
+    const photo = photoInput.value.files[0];
+    if (!photo) return;
+
+    form.photo = photo;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        photoPreview.value = e.target.result;
+    };
+    reader.readAsDataURL(photo);
+};
 
 const submit = () => {
     form.post(route('register'), {
@@ -69,6 +87,35 @@ const submit = () => {
                 </div>
 
                 <form @submit.prevent="submit" class="space-y-4">
+                    <!-- Profile Photo -->
+                    <div class="flex flex-col items-center mb-6">
+                        <div class="relative group">
+                            <div class="size-32 rounded-full border-4 border-primary/20 bg-base-200 overflow-hidden flex items-center justify-center transition-all group-hover:border-primary/50 shadow-xl">
+                                <img v-if="photoPreview" :src="photoPreview" class="size-full object-cover" />
+                                <span v-else class="material-symbols-outlined text-5xl opacity-20">person</span>
+                            </div>
+                            
+                            <!-- Upload Button Overlay -->
+                            <button 
+                                type="button" 
+                                @click="$refs.photoInput.click()"
+                                class="absolute bottom-0 right-0 size-10 rounded-full bg-primary text-primary-content shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+                            >
+                                <span class="material-symbols-outlined text-xl">photo_camera</span>
+                            </button>
+                        </div>
+                        
+                        <input 
+                            type="file" 
+                            ref="photoInput" 
+                            class="hidden" 
+                            accept="image/*"
+                            @change="previewPhoto"
+                        />
+                        
+                        <p class="mt-3 text-xs font-bold uppercase tracking-wider text-base-content/40">Profile Photo</p>
+                        <InputError class="mt-2 text-error" :message="form.errors.photo" />
+                    </div>
                     
                     <div class="form-control w-full">
                         <label class="label">

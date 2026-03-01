@@ -17,15 +17,34 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        // Create a default admin account for access
         User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'password' => bcrypt('password')]
+            ['email' => 'admin@fitpung.com'],
+            [
+                'name' => 'Administrator',
+                'password' => bcrypt('12345678'),
+                'is_admin' => true,
+            ]
+        );
+
+        // Create Ball's account (Regular user/Trainer, not admin)
+        User::firstOrCreate(
+            ['email' => 'ball@gmail.com'],
+            [
+                'name' => 'Ball Chanchai',
+                'password' => bcrypt('12345678'),
+                'weight' => 82.5,
+                'height' => 178,
+                'goal' => 'Gain Muscle & Strength',
+            ]
         );
 
         $this->call([
             GymSeeder::class,
             EquipmentSeeder::class,
             WorkoutSessionSeeder::class,
+            WorkoutPlanSeeder::class,
+            AdvancedTrainerSeeder::class,
         ]);
     }
 }

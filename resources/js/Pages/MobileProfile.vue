@@ -10,6 +10,10 @@ const props = defineProps({
     weightHistories: {
         type: Array,
         default: () => []
+    },
+    activePackage: {
+        type: Object,
+        default: null
     }
 });
 
@@ -36,6 +40,27 @@ const editForm = ref({
     height: 0,
     goal: ''
 });
+
+const isReviewModalOpen = ref(false);
+const reviewForm = ref({
+    trainer_id: '',
+    rating: 5,
+    comment: ''
+});
+
+const openReviewModal = (trainerId) => {
+    reviewForm.value.trainer_id = trainerId;
+    isReviewModalOpen.value = true;
+};
+
+const submitReview = () => {
+    router.post('/api/trainer/review', reviewForm.value, {
+        onSuccess: () => {
+            isReviewModalOpen.value = false;
+            alert('Review submitted! Thank you.');
+        }
+    });
+};
 
 const latestWeightRecord = computed(() => {
     if (!props.weightHistories || props.weightHistories.length === 0) return { weight: user.value.weight || 0, created_at: new Date() };
@@ -99,6 +124,10 @@ const totalChange = computed(() => {
 
 // Helper to get local date key YYYY-MM-DD
 const getLocalDateKey = (date) => {
+    if (!date) return '';
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    if (typeof date === 'string' && date.includes('T')) return date.split('T')[0];
+
     const d = new Date(date);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -177,18 +206,22 @@ const graphPoints = computed(() => {
 
         let weight = null;
         let hasData = false;
+        let isLogged = false;
         const isToday = dateKey === todayKey;
         
         if (entriesByDate.has(dateKey)) {
             weight = entriesByDate.get(dateKey).weight;
             hasData = true;
+            isLogged = true;
         } else if (isToday) {
             // If no history today, fallback to the latest known historical weight OR profile weight
             weight = latestWeightRecord.value.weight;
             hasData = true;
+            isLogged = false;
         } else if (dayDate < now) {
             weight = lastKnownGlobal;
             hasData = false; 
+            isLogged = false;
         }
 
         if (hasData) {
@@ -199,6 +232,7 @@ const graphPoints = computed(() => {
             x: 0, // Will recalculate X positions
             weight: weight || lastKnownGlobal,
             hasData: hasData,
+            isLogged: isLogged,
             isToday: isToday,
             date: dayDate,
             label: dayDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { weekday: 'short' }),
@@ -446,25 +480,48 @@ const fullSvgPath = computed(() => {
     return d;
 });
 
+const photoPreview = ref(null);
+const photoInput = ref(null);
+
+const onPhotoChange = () => {
+    const photo = photoInput.value.files[0];
+    if (!photo) return;
+
+    editForm.value.photo = photo;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        photoPreview.value = e.target.result;
+    };
+    reader.readAsDataURL(photo);
+};
+
 const openEditModal = () => {
     errors.value = {};
     editForm.value = {
         name: user.value.name,
         height: user.value.height,
-        goal: user.value.goal
+        goal: user.value.goal,
+        photo: null
     };
+    photoPreview.value = user.value.profile_photo_url;
     isEditModalOpen.value = true;
 };
 
 const saveProfile = () => {
     errors.value = {};
-    router.patch(route('profile.update'), editForm.value, {
+    
+    // Use router.post with _method: 'patch' to support file uploads
+    router.post(route('profile.update'), {
+        ...editForm.value,
+        _method: 'patch'
+    }, {
         onSuccess: () => {
             isEditModalOpen.value = false;
+            photoPreview.value = null;
         },
         onError: (err) => {
             errors.value = err;
-            alert('Failed to save profile: ' + (Object.values(err)[0] || 'Unknown error'));
         },
         preserveScroll: true
     });
@@ -632,7 +689,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                 <div class="relative mb-6">
                     <div class="size-36 rounded-full border-4 border-[var(--theme-color)] p-1.5 shadow-2xl shadow-[var(--theme-color)]/20 transition-colors">
                         <div class="size-full rounded-full overflow-hidden bg-[var(--page-bg)] transition-colors">
-                            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjuchVWDk_IRP1TbfrAkzG8C4dA-u_ZSX_bmaJ7iTLsz349d2YCZwMsRA1jv1NHNq-FTa1WuuTrctIi_d9WHJb2VI1NZrJ3p_BqZcczzKpP4SZPQj3B_XX6EDlPU5fbHMh9GznMXlc3-Koi2GaRlWBu-73j1pHp39bRwxLX-V_fo3bm3pe---4bpS8o-nSgL6mxkoqqAL8GatxFr8B0_Jqchl4PZb4VDP9b3_v-iSeR5UM_i9ZA9WxigaAtHyyyxzav-yqEqFoT0U" class="size-full object-cover">
+                            <img :src="user.profile_photo_url" class="size-full object-cover">
                         </div>
                     </div>
                     <div class="absolute bottom-2 right-2 size-8 bg-[var(--theme-color)] rounded-full border-4 border-[var(--app-bg)] flex items-center justify-center text-white transition-colors">
@@ -644,9 +701,14 @@ watch(() => page.props.flash.status, (newStatus) => {
                     <p class="text-[10px] font-black uppercase tracking-wider text-[var(--theme-color)] mt-3">Elite Athlete • Level 42</p>
                 </div>
 
-                <button @click="openEditModal" class="w-full py-5 bg-[var(--theme-color)] text-white font-black italic uppercase tracking-normal rounded-[24px] shadow-xl shadow-[var(--theme-color)]/30 active:scale-95 transition-all mb-10 text-base">
+                <button @click="openEditModal" class="w-full py-5 bg-[var(--theme-color)] text-white font-black italic uppercase tracking-normal rounded-[24px] shadow-xl shadow-[var(--theme-color)]/30 active:scale-95 transition-all mb-4 text-base">
                     {{ t('profile.edit') }}
                 </button>
+
+                <Link v-if="user.trainer" :href="route('trainer.dashboard')" class="w-full py-5 bg-[#0f172a] text-white font-black italic uppercase tracking-widest rounded-[24px] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all mb-10 text-base border border-white/10">
+                    <span class="material-symbols-outlined text-[var(--theme-color)]">monitoring</span>
+                    Trainer Dashboard
+                </Link>
             </div>
 
 
@@ -658,7 +720,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                         <span class="absolute top-4 text-[8px] font-black uppercase tracking-wider text-[var(--text-muted)]">{{ t('profile.weight') }}</span>
                         <div class="flex flex-col items-center mt-2 relative">
                             <div class="flex items-baseline gap-0.5">
-                                <span class="text-2xl font-black text-[var(--theme-color)] italic leading-none">{{ latestWeightRecord.weight.toFixed(1) }}</span>
+                                <span class="text-2xl font-black text-[var(--theme-color)] italic leading-none">{{ (latestWeightRecord.weight || 0).toFixed(1) }}</span>
                                 <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">KG</span>
                             </div>
                             
@@ -699,6 +761,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                 </div>
             </section>
 
+
             <!-- Weight Trend & History Section -->
             <section class="px-6 py-4">
                 <!-- Weight Trend Graph -->
@@ -711,11 +774,11 @@ watch(() => page.props.flash.status, (newStatus) => {
                         
                         <div class="flex flex-col items-end gap-1">
                             <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                                {{ historyWeekOffset === 0 ? 'Total Change' : 'Weekly Progress' }}
+                                {{ historyWeekOffset === 0 ? 'Weekly Progress' : 'Weekly Progress' }}
                             </span>
                             <div v-if="historyWeekOffset === 0 ? totalChange : weeklyProgress" class="flex items-center gap-1.5 bg-[var(--page-bg)] px-3 py-1.5 rounded-full border border-[var(--border-color)]">
                                 <span class="text-[10px] font-black italic" :class="(historyWeekOffset === 0 ? totalChange.isDecrease : weeklyProgress.isDecrease) ? 'text-[#22c55e]' : ((historyWeekOffset === 0 ? totalChange.isIncrease : weeklyProgress.isIncrease) ? 'text-[#ef4444]' : 'text-[var(--text-muted)]')">
-                                    {{ (historyWeekOffset === 0 ? totalChange.isIncrease : weeklyProgress.isIncrease) ? '+' : ((historyWeekOffset === 0 ? totalChange.isDecrease : weeklyProgress.isDecrease) ? '-' : '') }}{{ historyWeekOffset === 0 ? totalChange.value : weeklyProgress.value }}
+                                    {{ (historyWeekOffset === 0 ? weeklyProgress.isIncrease : weeklyProgress.isIncrease) ? '+' : ((historyWeekOffset === 0 ? weeklyProgress.isDecrease : weeklyProgress.isDecrease) ? '-' : '') }}{{ weeklyProgress.value }}
                                 </span>
                                 <span class="text-[7px] font-black text-[var(--text-muted)] uppercase">KG</span>
                             </div>
@@ -753,7 +816,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                                     text-anchor="middle" 
                                     class="text-[9px] font-black fill-[var(--text-main)] tabular-nums transition-all"
                                 >
-                                    {{ p.weight.toFixed(1) }}
+                                    {{ (p.weight || 0).toFixed(1) }}
                                 </text>
                             </template>
                         </svg>
@@ -806,7 +869,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                                 </div>
                                 
                                 <div class="flex items-baseline gap-0.5 bg-[var(--page-bg)] px-3 py-1.5 rounded-full border border-[var(--border-color)]">
-                                    <span class="text-xs font-black text-[var(--theme-color)] italic tabular-nums">{{ Number(log.weight).toFixed(1) }}</span>
+                                    <span class="text-xs font-black text-[var(--theme-color)] italic tabular-nums">{{ (Number(log.weight) || 0).toFixed(1) }}</span>
                                     <span class="text-[7px] font-black text-[var(--text-muted)] uppercase">KG</span>
                                 </div>
                             </div>
@@ -845,12 +908,13 @@ watch(() => page.props.flash.status, (newStatus) => {
                         </div>
                         <span class="material-symbols-outlined text-[var(--text-muted)] font-bold text-sm">arrow_forward_ios</span>
                     </a>
-                    <a href="#" class="flex items-center justify-between p-5 hover:bg-[var(--page-bg)] transition-colors">
+                    <button @click="router.post(route('logout'))" class="w-full flex items-center justify-between p-5 hover:bg-[var(--page-bg)] transition-colors group">
                         <div class="flex items-center gap-4">
-                            <span class="material-symbols-outlined text-[var(--text-muted)]">logout</span>
+                            <span class="material-symbols-outlined text-[var(--text-muted)] group-hover:text-red-500 transition-colors">logout</span>
                             <span class="font-black uppercase text-[10px] tracking-widest text-red-500">Sign Out</span>
                         </div>
-                    </a>
+                        <span class="material-symbols-outlined text-[var(--text-muted)] font-bold text-sm opacity-20">arrow_forward_ios</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -873,11 +937,38 @@ watch(() => page.props.flash.status, (newStatus) => {
 
                     <div class="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar scroll-smooth">
                         <!-- Personal Info -->
-                        <div class="space-y-6">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="material-symbols-outlined text-[var(--theme-color)] text-lg">person</span>
-                                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Personal Details</h4>
-                            </div>
+                            <div class="space-y-6">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="material-symbols-outlined text-[var(--theme-color)] text-lg">person</span>
+                                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Personal Details</h4>
+                                </div>
+
+                                <!-- Photo Upload -->
+                                <div class="flex flex-col items-center mb-4">
+                                    <div class="relative group">
+                                        <div class="size-24 rounded-full border-4 border-[var(--theme-color)]/20 overflow-hidden flex items-center justify-center transition-all group-hover:border-[var(--theme-color)]/50 shadow-lg">
+                                            <img v-if="photoPreview" :src="photoPreview" class="size-full object-cover" />
+                                            <span v-else class="material-symbols-outlined text-4xl opacity-20">person</span>
+                                        </div>
+                                        
+                                        <button 
+                                            type="button" 
+                                            @click="$refs.photoInput.click()"
+                                            class="absolute bottom-0 right-0 size-8 rounded-full bg-[var(--theme-color)] text-white shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+                                        >
+                                            <span class="material-symbols-outlined text-base">photo_camera</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <input 
+                                        type="file" 
+                                        ref="photoInput" 
+                                        class="hidden" 
+                                        accept="image/*"
+                                        @change="onPhotoChange"
+                                    />
+                                    <p v-if="errors.photo" class="text-[8px] text-red-500 font-bold uppercase tracking-widest mt-2">{{ errors.photo }}</p>
+                                </div>
 
                             <div class="space-y-4">
                                 <div class="space-y-1.5">
@@ -932,7 +1023,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                 <div class="text-center mb-10 shrink-0">
                     <span class="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--theme-color)]">Select Your Weight</span>
                     <div class="flex items-center justify-center gap-2 mt-4">
-                        <span class="text-6xl font-black italic text-[var(--text-main)] tabular-nums transition-colors">{{ localWeight.toFixed(1) }}</span>
+                        <span class="text-6xl font-black italic text-[var(--text-main)] tabular-nums transition-colors">{{ (localWeight || 0).toFixed(1) }}</span>
                         <span class="text-sm font-black text-[var(--text-muted)] uppercase tracking-widest mt-6">KG</span>
                     </div>
                 </div>
@@ -1033,7 +1124,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                                                 text-anchor="middle" 
                                                 class="text-[12px] font-black fill-[var(--text-main)] tracking-tighter"
                                             >
-                                                {{ p.weight.toFixed(1) }}
+                                                {{ (p.weight || 0).toFixed(1) }}
                                             </text>
                                             <circle 
                                                 :cx="p.x" 
@@ -1095,7 +1186,7 @@ watch(() => page.props.flash.status, (newStatus) => {
                                     <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase italic transition-colors">{{ entry.formattedTime }}</span>
                                 </div>
                                 <div class="flex items-end gap-1.5">
-                                    <span class="text-xl font-black italic text-[var(--text-main)] leading-none transition-colors">{{ entry.weight.toFixed(1) }}</span>
+                                    <span class="text-xl font-black italic text-[var(--text-main)] leading-none transition-colors">{{ (entry.weight || 0).toFixed(1) }}</span>
                                     <span class="text-[9px] font-black text-[var(--text-muted)] mb-0.5 uppercase tracking-tighter">kg</span>
                                 </div>
                             </div>
@@ -1109,6 +1200,48 @@ watch(() => page.props.flash.status, (newStatus) => {
                 </div>
             </div>
         </transition>
+        <!-- Review Modal -->
+        <div v-if="isReviewModalOpen" class="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-md p-4">
+            <div class="w-full max-w-md bg-[var(--card-bg)] rounded-[40px] p-8 pb-10 shadow-2xl border border-[var(--border-color)]">
+                <div class="text-center mb-8">
+                    <h2 class="text-xl font-black italic uppercase text-[var(--text-main)]">Rate Trainer</h2>
+                    <p class="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-1">Share your experience</p>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="flex justify-center gap-2">
+                        <button v-for="i in 5" :key="i" @click="reviewForm.rating = i">
+                            <span class="material-symbols-outlined text-3xl" :class="i <= reviewForm.rating ? 'text-amber-400 fill-icon' : 'text-[var(--text-muted)]'">star</span>
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Comment</label>
+                        <textarea 
+                            v-model="reviewForm.comment"
+                            rows="4"
+                            placeholder="How was the training? Any improvements?"
+                            class="w-full mt-2 bg-[var(--page-bg)] border border-[var(--border-color)] rounded-2xl px-5 py-4 text-xs font-black text-[var(--text-main)] focus:outline-none focus:border-[var(--theme-color)]"
+                        ></textarea>
+                    </div>
+
+                    <div class="pt-4 flex flex-col gap-3">
+                        <button 
+                            @click="submitReview"
+                            class="w-full py-4 bg-[var(--theme-color)] text-white text-[11px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-[var(--theme-color)]/20 active:scale-[0.98] transition-all"
+                        >
+                            Submit Review
+                        </button>
+                        <button 
+                            @click="isReviewModalOpen = false"
+                            class="w-full py-2 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </MobileLayout>
 </template>
 

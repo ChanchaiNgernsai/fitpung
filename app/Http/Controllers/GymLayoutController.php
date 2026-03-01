@@ -50,12 +50,27 @@ class GymLayoutController extends Controller
      */
     public function showMobileHome()
     {
+        $user = Auth::user();
+        $activePackage = \App\Models\ClientPackage::with(['trainer.user'])
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        $todaySchedule = null;
+        if ($activePackage) {
+            $todaySchedule = \App\Models\TrainerSchedule::where('trainer_id', $activePackage->trainer_id)
+                ->where('date', now()->toDateString())
+                ->first();
+        }
+
         return Inertia::render('MobileHome', [
             'featuredGyms' => GymLayout::where('is_public', true)
                 ->where('is_approved', true)
                 ->whereNotNull('recommendations')
                 ->limit(5)
-                ->get()
+                ->get(),
+            'activePackage' => $activePackage,
+            'todaySchedule' => $todaySchedule,
         ]);
     }
 
@@ -77,10 +92,31 @@ class GymLayoutController extends Controller
      */
     public function showMobileWorkout()
     {
+        $user = Auth::user();
+        $activePackage = \App\Models\ClientPackage::with(['trainer.user'])
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        $todaySchedule = null;
+        if ($activePackage) {
+            $todaySchedule = \App\Models\TrainerSchedule::where('trainer_id', $activePackage->trainer_id)
+                ->where('date', now()->toDateString())
+                ->first();
+        }
+
+        $bookings = \App\Models\Booking::where('user_id', $user->id)
+            ->where('status', 'confirmed')
+            ->get();
+
         return Inertia::render('MobileWorkout', [
             'gyms' => GymLayout::where('is_public', true)
                 ->where('is_approved', true)
-                ->get()
+                ->get(),
+            'trainers' => \App\Models\Trainer::with(['user', 'courses'])->get(),
+            'activePackage' => $activePackage,
+            'todaySchedule' => $todaySchedule,
+            'bookings' => $bookings,
         ]);
     }
 
@@ -97,12 +133,21 @@ class GymLayoutController extends Controller
      */
     public function showMobileProfile()
     {
+        $user = Auth::user();
+        $activePackage = \App\Models\ClientPackage::with(['trainer.user'])
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
         return Inertia::render('MobileProfile', [
-            'weightHistories' => Auth::user()->weightHistories()
+            'weightHistories' => $user->weightHistories()
                 ->orderBy('created_at', 'asc')
-                ->get()
+                ->get(),
+            'activePackage' => $activePackage
         ]);
     }
+
+
 
     /**
      * Show mobile settings page.

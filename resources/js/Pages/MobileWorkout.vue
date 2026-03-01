@@ -4,17 +4,29 @@ import MobileLayout from '@/Layouts/MobileLayout.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/language';
 import axios from 'axios';
+import TrainerTab from '@/Components/TrainerTab.vue';
 
 const { t } = useI18n();
 
 const props = defineProps({
-    gyms: { type: Array, default: () => [] }
+    gyms: { type: Array, default: () => [] },
+    trainers: { type: Array, default: () => [] },
+    activePackage: { type: Object, default: null },
+    todaySchedule: { type: Object, default: null },
+    bookings: { type: Array, default: () => [] }
 });
 
 const mode = ref(null); // null (selection) | 'free'
 const activeTab = ref('equipments'); // 'equipments' | 'plans' | 'history'
 const isWorkoutSessionActive = ref(false);
 const weightOptions = Array.from({ length: 80 }, (_, i) => ((i + 1) * 2.5).toFixed(1).replace(/\.0$/, '') + 'kg');
+
+// Helper for timezone-robust date display (e.g., Friday, Feb 27)
+const formatLocalDate = (dateStr) => {
+    const d = new Date(dateStr);
+    // Use Intl.DateTimeFormat with a fixed locale to ensure consistency
+    return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(d);
+};
 
 const activeWorkout = ref(null);
 const setsDone = ref(0);
@@ -26,6 +38,12 @@ const customPlans = ref([]);
 const viewMode = ref('list'); // 'list' | 'grid'
 const isShowFinishConfirm = ref(false);
 const isShowSuccessMessage = ref(false);
+const initialTrainerId = ref(null);
+
+const openTrainerWithId = (id) => {
+    initialTrainerId.value = id;
+    mode.value = 'trainer';
+};
 
 // Load stats, history, and custom plans
 onMounted(() => {
@@ -47,11 +65,18 @@ onMounted(() => {
 const fetchWorkoutHistory = async () => {
     try {
         const response = await axios.get('/api/workout-sessions');
-        // Map backend structure to local structure
-        const dbSessions = response.data.data.map(s => ({
+        // Handle both paginated and non-paginated responses just in case
+        const sessionsData = response.data.data || response.data;
+        
+        if (!Array.isArray(sessionsData)) {
+            console.error("Invalid history data format", response.data);
+            return;
+        }
+
+        const dbSessions = sessionsData.map(s => ({
             id: s.id,
-            apiId: s.id, // Keep original ID for deletion
-            date: new Date(s.workout_date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+            apiId: s.id,
+            date: formatLocalDate(s.workout_date),
             title: s.data?.title || 'Workout Session',
             exercises: s.data?.exercises || [],
             sets: s.data?.sets || 0
@@ -254,14 +279,7 @@ const startCombinedWorkout = () => {
                     
                     
                     if (!exerciseImage) {
-                        const nameLower = ex.name.toLowerCase();
-                        if (nameLower.includes('dumbbell')) exerciseImage = '/images/equipment/Dumbbells.svg';
-                        else if (nameLower.includes('treadmill')) exerciseImage = '/images/equipment/Treadmill.svg';
-                        else if (nameLower.includes('incline bench')) exerciseImage = '/images/equipment/InclineBench.svg';
-                        else if (nameLower.includes('bench press')) exerciseImage = '/images/equipment/BenchPress.svg';
-                        else if (nameLower.includes('leg press')) exerciseImage = '/images/equipment/LegPress.svg';
-                        else if (nameLower.includes('smith')) exerciseImage = '/images/equipment/SmithMachine.svg';
-                        else if (nameLower.includes('elliptical')) exerciseImage = '/images/equipment/Elliptical.svg';
+                        exerciseImage = getExerciseImage(ex);
                     }
 
                     const targetSets = parseInt(ex.sets) || 3;
@@ -347,49 +365,69 @@ const finishWorkout = () => {
     isShowFinishConfirm.value = true;
 };
 
-const confirmFinishWorkout = () => {
-    // Record to history
-    const session = {
-        id: Date.now(),
-        date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
-        title: activeWorkout.value.title,
-        exercises: activeWorkout.value.exercises.map(ex => ({
+const confirmFinishWorkout = async () => {
+    // Collect all exercises where at least one set has reps/weight OR is completed
+    const sessionExercises = activeWorkout.value.exercises.map(ex => {
+        // Find sets with interaction (either completed OR have numerical data)
+        const validSets = ex.workoutLogs.filter(s => {
+            if (s.completed) return true;
+            const repsNum = parseInt(s.reps);
+            return !isNaN(repsNum) && repsNum > 0;
+        }).map(s => ({
+            weight: s.weight,
+            reps: s.reps
+        }));
+
+        return {
             name: ex.name,
             image: ex.image,
-            sets: ex.workoutLogs.filter(s => s.completed).map(s => ({
-                weight: s.weight,
-                reps: s.reps
-            }))
-        })).filter(ex => ex.sets.length > 0),
-        sets: activeWorkout.value.exercises.reduce((sum, ex) => sum + ex.workoutLogs.filter(s => s.completed).length, 0)
-    };
+            sets: validSets
+        };
+    }).filter(ex => ex.sets.length > 0);
 
-    // Save to DB
+    const totalSets = sessionExercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+
+    if (sessionExercises.length === 0) {
+        alert("Please log at least one exercise before finishing.");
+        isShowFinishConfirm.value = false;
+        return;
+    }
+
     const sessionData = {
         workout_date: new Date().toISOString().split('T')[0],
         data: {
-            title: session.title,
-            exercises: session.exercises,
-            sets: session.sets
+            title: activeWorkout.value.title,
+            exercises: sessionExercises,
+            sets: totalSets
         }
     };
 
-    axios.post('/api/workout-sessions', sessionData)
-        .catch(e => console.error("Failed to save workout session to DB", e));
+    try {
+        // Ensure CSRF token if meta tag exists (standard Laravel)
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+        }
 
-    history.value.unshift(session);
-    localStorage.setItem('fitpung_workout_history', JSON.stringify(history.value));
-
-    isWorkoutSessionActive.value = false;
-    activeWorkout.value = null;
-    selectedWorkoutIds.value = [];
-    isShowFinishConfirm.value = false;
-    isShowSuccessMessage.value = true;
-    
-    setTimeout(() => {
-        isShowSuccessMessage.value = false;
-        mode.value = null; // Also reset mode to show selection screen
-    }, 3000);
+        const response = await axios.post('/api/workout-sessions', sessionData);
+        
+        // Refresh full history from server after successful save
+        await fetchWorkoutHistory();
+        
+        isWorkoutSessionActive.value = false;
+        activeWorkout.value = null;
+        selectedWorkoutIds.value = [];
+        isShowFinishConfirm.value = false;
+        isShowSuccessMessage.value = true;
+        
+        setTimeout(() => {
+            isShowSuccessMessage.value = false;
+            mode.value = null;
+        }, 3000);
+    } catch (e) {
+        console.error("Failed to save workout session", e);
+        alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
 };
 
 const deleteHistoryEntry = async (id) => {
@@ -423,16 +461,42 @@ const deleteHistoryEntry = async (id) => {
 const mergedHistory = computed(() => {
     return history.value;
 });
+
+const groupedHistory = computed(() => {
+    const groups = [];
+    mergedHistory.value.forEach(entry => {
+        // Find if we already have a group for this date
+        let group = groups.find(g => g.date === entry.date);
+        if (!group) {
+            group = {
+                date: entry.date,
+                entries: []
+            };
+            groups.push(group);
+        }
+        group.entries.push(entry);
+    });
+    return groups;
+});
 const getExerciseImage = (ex) => {
     if (ex.image) return ex.image;
     
-    const nameLower = ex.name.toLowerCase();
-    if (nameLower.includes('dumbbell')) return '/images/equipment/Dumbbells.svg';
-    if (nameLower.includes('treadmill')) return '/images/equipment/Treadmill.svg';
-    if (nameLower.includes('elliptical')) return '/images/equipment/Elliptical.svg';
-    if (nameLower.includes('bench press')) return '/images/equipment/BenchPress.svg';
-    if (nameLower.includes('leg press')) return '/images/equipment/LegPress.svg';
-    if (nameLower.includes('smith')) return '/images/equipment/SmithMachine.svg';
+    const nameLower = (ex.name || '').toLowerCase();
+    // Use available SVGs for the most common exercises
+    if (nameLower.includes('dumbbell') || nameLower.includes('curl') || nameLower.includes('lateral raise') || nameLower.includes('fly')) 
+        return '/images/equipment/Dumbbells.svg';
+    if (nameLower.includes('treadmill') || nameLower.includes('run') || nameLower.includes('walk')) 
+        return '/images/equipment/Treadmill.svg';
+    if (nameLower.includes('elliptical') || nameLower.includes('cycle') || nameLower.includes('bike') || nameLower.includes('stair')) 
+        return '/images/equipment/Elliptical.svg';
+    if (nameLower.includes('bench press') || nameLower.includes('chest press') || nameLower.includes('shoulder press') || nameLower.includes('press') || nameLower.includes('push up') || nameLower.includes('dip')) 
+        return '/images/equipment/BenchPress.svg';
+    if (nameLower.includes('decline'))
+        return '/images/equipment/DeclineBenchPress.svg';
+    if (nameLower.includes('leg press') || nameLower.includes('leg extension') || nameLower.includes('leg curl') || nameLower.includes('calf')) 
+        return '/images/equipment/LegPress.svg';
+    if (nameLower.includes('smith') || nameLower.includes('squat') || nameLower.includes('deadlift') || nameLower.includes('row') || nameLower.includes('lat pulldown') || nameLower.includes('pull up') || nameLower.includes('pushdown') || nameLower.includes('back extension')) 
+        return '/images/equipment/SmithMachine.svg';
     
     return null;
 };
@@ -447,6 +511,51 @@ const getExerciseImage = (ex) => {
             <div class="text-center mb-8">
                   <h1 class="text-3xl font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-[0.85] mt-1 transition-colors">{{ t('workout.choose_mode') }}</h1>
                   <p class="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider mt-2 transition-colors">{{ t('workout.select_train') }}</p>
+            </div>
+
+            <!-- Today's Coaching Plan (For Active Trainees) -->
+            <div v-if="activePackage" 
+                class="w-full p-6 rounded-[40px] shadow-2xl mb-6 overflow-hidden relative group transition-all border-t-2 border-white/20" 
+                :style="{ background: 'linear-gradient(135deg, var(--theme-color), #f97316)', boxShadow: '0 20px 40px rgba(var(--theme-color-rgb), 0.2)' }"
+            >
+                <div class="flex items-center gap-5 relative z-10">
+                    <img :src="activePackage.trainer.user.profile_photo_url" class="size-16 rounded-[24px] border-2 border-white/30 object-cover shadow-xl group-hover:scale-105 transition-transform">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <span class="size-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                            <h3 class="text-white text-[10px] font-black uppercase tracking-[0.2em] opacity-80 leading-none">Today's Coaching Guide</h3>
+                        </div>
+                        <h2 class="text-white text-3xl font-black uppercase italic leading-[0.85] tracking-tighter truncate">
+                            {{ todaySchedule?.focus_area || 'Daily Plan' }}
+                        </h2>
+                    </div>
+                </div>
+                
+                <div class="mt-5 p-5 bg-white/10 rounded-[28px] backdrop-blur-md border border-white/20 relative z-10">
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-white/40 text-sm mt-0.5">format_quote</span>
+                        <p class="text-white text-[11px] font-bold leading-relaxed italic opacity-95">
+                            {{ todaySchedule?.description || "Pick an exercise and let's crush it today! I'm here to support you." }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between relative z-10 px-1">
+                    <span class="text-white/60 text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[10px]">person</span>
+                        {{ activePackage.trainer.user.name }}
+                    </span>
+                    <div class="flex items-center gap-2">
+                    </div>
+                </div>
+
+                <!-- Abstract Decorations -->
+                <div class="absolute -right-6 -bottom-6 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
+                    <span class="material-symbols-outlined text-[120px] text-white">sports_martial_arts</span>
+                </div>
+                <div class="absolute -left-4 top-1/2 -translate-y-1/2 opacity-5 blur-sm">
+                    <div class="size-40 rounded-full border-[20px] border-white"></div>
+                </div>
             </div>
 
             <!-- Gym Mode Card -->
@@ -476,6 +585,30 @@ const getExerciseImage = (ex) => {
                     </p>
                 </div>
             </button>
+
+            <!-- Trainer Mode Card -->
+            <button @click="selectMode('trainer')" class="w-full bg-[var(--card-bg)] p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-orange-500 group transition-all duration-300 relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <span class="material-symbols-outlined text-9xl text-orange-500">sports_martial_arts</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-start text-left">
+                    <span class="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-4">{{ t('trainer.title') }}</span>
+                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">Personal Trainer</h2>
+                    <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
+                        {{ t('trainer.motivation') }}
+                    </p>
+                </div>
+            </button>
+        </div>
+
+        <!-- Trainer View -->
+        <div v-else-if="mode === 'trainer' && !isWorkoutSessionActive" class="min-h-full bg-[var(--page-bg)] transition-colors">
+            <TrainerTab 
+                :trainers="trainers" 
+                :bookings="bookings"
+                :initial-trainer-id="initialTrainerId" 
+                @back="mode = null; initialTrainerId = null" 
+            />
         </div>
 
         <!-- Workout Session View (Guided Plan) -->
@@ -550,7 +683,10 @@ const getExerciseImage = (ex) => {
 
                     <div class="flex items-center justify-between mt-8 mb-4">
                         <h4 class="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">Workout Log</h4>
-                        <button @click="addSet(exercise)" class="flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#ec5b13]/20 text-[#ec5b13] text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all bg-[#ec5b13]/5">
+                        <button @click="addSet(exercise)" 
+                            class="flex items-center gap-1.5 px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm"
+                            :style="{ borderColor: 'var(--theme-color)', color: 'var(--theme-color)', backgroundColor: 'rgba(var(--theme-color-rgb), 0.05)' }"
+                        >
                             <span class="material-symbols-outlined text-[10px] font-bold">add</span>
                             ADD SET
                         </button>
@@ -595,7 +731,8 @@ const getExerciseImage = (ex) => {
                             <!-- Done Button -->
                             <button @click="toggleSet(set)" 
                                 class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm active:scale-95"
-                                :class="set.completed ? 'bg-[var(--theme-color)] border-[var(--theme-color)] text-white' : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/30'">
+                                :style="set.completed ? { backgroundColor: 'var(--theme-color)', borderColor: 'var(--theme-color)' } : {}"
+                                :class="set.completed ? 'text-white' : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/30'">
                                 <span class="material-symbols-outlined text-xl font-bold">{{ set.completed ? 'check_circle' : 'check' }}</span>
                             </button>
                         </div>
@@ -622,18 +759,18 @@ const getExerciseImage = (ex) => {
             </div>
         </div>
 
-        <!-- Free Workout Home View -->
+        <!-- Selection View -->
         <div v-else class="bg-[var(--page-bg)] min-h-screen pb-32 transition-colors">
             <!-- Header Tabs -->
             <header class="p-6 pb-2 transition-colors">
                 <div class="flex flex-col items-center mb-4 transition-colors">
-                    <p class="text-xs font-black uppercase tracking-wider text-blue-500 mb-1">{{ t('workout.manual') }}</p>
+                    <p class="text-xs font-black uppercase tracking-wider text-blue-500 mb-1 transition-colors">{{ t('workout.manual') }}</p>
                     <h1 class="text-[26px] font-black uppercase italic tracking-tighter text-[var(--text-main)] leading-none transition-colors">{{ t('workout.search_exercises') }}</h1>
                 </div>
 
                 <!-- Simple Back Button -->
                 <button @click="mode = null" class="absolute left-6 top-8 size-9 rounded-full flex items-center justify-center border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm transition-all">
-                    <span class="material-symbols-outlined text-[var(--text-muted)] text-xl transition-colors">arrow_back</span>
+                    <span class="material-symbols-outlined text-[var(--text-muted)] text-xl">arrow_back</span>
                 </button>
 
                 <!-- Tabs -->
@@ -654,7 +791,7 @@ const getExerciseImage = (ex) => {
             </header>
 
             <div v-if="activeTab !== 'history'" class="px-6 mt-4 transition-colors">
-                 <div class="relative">
+                 <div class="relative transition-colors">
                     <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xl transition-colors">search</span>
                     <input v-model="searchQuery" 
                         type="text" 
@@ -667,8 +804,8 @@ const getExerciseImage = (ex) => {
             <!-- Main View Content -->
             <div v-if="activeTab === 'equipments' || activeTab === 'plans'" class="transition-colors">
                 <div class="py-6 transition-colors">
-                    <div class="px-8 flex items-center justify-between mb-2">
-                        <div class="flex flex-col">
+                    <div class="px-8 flex items-center justify-between mb-2 transition-colors">
+                        <div class="flex flex-col transition-colors">
                             <h3 class="text-lg font-black uppercase italic text-[var(--text-main)] tracking-tight leading-none transition-colors">{{ t('workout.build_session') }}</h3>
                             <p class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-wider mt-1 transition-colors">
                                 {{ selectedWorkoutIds.length }} {{ t('workout.items_selected') }}
@@ -691,7 +828,7 @@ const getExerciseImage = (ex) => {
                             </div>
 
                             <div class="flex-1 min-w-0 transition-colors">
-                                <span class="text-[6px] font-black uppercase tracking-[0.1em] text-[var(--theme-color)] opacity-60">
+                                <span class="text-[6px] font-black uppercase tracking-[0.1em] text-[var(--theme-color)] opacity-60 transition-colors">
                                     {{ workout.gymName }}
                                 </span>
                                 <h4 class="text-[17px] font-black uppercase italic text-[var(--text-main)] truncate leading-none tracking-tight my-0.5 transition-colors">{{ workout.title }}</h4>
@@ -700,7 +837,7 @@ const getExerciseImage = (ex) => {
                                 </p>
                             </div>
 
-                            <div class="flex items-center">
+                            <div class="flex items-center transition-colors">
                                 <!-- Selection Circle -->
                                 <div class="size-8 rounded-full flex items-center justify-center border transition-all"
                                     :class="selectedWorkoutIds.includes(workout.id) ? 'bg-[var(--theme-color)] border-[var(--theme-color)] text-white shadow-lg' : 'border-[var(--border-color)] text-transparent'">
@@ -711,8 +848,8 @@ const getExerciseImage = (ex) => {
                     </div>
 
                     <!-- No Results -->
-                    <div v-if="(activeTab === 'equipments' ? allEquipments : userSavedPlans).length === 0" class="py-20 text-center opacity-20">
-                         <span class="material-symbols-outlined text-6xl">bookmark_border</span>
+                    <div v-if="(activeTab === 'equipments' ? allEquipments : userSavedPlans).length === 0" class="py-20 text-center opacity-20 transition-colors">
+                         <span class="material-symbols-outlined text-6xl transition-colors">bookmark_border</span>
                          <p class="text-xs font-black uppercase tracking-wider mt-4">
                              {{ activeTab === 'plans' ? t('workout.no_saved_plans') : t('workout.no_results') }}
                          </p>
@@ -721,61 +858,65 @@ const getExerciseImage = (ex) => {
             </div>
 
             <!-- History View (Unified) -->
-            <div v-else class="px-6 py-4 space-y-10 transition-colors">
+            <div v-else-if="activeTab === 'history'" class="px-6 py-4 space-y-12 transition-colors">
                 <div v-if="mergedHistory.length === 0" class="py-20 text-center opacity-30 transition-colors">
                     <span class="material-symbols-outlined text-6xl text-[var(--text-muted)]">history</span>
                     <p class="text-xs font-black uppercase tracking-wider mt-4 text-[var(--text-muted)]">No workout history yet</p>
                 </div>
                 
-                <div v-for="entry in mergedHistory" :key="entry.id" class="space-y-6 transition-colors">
-                    <!-- Session Header (Date & Title) -->
-                    <div class="px-2 flex items-center justify-between transition-colors">
-                        <div>
-                            <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-wider mb-1 block">{{ entry.date }}</span>
-                            <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tight transition-colors">{{ entry.title || 'Workout Session' }}</h4>
-                        </div>
-                        <button @click="deleteHistoryEntry(entry.id)" class="size-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center active:scale-95 transition-all">
-                            <span class="material-symbols-outlined text-xl">delete</span>
-                        </button>
+                <div v-for="group in groupedHistory" :key="group.date" class="space-y-8 transition-colors">
+                    <!-- Day Header -->
+                    <div class="px-2 transition-colors">
+                        <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-wider block transition-colors">{{ group.date }}</span>
                     </div>
-                    
-                    <!-- Detailed Exercise List -->
-                    <div v-if="entry.exercises && entry.exercises.length > 0" class="space-y-4 transition-colors">
-                        <div v-for="ex in entry.exercises" :key="ex.name" class="flex gap-4 items-start bg-[var(--card-bg)] rounded-[32px] p-5 border border-[var(--border-color)] shadow-sm transition-colors">
-                            <!-- Machine Image -->
-                            <div class="size-20 rounded-2xl bg-[var(--page-bg)] overflow-hidden border border-[var(--border-color)] flex-shrink-0 p-2 shadow-inner transition-colors">
-                                <img v-if="getExerciseImage(ex)" :src="getExerciseImage(ex)" class="w-full h-full object-contain">
-                                <div v-else class="w-full h-full flex items-center justify-center opacity-10 transition-colors">
-                                    <span class="material-symbols-outlined text-2xl text-[var(--text-main)]">fitness_center</span>
+
+                    <div v-for="entry in group.entries" :key="entry.id" class="space-y-6 transition-colors">
+                        <!-- Session Sub-header -->
+                        <div class="px-2 flex items-center justify-between transition-colors">
+                             <h4 class="text-2xl font-black uppercase italic text-[var(--text-main)] leading-none tracking-tight transition-colors">{{ entry.title || 'Workout Session' }}</h4>
+                             <button @click="deleteHistoryEntry(entry.id)" class="size-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center active:scale-95 transition-all">
+                                 <span class="material-symbols-outlined text-xl">delete</span>
+                             </button>
+                        </div>
+                        
+                        <!-- Detailed Exercise List -->
+                        <div v-if="entry.exercises && entry.exercises.length > 0" class="space-y-4 transition-colors">
+                            <div v-for="ex in entry.exercises" :key="ex.name" class="flex gap-4 items-start bg-[var(--card-bg)] rounded-[32px] p-5 border border-[var(--border-color)] shadow-sm transition-colors">
+                                <!-- Machine Image -->
+                                <div class="size-20 rounded-2xl bg-[var(--page-bg)] overflow-hidden border border-[var(--border-color)] flex-shrink-0 p-2 shadow-inner transition-colors">
+                                    <img v-if="getExerciseImage(ex)" :src="getExerciseImage(ex)" class="w-full h-full object-contain">
+                                    <div v-else class="w-full h-full flex items-center justify-center opacity-10 transition-colors">
+                                        <span class="material-symbols-outlined text-2xl text-[var(--text-main)] transition-colors">fitness_center</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="flex-1 min-w-0 pt-1 transition-colors">
-                                <h5 class="text-xs font-black uppercase italic text-[var(--text-main)] mb-3 truncate tracking-tight transition-colors">{{ ex.name }}</h5>
-                                <!-- History Set Logs (New Labeled Box Style) -->
-                                <div class="flex flex-col gap-4">
-                                    <div v-for="(set, idx) in ex.sets" :key="idx" class="flex gap-2 items-end transition-colors">
-                                        <!-- Weight Group -->
-                                        <div class="flex-1 flex flex-col gap-1">
-                                            <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider pl-1 transition-colors">Weight</span>
-                                            <div class="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
-                                                <span class="text-[10px] font-black text-[var(--text-muted)]">{{ set.weight }}</span>
+                                <div class="flex-1 min-w-0 pt-1 transition-colors">
+                                    <h5 class="text-xs font-black uppercase italic text-[var(--text-main)] mb-3 truncate tracking-tight transition-colors">{{ ex.name }}</h5>
+                                    <!-- History Set Logs (New Labeled Box Style) -->
+                                    <div class="flex flex-col gap-4 transition-colors">
+                                        <div v-for="(set, idx) in ex.sets" :key="idx" class="flex gap-2 items-end transition-colors">
+                                            <!-- Weight Group -->
+                                            <div class="flex-1 flex flex-col gap-1 transition-colors">
+                                                <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider pl-1 transition-colors">Weight</span>
+                                                <div class="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
+                                                    <span class="text-[10px] font-black text-[var(--text-muted)] tracking-wider transition-colors">{{ set.weight }}</span>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <!-- Sets Group -->
-                                        <div class="w-10 flex flex-col gap-1 items-center">
-                                            <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">Sets</span>
-                                            <div class="w-full bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
-                                                <span class="text-[10px] font-black text-[var(--text-muted)]/40 font-mono transition-colors">{{ idx + 1 }}</span>
+                                            <!-- Sets Group -->
+                                            <div class="w-10 flex flex-col gap-1 items-center transition-colors">
+                                                <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">Sets</span>
+                                                <div class="w-full bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
+                                                    <span class="text-[10px] font-black text-[var(--text-muted)]/40 font-mono transition-colors">{{ idx + 1 }}</span>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <!-- Reps Group -->
-                                        <div class="flex-1 flex flex-col gap-1">
-                                            <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider pl-1 transition-colors">Reps</span>
-                                            <div class="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
-                                                <span class="text-[10px] font-black text-[var(--text-muted)]">{{ set.reps }}</span>
+                                            <!-- Reps Group -->
+                                            <div class="flex-1 flex flex-col gap-1 transition-colors">
+                                                <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider pl-1 transition-colors">Reps</span>
+                                                <div class="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] py-1.5 flex items-center justify-center transition-colors">
+                                                    <span class="text-[10px] font-black text-[var(--text-muted)] tracking-wider transition-colors">{{ set.reps }}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -788,12 +929,14 @@ const getExerciseImage = (ex) => {
 
             <!-- Combined Start Button (Floating) -->
             <transition name="up">
-                <div v-if="selectedWorkoutIds.length > 0" class="fixed bottom-24 left-10 right-10 z-40 flex justify-center">
+                <div v-if="selectedWorkoutIds.length > 0" class="fixed bottom-24 left-10 right-10 z-40 flex justify-center transition-colors">
                     <button @click="startCombinedWorkout" 
-                        class="w-full max-w-[280px] py-3.5 rounded-full bg-[var(--theme-color)] text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-[var(--theme-color)]/30 flex items-center justify-center gap-3 active:scale-95 hover:brightness-110 transition-all text-xs italic">
-                        <span class="material-symbols-outlined fill-icon text-lg">play_arrow</span>
-                        {{ t('workout.start') }} ({{ selectedWorkoutIds.length }})
-                    </button>
+                    class="w-full max-w-[280px] py-4 rounded-full text-white font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 hover:brightness-110 transition-all text-xs italic"
+                    :style="{ backgroundColor: 'var(--theme-color)', boxShadow: '0 15px 30px rgba(var(--theme-color-rgb), 0.3)' }"
+                >
+                    <span class="material-symbols-outlined fill-icon text-lg">play_arrow</span>
+                    {{ t('workout.start') }} ({{ selectedWorkoutIds.length }})
+                </button>
                 </div>
             </transition>
         </div>

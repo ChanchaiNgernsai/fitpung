@@ -14,6 +14,22 @@ const isLoading = ref(false);
 const currentPage = ref(1);
 const lastPage = ref(1);
 const totalSessions = ref(0);
+const visibleDays = ref(20);
+
+// Helper for timezone-robust date matching (YYYY-MM-DD)
+const getLocalDateString = (date) => {
+    if (!date) return '';
+    // If it's already YYYY-MM-DD string, return as is to avoid timezone shift
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    // If it's an ISO string with T, extract the date part
+    if (typeof date === 'string' && date.includes('T')) return date.split('T')[0];
+    
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 const fetchWorkoutHistory = async (page = 1) => {
     if (isLoading.value || (page > 1 && page > lastPage.value)) return;
@@ -94,20 +110,26 @@ const periods = computed(() => {
 
 const filteredHistory = computed(() => {
     const { cutoff } = periods.value;
-    return workoutHistory.value.filter(entry => new Date(entry.workout_date) >= cutoff);
+    const cutoffStr = getLocalDateString(cutoff);
+    return workoutHistory.value.filter(entry => {
+        const entryStr = getLocalDateString(entry.workout_date);
+        return entryStr >= cutoffStr;
+    });
 });
 
 const prevFilteredHistory = computed(() => {
     const { cutoff, prevCutoff } = periods.value;
+    const cutoffStr = getLocalDateString(cutoff);
+    const prevCutoffStr = getLocalDateString(prevCutoff);
     return workoutHistory.value.filter(entry => {
-        const d = new Date(entry.workout_date);
-        return d >= prevCutoff && d < cutoff;
+        const entryStr = getLocalDateString(entry.workout_date);
+        return entryStr >= prevCutoffStr && entryStr < cutoffStr;
     });
 });
 
 const calculateStats = (history) => {
-    const uniqueDays = new Set(history.map(entry => new Date(entry.workout_date).toDateString())).size;
-    const totalSets = history.reduce((sum, entry) => sum + (entry.data?.sets || 0), 0);
+    const uniqueDays = new Set(history.map(entry => getLocalDateString(entry.workout_date))).size;
+    const totalSets = history.reduce((sum, entry) => sum + (parseInt(entry.data?.sets) || 0), 0);
     const totalHours = (totalSets * 2.5 / 60).toFixed(1);
     
     // Category Breakdown
@@ -257,11 +279,7 @@ const dailyHistory = computed(() => {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const thaiDays = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
     
-    // Use workoutHistory directly since it's already sorted by workout_date desc from backend
-    // We want to show a continuous list of 20 days starting from today,
-    // but the user wants "เลื่อนทีละ 20 วัน เรียงล่าสุดอยู่บนสุด"
-    // So we'll generate the days based on the earliest date in our current workoutHistory
-    // or just a fixed window. Let's follow the requirement: Recent on top, paginated by 20.
+// Recent on top, paginated by 20.
     
     // Instead of fixed 7 days, we'll show all downloaded sessions + gaps
     if (workoutHistory.value.length === 0) return [];
@@ -269,35 +287,22 @@ const dailyHistory = computed(() => {
     const now = new Date();
     const history = workoutHistory.value;
     
-    // Get the range of dates we have
-    const latestDate = new Date(history[0].workout_date);
-    const earliestDate = new Date(history[history.length - 1].workout_date);
+    // Get the latest date from the history, or use today if no history
+    const latestDate = history.length > 0 ? new Date(history[0].workout_date) : new Date();
+    if (isNaN(latestDate.getTime())) return [];
     
-    // We want to show a 20-day window per "page" of real time
-    // But since the user wants infinite scroll, we just keep adding days.
-    
-    // Let's generate a list of days from Today down to the earliest date we've loaded
+    // Let's generate a list of days from the latest workout date down to a limit
     const daysList = [];
-    let currentDate = new Date(now);
+    let currentDate = new Date(latestDate);
     currentDate.setHours(0, 0, 0, 0);
     
-    const targetEndDate = new Date(earliestDate);
-    targetEndDate.setHours(0, 0, 0, 0);
-
-    while (currentDate >= targetEndDate) {
+    // Iterate for visibleDays
+    for (let i = 0; i < visibleDays.value; i++) {
         // Use local date formatting (YYYY-MM-DD) to match backend date cast
-        const y = currentDate.getFullYear();
-        const m = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const d = String(currentDate.getDate()).padStart(2, '0');
-        const dateStr = `${y}-${m}-${d}`;
+        const dateStr = getLocalDateString(currentDate);
         
         const sessions = history.filter(entry => {
-            // entry.workout_date might be a string "YYYY-MM-DD" or a more complex string
-            // depending on the API response. Let's ensure we match correctly.
-            const entryDateStr = entry.workout_date.includes('T') 
-                ? entry.workout_date.split('T')[0] 
-                : entry.workout_date;
-            return entryDateStr === dateStr;
+            return getLocalDateString(entry.workout_date) === dateStr;
         });
         
         const categories = new Set();
@@ -330,7 +335,19 @@ const dailyHistory = computed(() => {
     return daysList;
 });
 
-const viewMode = ref('list'); // 'list' | 'calendar'
+const loadMoreDays = () => {
+    visibleDays.value += 20;
+    
+    // Check if we need to fetch more sessions from the backend
+    const earliestLoaded = new Date(workoutHistory.value[workoutHistory.value.length - 1].workout_date);
+    const targetDate = new Date(new Date(workoutHistory.value[0].workout_date).setDate(new Date(workoutHistory.value[0].workout_date).getDate() - visibleDays.value));
+    
+    if (targetDate < earliestLoaded && currentPage.value < lastPage.value) {
+        fetchWorkoutHistory(currentPage.value + 1);
+    }
+};
+
+const viewMode = ref('calendar'); // 'list' | 'calendar'
 const currentMonth = ref(new Date());
 
 const monthNamesEN = [
@@ -369,8 +386,8 @@ const calendarDays = computed(() => {
     }
     
     return days.map(day => {
-        const dateStr = day.date.toDateString();
-        const sessions = workoutHistory.value.filter(entry => new Date(entry.workout_date).toDateString() === dateStr);
+        const dateStr = getLocalDateString(day.date);
+        const sessions = workoutHistory.value.filter(entry => getLocalDateString(entry.workout_date) === dateStr);
         let totalSets = 0;
         const categories = new Set();
         
@@ -388,7 +405,8 @@ const calendarDays = computed(() => {
             hasData: sessions.length > 0,
             sets: totalSets,
             categories: Array.from(categories),
-            isToday: day.date.toDateString() === new Date().toDateString()
+            isToday: day.date.toDateString() === new Date().toDateString(),
+            originalSessions: sessions
         };
     });
 });
@@ -598,6 +616,15 @@ const formatDateLocal = (date) => {
                     <div v-if="isLoading" class="flex justify-center py-4">
                         <div class="size-6 border-2 border-[var(--theme-color)] border-t-transparent rounded-full animate-spin"></div>
                     </div>
+
+                    <!-- Load More Button -->
+                    <div v-if="!isLoading" class="flex justify-center py-6 pb-12">
+                        <button @click="loadMoreDays" 
+                            class="px-8 py-3 rounded-2xl bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-main)] text-xs font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all hover:bg-[var(--page-bg)]"
+                        >
+                            {{ t('stats.load_more') || 'Load More' }}
+                        </button>
+                    </div>
                 </div>
 
                 <div v-else class="bg-[var(--card-bg)] p-6 rounded-[32px] border border-[var(--border-color)] shadow-sm transition-colors">
@@ -631,7 +658,7 @@ const formatDateLocal = (date) => {
                     <!-- Days Grid -->
                     <div class="grid grid-cols-7 gap-2">
                         <div v-for="(day, idx) in calendarDays" :key="idx" 
-                            @click="day.hasData && showWorkoutDetails(day.date)"
+                            @click="day.hasData && showWorkoutDetails(day)"
                             class="relative aspect-square flex items-center justify-center rounded-xl transition-all"
                             :class="[
                                 !day.isCurrentMonth ? 'opacity-20' : '',

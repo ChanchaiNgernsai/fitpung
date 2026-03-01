@@ -7,7 +7,9 @@ import { useI18n } from '@/language';
 const { t } = useI18n();
 
 const props = defineProps({
-    featuredGyms: Array
+    featuredGyms: Array,
+    activePackage: { type: Object, default: null },
+    todaySchedule: { type: Object, default: null }
 });
 
 const likedWorkoutIds = ref([]);
@@ -114,6 +116,8 @@ const allRecommendations = computed(() => {
             </div>
         </div>
 
+
+
         <!-- Workout Stats Grid -->
         <div class="px-6 py-2">
             <div class="grid grid-cols-2 gap-4">
@@ -130,6 +134,7 @@ const allRecommendations = computed(() => {
                 </div>
             </div>
         </div>
+
 
         <!-- Workout Feed (Instagram Style) -->
         <div class="px-0 py-6 transition-colors">

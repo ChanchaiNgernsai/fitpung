@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import MobileLayout from '@/Layouts/MobileLayout.vue';
+import axios from 'axios';
 
 const props = defineProps({
     gym: Object,
@@ -17,6 +18,26 @@ const activeRecommendation = computed(() => recommendations.value[selectedRecInd
 // --- State Management ---
 const expandedMachineName = ref(null);
 const workoutSets = ref([]);
+const sessionLog = ref({}); // { itemId: { name, image, sets: [] } }
+
+const updateSessionLog = () => {
+    if (expandedMachineName.value) {
+        const machine = recommendedMachines.value.find(m => m.name === expandedMachineName.value);
+        if (!machine) return;
+        
+        const hasProgress = workoutSets.value.some(s => s.isCompleted);
+        const itemId = machine.id;
+        
+        if (hasProgress || sessionLog.value[itemId]) {
+            sessionLog.value[itemId] = {
+                id: itemId,
+                name: machine.name,
+                image: machine.src,
+                sets: JSON.parse(JSON.stringify(workoutSets.value))
+            };
+        }
+    }
+};
 
 const toggleExpansion = (machine) => {
     if (expandedMachineName.value === machine.name) {
@@ -24,10 +45,13 @@ const toggleExpansion = (machine) => {
         return;
     }
 
+    // Save previous machine if needed? Actually we do it on set change
     expandedMachineName.value = machine.name;
     
-    // Pre-fill sets based on recommendation details
-    if (machine.details) {
+    // Load from log if exists
+    if (sessionLog.value[machine.id]) {
+        workoutSets.value = JSON.parse(JSON.stringify(sessionLog.value[machine.id].sets));
+    } else if (machine.details) {
         const numSets = parseInt(machine.details.sets) || 1;
         workoutSets.value = Array.from({ length: numSets }, () => ({
             weight: machine.details.weight || 10,
@@ -46,16 +70,88 @@ const addNewSet = () => {
         reps: lastSet ? lastSet.reps : 12,
         isCompleted: false
     });
+    updateSessionLog();
 };
 
 const removeSet = (index) => {
     if (workoutSets.value.length > 1) {
         workoutSets.value.splice(index, 1);
+        updateSessionLog();
     }
 };
 
 const toggleSetCompletion = (index) => {
     workoutSets.value[index].isCompleted = !workoutSets.value[index].isCompleted;
+    updateSessionLog();
+};
+
+const logSessionCount = computed(() => {
+    return Object.values(sessionLog.value).filter(entry => entry.sets.some(s => s.isCompleted)).length;
+});
+
+const confirmFinishWorkout = async () => {
+    const exercises = Object.values(sessionLog.value)
+        .filter(entry => entry.sets.some(s => s.isCompleted))
+        .map(entry => ({
+            name: entry.name,
+            image: entry.image,
+            sets: entry.sets.filter(s => s.isCompleted).map(s => ({
+                weight: String(s.weight).toLowerCase().includes('kg') ? s.weight : s.weight + 'kg',
+                reps: s.reps
+            }))
+        }));
+
+    if (exercises.length === 0) {
+        alert("Please log at least one completed set before finishing.");
+        return;
+    }
+
+    const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+
+    const sessionData = {
+        workout_date: new Date().toISOString().split('T')[0],
+        data: {
+            title: `${activeRecommendation.value?.title || 'Guided'} Workout`,
+            exercises: exercises,
+            sets: totalSets
+        }
+    };
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+        }
+
+        const response = await axios.post('/api/workout-sessions', sessionData);
+        const newSession = response.data;
+        
+        // Sync local storage history immediately
+        const savedHistory = localStorage.getItem('fitpung_workout_history');
+        const history = savedHistory ? JSON.parse(savedHistory) : [];
+        
+        const localEntry = {
+            id: newSession.id || Date.now(),
+            apiId: newSession.id,
+            date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+            title: sessionData.data.title,
+            exercises: exercises,
+            sets: totalSets
+        };
+        
+        history.unshift(localEntry);
+        localStorage.setItem('fitpung_workout_history', JSON.stringify(history));
+
+        const savedSets = localStorage.getItem('fitpung_sets_done');
+        const currentTotal = savedSets ? parseInt(savedSets) : 0;
+        localStorage.setItem('fitpung_sets_done', (currentTotal + totalSets).toString());
+
+        alert("บันทึกข้อมูลสำเร็จ!");
+        router.get(route('mobile.workout'));
+    } catch (e) {
+        console.error("Failed to save workout session from Recommendations", e);
+        alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
 };
 
 const weightOptions = Array.from({ length: 80 }, (_, i) => (i + 1) * 2.5);
@@ -382,14 +478,32 @@ const getMachineClass = (machine) => {
                                 </div>
                             </div>
 
-                            <!-- Done Button -->
-                            <button @click.stop="expandedMachineName = null" class="w-full bg-[var(--theme-color)] text-white py-4 rounded-[20px] font-black text-sm uppercase tracking-widest shadow-lg shadow-[var(--theme-color)]/20 active:scale-95 transition-all">
-                                LOG PERFORMANCE
-                            </button>
+                             <!-- Done Button -->
+                             <button @click.stop="expandedMachineName = null" class="w-full bg-[var(--theme-color)] text-white py-4 rounded-[20px] font-black text-sm uppercase tracking-widest shadow-lg shadow-[var(--theme-color)]/20 active:scale-95 transition-all">
+                                 LOG PERFORMANCE
+                             </button>
                         </div>
                     </transition>
                 </div>
             </div>
+
+            <!-- Floating Finish Button -->
+            <transition 
+                enter-active-class="transform transition duration-300 ease-out"
+                enter-from-class="translate-y-20 opacity-0"
+                enter-to-class="translate-y-0 opacity-100"
+                leave-active-class="transform transition duration-200 ease-in"
+                leave-from-class="translate-y-0 opacity-100"
+                leave-to-class="translate-y-20 opacity-0"
+            >
+                <div v-if="logSessionCount > 0" class="fixed bottom-10 left-6 right-6 z-40">
+                    <button @click="confirmFinishWorkout" 
+                        class="w-full bg-[var(--theme-color)] text-white py-4 rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(var(--theme-color-rgb),0.3)] active:scale-95 transition-all flex items-center justify-center gap-3">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        FINISH & LOG SESSION ({{ logSessionCount }})
+                    </button>
+                </div>
+            </transition>
         </div>
     </MobileLayout>
 </template>

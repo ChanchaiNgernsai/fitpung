@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\GymLayoutController;
 use App\Models\GymLayout;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\TrainerController;
 
 Route::get('/', [GymLayoutController::class, 'showSelection'])->name('selection');
 Route::get('/home', [GymLayoutController::class, 'showHome'])->name('home');
@@ -69,6 +70,30 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/workout-sessions', [\App\Http\Controllers\WorkoutSessionController::class, 'index']);
     Route::post('/api/workout-sessions', [\App\Http\Controllers\WorkoutSessionController::class, 'store']);
     Route::delete('/api/workout-sessions/{workoutSession}', [\App\Http\Controllers\WorkoutSessionController::class, 'destroy']);
+
+    // Trainer Registration
+    Route::get('/trainer/register', [TrainerController::class, 'showRegistration'])->name('trainer.register');
+    Route::post('/trainer/register', [TrainerController::class, 'storeRegistration'])->name('trainer.store');
+    Route::get('/trainers', [TrainerController::class, 'index'])->name('trainers.index');
+    Route::post('/api/trainer/book', [TrainerController::class, 'book'])->name('trainer.book');
+    Route::post('/api/trainer/review', [TrainerController::class, 'storeReview'])->name('trainer.review');
+    Route::post('/api/trainer/{trainer}/verify', [TrainerController::class, 'verify']);
+    Route::get('/api/trainer/{trainer}/schedule', [TrainerController::class, 'getSchedule']);
+
+    // Trainer Management
+    Route::get('/mobile/trainer/dashboard', [\App\Http\Controllers\TrainerManagementController::class, 'index'])->name('trainer.dashboard');
+    Route::patch('/api/bookings/{booking}', [\App\Http\Controllers\TrainerManagementController::class, 'updateBooking']);
+    Route::get('/api/clients/{user}', [\App\Http\Controllers\TrainerManagementController::class, 'clientDetails']);
+    Route::get('/api/clients/{user}/history', [\App\Http\Controllers\TrainerManagementController::class, 'clientHistory']);
+    Route::get('/api/trainer/search-users', [\App\Http\Controllers\TrainerManagementController::class, 'searchUsers']);
+    Route::post('/api/trainer/add-client', [\App\Http\Controllers\TrainerManagementController::class, 'addClient']);
+    Route::post('/api/trainer/courses', [\App\Http\Controllers\TrainerManagementController::class, 'storeCourse'])->name('trainer.course.store');
+    Route::patch('/api/trainer/courses/{course}', [\App\Http\Controllers\TrainerManagementController::class, 'updateCourse'])->name('trainer.course.update');
+    Route::delete('/api/trainer/courses/{course}', [\App\Http\Controllers\TrainerManagementController::class, 'deleteCourse'])->name('trainer.course.delete');
+    Route::post('/api/trainer/manual-book', [\App\Http\Controllers\TrainerManagementController::class, 'manualBook']);
+    Route::post('/api/trainer/record-session', [\App\Http\Controllers\TrainerManagementController::class, 'recordSession']);
+    Route::get('/api/trainer/schedules', [\App\Http\Controllers\TrainerManagementController::class, 'getSchedules']);
+    Route::post('/api/trainer/schedules', [\App\Http\Controllers\TrainerManagementController::class, 'updateSchedule']);
 });
 
 require __DIR__ . '/auth.php';

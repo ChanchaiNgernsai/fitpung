@@ -10,9 +10,9 @@ class GymSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::first() ?? User::factory()->create();
+        $user = User::where('email', 'ball@gmail.com')->first() ?? User::first();
 
-        GymLayout::updateOrCreate(
+        GymLayout::firstOrCreate(
             ['name' => 'Starter Gym HQ'],
             [
                 'user_id' => $user->id,
@@ -80,7 +80,7 @@ class GymSeeder extends Seeder
             ]
         );
 
-        GymLayout::updateOrCreate(
+        GymLayout::firstOrCreate(
             ['name' => 'Iron Palace'],
             [
                 'user_id' => $user->id,

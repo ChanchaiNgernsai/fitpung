@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -33,6 +34,16 @@ class ProfileController extends Controller
         $oldWeight = $user->weight;
 
         $validated = $request->validated();
+
+        if ($request->hasFile('photo')) {
+            // Delete old photo if it exists and is not a URL
+            if ($user->profile_photo_path && !filter_var($user->profile_photo_path, FILTER_VALIDATE_URL)) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+
+            $validated['profile_photo_path'] = $request->file('photo')->store('profile-photos', 'public');
+        }
+
         $user->fill($validated);
 
         if ($user->isDirty('email')) {
