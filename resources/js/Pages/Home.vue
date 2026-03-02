@@ -64,7 +64,7 @@ const scrollToGyms = () => {
                         <Link :href="route('register')" class="btn btn-outline btn-lg px-8 py-3 h-auto border-base-content/20 hover:bg-base-content hover:text-base-100 rounded-lg uppercase tracking-wide">
                             Open Gym Builder
                         </Link>
-                        <Link :href="route('trainer.register')" class="btn btn-lg px-8 py-3 h-auto font-bold border-0 bg-gradient-to-r from-teal-400 to-emerald-400 text-white hover:scale-105 transition-transform shadow-lg shadow-teal-500/30 rounded-lg uppercase tracking-wide">
+                        <Link v-if="!$page.props.auth.user?.trainer" :href="route('trainer.register')" class="btn btn-lg px-8 py-3 h-auto font-bold border-0 bg-gradient-to-r from-teal-400 to-emerald-400 text-white hover:scale-105 transition-transform shadow-lg shadow-teal-500/30 rounded-lg uppercase tracking-wide">
                             Apply as Trainer
                         </Link>
                     </div>

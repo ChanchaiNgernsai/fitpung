@@ -513,92 +513,48 @@ const getExerciseImage = (ex) => {
                   <p class="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider mt-2 transition-colors">{{ t('workout.select_train') }}</p>
             </div>
 
-            <!-- Today's Coaching Plan (For Active Trainees) -->
-            <div v-if="activePackage" 
-                class="w-full p-6 rounded-[40px] shadow-2xl mb-6 overflow-hidden relative group transition-all border-t-2 border-white/20" 
-                :style="{ background: 'linear-gradient(135deg, var(--theme-color), #f97316)', boxShadow: '0 20px 40px rgba(var(--theme-color-rgb), 0.2)' }"
-            >
-                <div class="flex items-center gap-5 relative z-10">
-                    <img :src="activePackage.trainer.user.profile_photo_url" class="size-16 rounded-[24px] border-2 border-white/30 object-cover shadow-xl group-hover:scale-105 transition-transform">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5 mb-1.5">
-                            <span class="size-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                            <h3 class="text-white text-[10px] font-black uppercase tracking-[0.2em] opacity-80 leading-none">Today's Coaching Guide</h3>
-                        </div>
-                        <h2 class="text-white text-3xl font-black uppercase italic leading-[0.85] tracking-tighter truncate">
-                            {{ todaySchedule?.focus_area || 'Daily Plan' }}
-                        </h2>
-                    </div>
-                </div>
-                
-                <div class="mt-5 p-5 bg-white/10 rounded-[28px] backdrop-blur-md border border-white/20 relative z-10">
-                    <div class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-white/40 text-sm mt-0.5">format_quote</span>
-                        <p class="text-white text-[11px] font-bold leading-relaxed italic opacity-95">
-                            {{ todaySchedule?.description || "Pick an exercise and let's crush it today! I'm here to support you." }}
-                        </p>
-                    </div>
-                </div>
 
-                <div class="mt-4 flex items-center justify-between relative z-10 px-1">
-                    <span class="text-white/60 text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[10px]">person</span>
-                        {{ activePackage.trainer.user.name }}
-                    </span>
-                    <div class="flex items-center gap-2">
+            <!-- Mode List Layout -->
+            <div class="w-full space-y-4">
+                <!-- Gym Mode -->
+                <button @click="selectMode('gym')" class="w-full bg-[var(--card-bg)] p-6 rounded-[32px] border border-[var(--border-color)] flex items-center gap-6 shadow-sm active:scale-[0.98] transition-all group overflow-hidden relative">
+                    <div class="size-16 rounded-[22px] bg-[#00a18c]/10 text-[#00a18c] flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-[#00a18c] group-hover:text-white">
+                        <span class="material-symbols-outlined text-3xl">map</span>
                     </div>
-                </div>
+                    <div class="flex-1 text-left min-w-0">
+                        <span class="text-[8px] font-black uppercase tracking-widest text-[#00a18c] opacity-60 px-2 py-0.5 rounded-md bg-[#00a18c]/5 inline-block mb-1.5">{{ t('workout.interactive') }}</span>
+                        <h3 class="text-xl font-black uppercase italic text-[var(--text-main)] leading-none mb-1.5">{{ t('workout.gym_workout') }}</h3>
+                        <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tight opacity-60 truncate">{{ t('workout.gym_subtitle') }}</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[var(--text-muted)] opacity-30 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                </button>
 
-                <!-- Abstract Decorations -->
-                <div class="absolute -right-6 -bottom-6 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-                    <span class="material-symbols-outlined text-[120px] text-white">sports_martial_arts</span>
-                </div>
-                <div class="absolute -left-4 top-1/2 -translate-y-1/2 opacity-5 blur-sm">
-                    <div class="size-40 rounded-full border-[20px] border-white"></div>
-                </div>
+                <!-- Free Mode -->
+                <button @click="selectMode('free')" class="w-full bg-[var(--card-bg)] p-6 rounded-[32px] border border-[var(--border-color)] flex items-center gap-6 shadow-sm active:scale-[0.98] transition-all group overflow-hidden relative">
+                    <div class="size-16 rounded-[22px] bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-blue-500 group-hover:text-white">
+                        <span class="material-symbols-outlined text-3xl">fitness_center</span>
+                    </div>
+                    <div class="flex-1 text-left min-w-0">
+                        <span class="text-[8px] font-black uppercase tracking-widest text-blue-500 opacity-60 px-2 py-0.5 rounded-md bg-blue-500/5 inline-block mb-1.5">{{ t('workout.manual') }}</span>
+                        <h3 class="text-xl font-black uppercase italic text-[var(--text-main)] leading-none mb-1.5">{{ t('workout.free_workout') }}</h3>
+                        <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tight opacity-60 truncate">{{ t('workout.free_subtitle') }}</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[var(--text-muted)] opacity-30 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                </button>
+
+                <!-- Trainer Mode -->
+                <button @click="selectMode('trainer')" class="w-full bg-[var(--card-bg)] p-6 rounded-[32px] border border-[var(--border-color)] flex items-center gap-6 shadow-sm active:scale-[0.98] transition-all group overflow-hidden relative">
+                    <div class="size-16 rounded-[22px] bg-orange-500/10 text-orange-500 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-orange-500 group-hover:text-white">
+                        <span class="material-symbols-outlined text-3xl">sports_martial_arts</span>
+                    </div>
+                    <div class="flex-1 text-left min-w-0">
+                        <span class="text-[8px] font-black uppercase tracking-widest text-orange-500 opacity-60 px-2 py-0.5 rounded-md bg-orange-500/5 inline-block mb-1.5">{{ t('trainer.title') }}</span>
+                        <h3 class="text-xl font-black uppercase italic text-[var(--text-main)] leading-none mb-1.5">Personal Trainer</h3>
+                        <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tight opacity-60 truncate">{{ t('trainer.motivation') }}</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[var(--text-muted)] opacity-30 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                </button>
             </div>
-
-            <!-- Gym Mode Card -->
-            <button @click="selectMode('gym')" class="w-full bg-[var(--card-bg)] p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-[#00a18c] group transition-all duration-300 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-9xl text-[#00a18c]">map</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-start text-left">
-                    <span class="bg-[#00a18c]/10 text-[#00a18c] px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-4">{{ t('workout.interactive') }}</span>
-                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">{{ t('workout.gym_workout') }}</h2>
-                    <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
-                        {{ t('workout.gym_subtitle') }}
-                    </p>
-                </div>
-            </button>
-
-            <!-- Free Mode Card -->
-            <button @click="selectMode('free')" class="w-full bg-[var(--card-bg)] p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-blue-500 group transition-all duration-300 relative overflow-hidden">
-                 <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-9xl text-blue-500">fitness_center</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-start text-left">
-                    <span class="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-4">{{ t('workout.manual') }}</span>
-                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">{{ t('workout.free_workout') }}</h2>
-                    <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
-                        {{ t('workout.free_subtitle') }}
-                    </p>
-                </div>
-            </button>
-
-            <!-- Trainer Mode Card -->
-            <button @click="selectMode('trainer')" class="w-full bg-[var(--card-bg)] p-8 rounded-[40px] shadow-xl border-4 border-transparent hover:border-orange-500 group transition-all duration-300 relative overflow-hidden">
-                 <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-9xl text-orange-500">sports_martial_arts</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-start text-left">
-                    <span class="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-4">{{ t('trainer.title') }}</span>
-                    <h2 class="text-3xl font-black uppercase italic text-[var(--text-main)] leading-none mb-2 transition-colors">Personal Trainer</h2>
-                    <p class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider max-w-[200px] transition-colors">
-                        {{ t('trainer.motivation') }}
-                    </p>
-                </div>
-            </button>
         </div>
 
         <!-- Trainer View -->

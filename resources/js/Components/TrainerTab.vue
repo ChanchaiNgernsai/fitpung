@@ -187,9 +187,17 @@ const monthlyStats = computed(() => {
     const year = currentMonth.value.getFullYear();
     const month = currentMonth.value.getMonth();
     
-    // Flatten all schedules to find ones in current month
-    const allSchedules = Object.values(trainerSchedules.value).flat();
-    const currentMonthSchedules = allSchedules.filter(s => {
+    // Only get schedules for trainers the user is actually enrolled with
+    const activeTrainerIds = attendanceTrainers.value.map(t => t.id);
+    const relevantSchedules = [];
+    
+    activeTrainerIds.forEach(id => {
+        if (trainerSchedules.value[id]) {
+            relevantSchedules.push(...trainerSchedules.value[id]);
+        }
+    });
+
+    const currentMonthSchedules = relevantSchedules.filter(s => {
         const d = new Date(s.date);
         return d.getFullYear() === year && d.getMonth() === month;
     });
@@ -252,7 +260,7 @@ const submitBooking = () => {
                     }
                     
                     bookingForm.value = { trainer_id: '', course_name: '', booking_date: '', notes: '' };
-                    showSuccess('Enrollment Successful', 'Your program is now active!');
+                    showSuccess('Request Sent', 'Please wait for your trainer to confirm!');
                 }
             });
         }
@@ -322,9 +330,14 @@ const mappedTrainers = computed(() => {
             verifications_absent_count: t.verifications_absent_count || 0,
             has_verified_today: t.has_verified_today || false,
             my_verification_status: t.my_verification_status || null,
-            active_course: t.active_course || null
+            active_course: t.active_course || null,
+            my_booking: t.my_booking || null
         };
     });
+});
+
+const attendanceTrainers = computed(() => {
+    return mappedTrainers.value.filter(t => t.active_course !== null);
 });
 
 const sliderPercentage = computed(() => {
@@ -359,10 +372,10 @@ const filteredCourses = computed(() => {
 const selectTrainer = (trainer, course = null) => {
     if (!trainer) return;
     selectedTrainer.value = trainer;
-    if (course) {
-        bookingForm.value.course_name = course.title;
-    }
     state.value = 'detail';
+    if (course) {
+        openBookingModal(trainer, course);
+    }
 };
 
 const goBack = () => {
@@ -530,7 +543,7 @@ const goBack = () => {
                     </div>
                 </div>
 
-                <div v-for="trainer in mappedTrainers" :key="`att-${trainer.id}`" 
+                <div v-for="trainer in attendanceTrainers" :key="`att-${trainer.id}`" 
                     class="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] p-5 shadow-sm transition-all hover:shadow-md">
                     <div class="flex items-center gap-4 mb-5">
                         <div class="size-14 rounded-2xl bg-[var(--theme-color)]/10 border border-[var(--border-color)] overflow-hidden flex-shrink-0">
@@ -562,8 +575,8 @@ const goBack = () => {
 
                     <!-- Modern Stats Grid -->
                     <!-- Course Blueprint Section (Replaces Monthly Calendar) -->
-                    <div v-if="trainer.courses && trainer.courses.length > 0" class="border-t border-[var(--border-color)] pt-5 pb-1 mt-4">
-                        <div v-for="course in [trainer.active_course || trainer.courses[0]]" :key="course.id" class="space-y-6">
+                    <div v-if="trainer.active_course" class="border-t border-[var(--border-color)] pt-5 pb-1 mt-4">
+                        <div v-for="course in [trainer.active_course]" :key="course.id" class="space-y-6">
                             <!-- Blueprint Header Stats -->
                             <div class="flex items-center justify-between px-1">
                                 <div class="space-y-1">
@@ -697,40 +710,37 @@ const goBack = () => {
                         <p class="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest leading-tight">No specific plan logged for this date</p>
                     </div>
 
-                    <div v-if="selectedDayData.schedule" class="flex items-center justify-between px-2">
-                        <div class="flex items-center gap-4">
-                            <div class="flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-sm text-green-500">check_circle</span>
-                                <span class="text-[10px] font-black text-green-500 uppercase">{{ selectedDayData.schedule.verifications_present_count }} Present</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-sm text-red-500">cancel</span>
-                                <span class="text-[10px] font-black text-red-500 uppercase">{{ selectedDayData.schedule.verifications_absent_count }} Absent</span>
-                            </div>
-                        </div>
+                    <div v-if="selectedDayData.schedule" class="flex items-center justify-center gap-4 pt-2">
+                        <!-- Present Button/Status -->
+                        <button 
+                            @click="verifyTrainer(selectedDayData.trainer.id, 'present', selectedDayData.dateStr); isDayDetailOpen = false;"
+                            class="flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all active:scale-95"
+                            :class="selectedDayData.schedule.my_verification_status === 'present' 
+                                ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' 
+                                : 'bg-green-500/5 border-green-500/10 text-green-600'"
+                        >
+                            <span class="material-symbols-outlined text-sm" :style="selectedDayData.schedule.my_verification_status === 'present' ? { color: 'white' } : { color: '#22c55e' }">check_circle</span>
+                            <span class="text-[11px] font-black uppercase tracking-tight">{{ selectedDayData.schedule.verifications_present_count }} Present</span>
+                        </button>
+
+                        <!-- Absent Button/Status -->
+                        <button 
+                            @click="verifyTrainer(selectedDayData.trainer.id, 'absent', selectedDayData.dateStr); isDayDetailOpen = false;"
+                            class="flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all active:scale-95"
+                            :class="selectedDayData.schedule.my_verification_status === 'absent' 
+                                ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' 
+                                : 'bg-rose-500/5 border-rose-500/10 text-rose-600'"
+                        >
+                            <span class="material-symbols-outlined text-sm" :style="selectedDayData.schedule.my_verification_status === 'absent' ? { color: 'white' } : { color: '#e11d48' }">cancel</span>
+                            <span class="text-[11px] font-black uppercase tracking-tight">{{ selectedDayData.schedule.verifications_absent_count }} Absent</span>
+                        </button>
                     </div>
 
-                    <div v-if="$page.props.auth.user?.id !== selectedDayData.trainer.user_id && selectedDayData.dateStr <= new Date().toISOString().split('T')[0]" class="flex gap-3 pt-2">
-                        <button 
-                            @click="verifyTrainer(selectedTrainer.id, 'present', selectedDayData.dateStr); isDayDetailOpen = false;"
-                            class="flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-                            :class="selectedDayData.schedule.my_verification_status === 'present'
-                                ? 'bg-green-500 text-white shadow-xl shadow-green-500/20' 
-                                : 'bg-[var(--page-bg)] text-[var(--text-muted)] border border-[var(--border-color)] hover:border-green-500/30'"
-                        >
-                            <span class="material-symbols-outlined text-sm">visibility</span>
-                            Present
-                        </button>
-                        <button 
-                            @click="verifyTrainer(selectedTrainer.id, 'absent', selectedDayData.dateStr); isDayDetailOpen = false;"
-                            class="flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-                            :class="selectedDayData.schedule.my_verification_status === 'absent'
-                                ? 'bg-red-500 text-white shadow-xl shadow-red-500/20' 
-                                : 'bg-[var(--page-bg)] text-[var(--text-muted)] border border-[var(--border-color)] hover:border-red-500/30'"
-                        >
-                            <span class="material-symbols-outlined text-sm">visibility_off</span>
-                            Absent
-                        </button>
+                    <!-- Trainer-only message -->
+                    <div v-if="$page.props.auth.user?.id === selectedDayData.trainer.user_id" class="px-2 py-4 text-center bg-[var(--page-bg)]/50 rounded-2xl border border-dotted border-[var(--border-color)]">
+                        <p class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                            You are viewing this as the Coach.<br/>Only students can verify your attendance.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -787,8 +797,10 @@ const goBack = () => {
 
                 <div class="space-y-3">
                     <div v-for="course in selectedTrainer.courses" :key="course.id"
-                        @click="openBookingModal(selectedTrainer, course)"
-                        class="p-5 rounded-[24px] border border-[var(--border-color)] bg-[var(--card-bg)] flex items-center justify-between group cursor-pointer active:scale-[0.98] transition-all">
+                        @click="selectedTrainer.my_booking?.status === 'pending' ? null : openBookingModal(selectedTrainer, course)"
+                        class="p-5 rounded-[24px] border border-[var(--border-color)] bg-[var(--card-bg)] flex items-center justify-between group cursor-pointer active:scale-[0.98] transition-all"
+                        :class="{ 'opacity-80 active:scale-100 cursor-default': selectedTrainer.my_booking?.status === 'pending' }"
+                    >
                         <div class="space-y-1">
                             <h5 class="text-sm font-black uppercase italic text-[var(--text-main)] group-hover:text-[var(--theme-color)] transition-colors">{{ course.title }}</h5>
                             <div class="flex items-center gap-3">
@@ -797,7 +809,28 @@ const goBack = () => {
                                 <span class="text-[10px] font-black text-[var(--theme-color)] uppercase tracking-wider">{{ course.level }}</span>
                             </div>
                         </div>
-                        <span class="material-symbols-outlined text-[var(--text-muted)] opacity-50">arrow_forward</span>
+                        
+                        <!-- Status Badge / Action Icon -->
+                        <div class="flex items-center gap-2">
+                            <template v-if="selectedTrainer.my_booking?.course_name === course.title">
+                                <span v-if="selectedTrainer.my_booking.status === 'pending'" 
+                                    class="px-2 py-1 bg-amber-500/10 text-amber-600 rounded-lg text-[8px] font-black uppercase italic tracking-wider flex items-center gap-1">
+                                    <span class="size-1 rounded-full bg-amber-500 animate-pulse"></span>
+                                    Waiting for Approval
+                                </span>
+                                <span v-else-if="selectedTrainer.my_booking.status === 'confirmed'" 
+                                    class="px-2 py-1 bg-green-500/10 text-green-600 rounded-lg text-[8px] font-black uppercase italic tracking-wider flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[10px]">check_circle</span>
+                                    Active Now
+                                </span>
+                                <span v-else-if="selectedTrainer.my_booking.status === 'cancelled'" 
+                                    class="px-2 py-1 bg-rose-500/10 text-rose-600 rounded-lg text-[8px] font-black uppercase italic tracking-wider flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[10px]">cancel</span>
+                                    ปฏิเสธ (Rejected)
+                                </span>
+                            </template>
+                            <span v-else class="material-symbols-outlined text-[var(--text-muted)] opacity-50">arrow_forward</span>
+                        </div>
                     </div>
                 </div>
             </div>

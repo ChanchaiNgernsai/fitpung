@@ -112,7 +112,7 @@ const weeklyProgress = computed(() => {
 const totalChange = computed(() => {
     if (!props.weightHistories || props.weightHistories.length < 2) return null;
     const sorted = [...props.weightHistories].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    const currentWeight = latestWeightRecord.value.weight;
+    const currentWeight = (latestWeightRecord.value?.weight || user.value.weight);
     const firstWeight = sorted[0].weight;
     const diff = currentWeight - firstWeight;
     return {
@@ -160,13 +160,49 @@ const sortedHistory = computed(() => {
 });
 
 const graphPoints = computed(() => {
-    if (!historyByWeek.value || historyByWeek.value.length === 0) return [];
-    
+    if (!props.weightHistories || props.weightHistories.length === 0) return [];
+
+    // If we are on the main profile view (offset 0), show trailing history of the last 7 logged days
+    // to ensure a meaningful trend graph is visible even if the user hasn't logged much this week.
+    if (historyWeekOffset.value === 0 && props.weightHistories.length >= 2) {
+        const entriesByDate = new Map();
+        [...props.weightHistories]
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+            .forEach(h => {
+                const dateKey = getLocalDateKey(h.created_at);
+                entriesByDate.set(dateKey, { ...h, dateKey });
+            });
+        
+        const dailyEntries = Array.from(entriesByDate.values());
+        const recentEntries = dailyEntries.slice(-7);
+        const width = 300;
+        const weights = recentEntries.map(e => Number(e.weight));
+        
+        const minW = Math.min(...weights);
+        const maxW = Math.max(...weights);
+        const range = Math.max(maxW - minW, 2);
+        
+        const nowKey = getLocalDateKey(new Date());
+
+        return recentEntries.map((e, i) => {
+            const date = new Date(e.created_at);
+            const isToday = e.dateKey === nowKey;
+            return {
+                x: (i / Math.max(recentEntries.length - 1, 1)) * width,
+                y: 100 - ((e.weight - minW) / range) * 70 - 15,
+                weight: e.weight,
+                active: true,
+                isToday: isToday,
+                label: isToday ? t('common.present') : date.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }),
+                dateLabel: date.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' })
+            };
+        });
+    }
+
     const currentWeek = historyByWeek.value[historyWeekOffset.value];
     if (!currentWeek) return [];
     
     const entriesByDate = new Map();
-    // Use the same stable sort for graph points
     [...props.weightHistories]
         .sort((a, b) => {
             const dateDiff = new Date(a.created_at) - new Date(b.created_at);
@@ -178,18 +214,16 @@ const graphPoints = computed(() => {
             entriesByDate.set(dateKey, h);
         });
     
-    const points = [];
-    const width = 300;
-    
-    // Find last known weight BEFORE this week for interpolation
-    let lastKnownGlobal = null;
+    // Find last known weight BEFORE this week for interpolation anchor
     const allSorted = [...props.weightHistories].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    let lastKnownGlobal = allSorted.length > 0 ? allSorted[0].weight : (user.value.weight || 0);
     allSorted.forEach(h => {
         if (new Date(h.created_at) < currentWeek.monday) {
             lastKnownGlobal = h.weight;
         }
     });
 
+    const points = [];
     const now = new Date();
     const todayKey = getLocalDateKey(now);
     const isCurrentWeek = historyWeekOffset.value === 0;
@@ -199,65 +233,49 @@ const graphPoints = computed(() => {
         dayDate.setDate(currentWeek.monday.getDate() + i);
         const dateKey = getLocalDateKey(dayDate);
         
-        // Skip future days if viewing the current week
-        if (isCurrentWeek && dayDate > now && dateKey !== todayKey) {
-            continue;
-        }
+        if (isCurrentWeek && dayDate > now && dateKey !== todayKey) continue;
 
         let weight = null;
-        let hasData = false;
-        let isLogged = false;
-        const isToday = dateKey === todayKey;
+        let active = false;
         
         if (entriesByDate.has(dateKey)) {
             weight = entriesByDate.get(dateKey).weight;
-            hasData = true;
-            isLogged = true;
-        } else if (isToday) {
-            // If no history today, fallback to the latest known historical weight OR profile weight
-            weight = latestWeightRecord.value.weight;
-            hasData = true;
-            isLogged = false;
+            active = true;
+        } else if (dateKey === todayKey) {
+            weight = latestWeightRecord.value?.weight || user.value.weight;
+            active = true;
         } else if (dayDate < now) {
             weight = lastKnownGlobal;
-            hasData = false; 
-            isLogged = false;
+            active = i === 0 && lastKnownGlobal !== null; // Anchor at Mon
         }
 
-        if (hasData) {
-            lastKnownGlobal = weight;
-        }
+        if (active) lastKnownGlobal = weight;
 
         points.push({
-            x: 0, // Will recalculate X positions
+            x: 0,
             weight: weight || lastKnownGlobal,
-            hasData: hasData,
-            isLogged: isLogged,
-            isToday: isToday,
+            active: active,
+            isToday: dateKey === todayKey,
             date: dayDate,
             label: dayDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { weekday: 'short' }),
             dateLabel: dayDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' })
         });
     }
 
-    // Recalculate X positions based on visible points
-    const visiblePointsCount = points.length;
-    points.forEach((p, i) => {
-        p.x = (i / Math.max(visiblePointsCount - 1, 1)) * width;
-    });
+    const width = 300;
+    const finalPointsCount = points.length;
+    points.forEach((p, i) => { p.x = (i / Math.max(finalPointsCount - 1, 1)) * width; });
 
-    const weights = points.filter(p => p.weight !== null).map(p => Number(p.weight));
-    const minWeight = weights.length > 0 ? Math.min(...weights) - 1 : 0;
-    const maxWeight = weights.length > 0 ? Math.max(...weights) + 1 : 100;
-    const range = Math.max(maxWeight - minWeight, 2);
+    const weights = points.map(p => Number(p.weight));
+    const minW = Math.min(...weights) - 1;
+    const maxW = Math.max(...weights) + 1;
+    const r = Math.max(maxW - minW, 2);
     
-    return points.map((p, i) => ({
+    return points.map(p => ({
         ...p,
-        y: p.weight !== null ? 100 - ((p.weight - minWeight) / range) * 75 - 15 : 100,
-        // active: Point has REAL historical data OR is "Today"
-        active: p.hasData,
-        isLatest: p.isToday,
-        label: p.isToday ? t('common.present') : p.label
+        y: 100 - ((p.weight - minW) / r) * 75 - 15,
+        label: p.isToday ? t('common.present') : p.label,
+        active: p.active
     }));
 });
 
@@ -344,9 +362,12 @@ const historyByWeek = computed(() => {
                 };
                 weeks.push(week);
             }
+            const entryDate = new Date(h.created_at);
             week.entries.push({
                 ...h,
-                dayIndex: date.getDay() || 7 // 1-7 (Mon-Sun)
+                dayIndex: entryDate.getDay() || 7, // 1-7 (Mon-Sun)
+                formattedDate: entryDate.toLocaleDateString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+                formattedTime: entryDate.toLocaleTimeString(currentLanguage.value === 'TH' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })
             });
             // Stable sort entries within the week: Newest first
             week.entries.sort((a, b) => {
@@ -774,11 +795,11 @@ watch(() => page.props.flash.status, (newStatus) => {
                         
                         <div class="flex flex-col items-end gap-1">
                             <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                                {{ historyWeekOffset === 0 ? 'Weekly Progress' : 'Weekly Progress' }}
+                                {{ historyWeekOffset === 0 ? 'Total Progress' : 'Weekly Progress' }}
                             </span>
                             <div v-if="historyWeekOffset === 0 ? totalChange : weeklyProgress" class="flex items-center gap-1.5 bg-[var(--page-bg)] px-3 py-1.5 rounded-full border border-[var(--border-color)]">
-                                <span class="text-[10px] font-black italic" :class="(historyWeekOffset === 0 ? totalChange.isDecrease : weeklyProgress.isDecrease) ? 'text-[#22c55e]' : ((historyWeekOffset === 0 ? totalChange.isIncrease : weeklyProgress.isIncrease) ? 'text-[#ef4444]' : 'text-[var(--text-muted)]')">
-                                    {{ (historyWeekOffset === 0 ? weeklyProgress.isIncrease : weeklyProgress.isIncrease) ? '+' : ((historyWeekOffset === 0 ? weeklyProgress.isDecrease : weeklyProgress.isDecrease) ? '-' : '') }}{{ weeklyProgress.value }}
+                                <span class="text-[10px] font-black italic" :class="(historyWeekOffset === 0 ? totalChange?.isDecrease : weeklyProgress?.isDecrease) ? 'text-[#22c55e]' : ((historyWeekOffset === 0 ? totalChange?.isIncrease : weeklyProgress?.isIncrease) ? 'text-[#ef4444]' : 'text-[var(--text-muted)]')">
+                                    {{ (historyWeekOffset === 0 ? totalChange?.isIncrease : weeklyProgress?.isIncrease) ? '+' : ((historyWeekOffset === 0 ? totalChange?.isDecrease : weeklyProgress?.isDecrease) ? '-' : '') }}{{ (historyWeekOffset === 0 ? totalChange?.value : weeklyProgress?.value) }}
                                 </span>
                                 <span class="text-[7px] font-black text-[var(--text-muted)] uppercase">KG</span>
                             </div>

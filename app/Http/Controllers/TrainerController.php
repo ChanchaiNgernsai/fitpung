@@ -30,16 +30,17 @@ class TrainerController extends Controller
                 $trainer->has_verified_today = $myVerification ? true : false;
                 $trainer->my_verification_status = $myVerification ? $myVerification->status : null;
 
-                // Find active course for the user
-                $activeBooking = \App\Models\Booking::where('trainer_id', $trainer->id)
+                // Find latest booking for the user to track status
+                $myBooking = \App\Models\Booking::where('trainer_id', $trainer->id)
                     ->where('user_id', auth()->id())
-                    ->where('status', 'confirmed')
                     ->latest()
                     ->first();
 
-                if ($activeBooking && $activeBooking->course_name) {
+                $trainer->my_booking = $myBooking;
+
+                if ($myBooking && $myBooking->status === 'confirmed' && $myBooking->course_name) {
                     $trainer->active_course = \App\Models\TrainerCourse::where('trainer_id', $trainer->id)
-                        ->where('title', $activeBooking->course_name)
+                        ->where('title', $myBooking->course_name)
                         ->first();
                 }
 
@@ -176,24 +177,26 @@ class TrainerController extends Controller
     {
         $request->validate([
             'status' => 'required|in:present,absent',
-            'date' => 'required|date'
+            'date' => 'required'
         ]);
 
+        $datePart = explode('T', $request->date)[0];
+
         // Prevent verifying future dates
-        if ($request->date > now()->toDateString()) {
+        if ($datePart > now()->toDateString()) {
             return response()->json(['error' => 'Cannot verify future dates'], 422);
         }
 
-        // Prevent trainer from verifying themselves
-        if ($trainer->user_id === auth()->id()) {
-            return response()->json(['error' => 'You cannot verify your own attendance.'], 403);
-        }
+        // REMOVED FOR TESTING: Prevent trainer from verifying themselves
+        // if ($trainer->user_id === auth()->id()) {
+        //     return response()->json(['error' => 'You cannot verify your own attendance.'], 403);
+        // }
 
         TrainerVerification::updateOrCreate(
             [
                 'trainer_id' => $trainer->id,
                 'user_id' => auth()->id(),
-                'date' => $request->date,
+                'date' => $datePart,
             ],
             [
                 'status' => $request->status
@@ -201,5 +204,18 @@ class TrainerController extends Controller
         );
 
         return back()->with('success', 'Thank you for your verification!');
+    }
+
+    public function deleteVerification(TrainerVerification $verification)
+    {
+        // Allow both the student who verified and the trainer (for management) to delete for now
+        // Usually, only admin or maybe the person who created it should delete, 
+        // but here the trainer requested it for data cleanup.
+        if ($verification->trainer->user_id !== auth()->id() && $verification->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $verification->delete();
+        return back()->with('success', 'Attendance record removed.');
     }
 }

@@ -9,12 +9,20 @@ const { t } = useI18n();
 const props = defineProps({
     featuredGyms: Array,
     activePackage: { type: Object, default: null },
-    todaySchedule: { type: Object, default: null }
+    todaySchedule: { type: Object, default: null },
+    bookings: { type: Array, default: () => [] }
 });
 
 const likedWorkoutIds = ref([]);
 const setsDone = ref(0);
 const workoutsCompleted = ref(0);
+const isNotificationOpen = ref(false);
+
+const notifications = computed(() => {
+    return props.bookings.filter(b => b.status === 'pending' || b.status === 'cancelled');
+});
+
+const hasUnread = computed(() => notifications.value.length > 0 || !!props.todaySchedule);
 
 onMounted(() => {
     // Load Liked Workouts
@@ -92,12 +100,15 @@ const allRecommendations = computed(() => {
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <button class="relative p-2 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] transition-colors">
+                <button 
+                    @click="isNotificationOpen = true"
+                    class="relative p-2 rounded-full bg-[var(--card-bg)] shadow-sm border border-[var(--border-color)] transition-colors active:scale-95"
+                >
                     <span class="material-symbols-outlined text-[var(--text-main)] transition-colors">notifications</span>
-                    <span class="absolute top-2.5 right-2.5 size-2 bg-[var(--theme-color)] rounded-full border-2 border-[var(--card-bg)] transition-colors"></span>
+                    <span v-if="hasUnread" class="absolute top-2.5 right-2.5 size-2 bg-[var(--theme-color)] rounded-full border-2 border-[var(--card-bg)] transition-colors"></span>
                 </button>
                 <div class="size-10 rounded-full bg-[var(--page-bg)] overflow-hidden border-2 border-[var(--theme-color)]/20 transition-colors">
-                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvptxpU7Ppa2JgT01czZwNufdNosJ_klrOU7YUBqtRumJxfPZwDuN7uT9Qls2CozEHWDlHPxZ5TpHrQ7PyGmmv_WKIoLoiUkshYos7oCbL3Tqpok8ULOd7tpyiikAog25n0DTsdWcodws94SJFGBo25tvPXAybv_E--CK3YDEJSiII5jOWQqB6XJN_RcRYFYTqV8BqdCTBJGCixQwyO3EMyFR8DvyhNacIrRKKMmV4fDSz_LVor40kj6i6e49ylZcRhNRNSfaNt3Y" alt="User" class="w-full h-full object-cover">
+                    <img :src="$page.props.auth.user.profile_photo_url" alt="User" class="w-full h-full object-cover">
                 </div>
             </div>
         </header>
@@ -210,6 +221,90 @@ const allRecommendations = computed(() => {
                             <span class="material-symbols-outlined fill-icon text-sm">play_arrow</span>
                             {{ t('home.start_guided') }}
                         </Link>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Modal -->
+        <div v-if="isNotificationOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="isNotificationOpen = false"></div>
+            <div class="relative w-full max-w-sm bg-[var(--card-bg)] rounded-[32px] overflow-hidden shadow-2xl border border-[var(--border-color)] animate-in fade-in zoom-in duration-200">
+                <div class="p-6 border-b border-[var(--border-color)] flex items-center justify-between">
+                    <h3 class="text-lg font-black uppercase italic text-[var(--text-main)]">Notifications</h3>
+                    <button @click="isNotificationOpen = false" class="size-8 flex items-center justify-center rounded-full bg-[var(--page-bg)] border border-[var(--border-color)]">
+                        <span class="material-symbols-outlined text-sm text-[var(--text-muted)]">close</span>
+                    </button>
+                </div>
+                
+                <div class="max-h-[70vh] overflow-y-auto p-4 space-y-4 no-scrollbar">
+                    <!-- Today's Coaching Guide (Premium Section) -->
+                    <div v-if="activePackage" 
+                        class="w-full p-5 rounded-[28px] shadow-lg overflow-hidden relative group transition-all" 
+                        :style="{ background: 'linear-gradient(135deg, var(--theme-color), #f97316)', boxShadow: '0 10px 20px rgba(var(--theme-color-rgb), 0.15)' }"
+                    >
+                        <div class="flex items-center gap-4 relative z-10">
+                            <img :src="activePackage.trainer.user.profile_photo_url" class="size-12 rounded-[18px] border-2 border-white/30 object-cover shadow-md transition-transform">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5 mb-1 text-white/80">
+                                    <span class="size-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                                    <span class="text-[8px] font-black uppercase tracking-[0.2em] leading-none">Coaching Guide</span>
+                                </div>
+                                <h2 class="text-white text-xl font-black uppercase italic leading-none tracking-tighter truncate">
+                                    {{ todaySchedule?.focus_area || 'Daily Session' }}
+                                </h2>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-4 bg-white/10 rounded-[20px] backdrop-blur-md border border-white/10 relative z-10">
+                            <div class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-white/40 text-xs mt-0.5">format_quote</span>
+                                <p class="text-white text-[10px] font-bold leading-relaxed italic opacity-95">
+                                    {{ todaySchedule?.description || "Pick an exercise and let's crush it today! I'm here to support you." }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 flex items-center justify-between relative z-10 px-0.5">
+                            <span class="text-white/60 text-[8px] font-black uppercase tracking-widest italic flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[9px]">person</span>
+                                {{ activePackage.trainer.user.name }}
+                            </span>
+                        </div>
+
+                        <!-- Mini Decorations -->
+                        <div class="absolute -right-3 -bottom-3 opacity-10 rotate-12">
+                            <span class="material-symbols-outlined text-[60px] text-white">sports_martial_arts</span>
+                        </div>
+                    </div>
+
+                    <div v-if="notifications.length > 0 || !!props.todaySchedule" class="px-2 pt-2">
+                        <h4 class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">All Alerts</h4>
+                    </div>
+                    <template v-if="notifications.length > 0">
+                        <div v-for="booking in notifications" :key="booking.id"
+                            class="p-4 rounded-2xl border flex items-center gap-4 transition-all"
+                            :class="booking.status === 'pending' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-rose-50 border-rose-100 text-rose-700'"
+                        >
+                            <div class="size-10 rounded-xl overflow-hidden border border-white/50 flex-shrink-0">
+                                <img :src="booking.trainer?.user?.profile_photo_url" class="size-full object-cover">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-[10px] font-black uppercase tracking-widest leading-none mb-1">
+                                    {{ booking.status === 'pending' ? 'Enrollment Pending' : 'Registration Rejected' }}
+                                </h4>
+                                <p class="text-[11px] font-bold truncate opacity-80">
+                                    {{ booking.status === 'pending' ? `Waiting for ${booking.trainer?.user?.name}` : `Request to ${booking.trainer?.user?.name} was rejected.` }}
+                                </p>
+                            </div>
+                            <div v-if="booking.status === 'cancelled'" class="px-2 py-0.5 bg-rose-500 text-white rounded-md text-[8px] font-black uppercase italic">
+                                ปฏิเสธ
+                            </div>
+                        </div>
+                    </template>
+                    <div v-else class="py-12 text-center opacity-40">
+                        <span class="material-symbols-outlined text-4xl mb-2">notifications_off</span>
+                        <p class="text-xs font-bold uppercase italic">No new notifications</p>
                     </div>
                 </div>
             </div>

@@ -78,11 +78,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/trainer/book', [TrainerController::class, 'book'])->name('trainer.book');
     Route::post('/api/trainer/review', [TrainerController::class, 'storeReview'])->name('trainer.review');
     Route::post('/api/trainer/{trainer}/verify', [TrainerController::class, 'verify']);
+    Route::delete('/api/trainer/verify/{verification}', [TrainerController::class, 'deleteVerification']);
     Route::get('/api/trainer/{trainer}/schedule', [TrainerController::class, 'getSchedule']);
 
     // Trainer Management
     Route::get('/mobile/trainer/dashboard', [\App\Http\Controllers\TrainerManagementController::class, 'index'])->name('trainer.dashboard');
     Route::patch('/api/bookings/{booking}', [\App\Http\Controllers\TrainerManagementController::class, 'updateBooking']);
+    Route::delete('/api/bookings/{booking}', [\App\Http\Controllers\TrainerManagementController::class, 'deleteBooking']);
+    Route::delete('/api/client-packages/{clientPackage}', [\App\Http\Controllers\TrainerManagementController::class, 'removeClient']);
     Route::get('/api/clients/{user}', [\App\Http\Controllers\TrainerManagementController::class, 'clientDetails']);
     Route::get('/api/clients/{user}/history', [\App\Http\Controllers\TrainerManagementController::class, 'clientHistory']);
     Route::get('/api/trainer/search-users', [\App\Http\Controllers\TrainerManagementController::class, 'searchUsers']);

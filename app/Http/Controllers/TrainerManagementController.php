@@ -50,11 +50,18 @@ class TrainerManagementController extends Controller
 
         $courses = TrainerCourse::where('trainer_id', $trainer->id)->get();
 
+        $verifications = \App\Models\TrainerVerification::with('user')
+            ->where('trainer_id', $trainer->id)
+            ->orderBy('date', 'desc')
+            ->limit(50)
+            ->get();
+
         return Inertia::render('Trainer/Dashboard', [
             'trainer' => $trainer,
             'clients' => $clients,
             'bookings' => $bookings,
             'courses' => $courses,
+            'verifications' => $verifications,
         ]);
     }
 
@@ -162,6 +169,40 @@ class TrainerManagementController extends Controller
         return back()->with('success', 'Booking updated successfully');
     }
 
+    public function deleteBooking(Booking $booking)
+    {
+        $trainer = Auth::user()->trainer;
+        if (!$trainer || $booking->trainer_id !== $trainer->id) {
+            abort(403);
+        }
+
+        // Also delete the client package if it exists
+        ClientPackage::where('user_id', $booking->user_id)
+            ->where('trainer_id', $trainer->id)
+            ->where('course_name', $booking->course_name)
+            ->delete();
+
+        $booking->delete();
+        return back()->with('success', 'Booking removed.');
+    }
+
+    public function removeClient(ClientPackage $clientPackage)
+    {
+        $trainer = Auth::user()->trainer;
+        if (!$trainer || $clientPackage->trainer_id !== $trainer->id) {
+            abort(403);
+        }
+
+        // Also delete the associated booking if it exists
+        Booking::where('user_id', $clientPackage->user_id)
+            ->where('trainer_id', $trainer->id)
+            ->where('course_name', $clientPackage->course_name)
+            ->delete();
+
+        $clientPackage->delete();
+        return back()->with('success', 'Member removed from roster.');
+    }
+
     public function clientDetails(User $user)
     {
         $trainer = Auth::user()->trainer;
@@ -188,6 +229,7 @@ class TrainerManagementController extends Controller
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
+            'course_name' => 'nullable|string',
             'hours' => 'required|integer|min:1',
             'notes' => 'nullable|string',
             'metrics' => 'nullable|array',
@@ -197,10 +239,15 @@ class TrainerManagementController extends Controller
         if (!$trainer)
             abort(403);
 
-        $package = ClientPackage::where('user_id', $request->user_id)
+        $query = ClientPackage::where('user_id', $request->user_id)
             ->where('trainer_id', $trainer->id)
-            ->where('status', 'active')
-            ->firstOrFail();
+            ->where('status', 'active');
+
+        if ($request->course_name) {
+            $query->where('course_name', $request->course_name);
+        }
+
+        $package = $query->firstOrFail();
 
         $package->increment('used_hours', $request->hours);
 

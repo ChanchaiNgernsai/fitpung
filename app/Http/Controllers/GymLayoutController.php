@@ -71,6 +71,9 @@ class GymLayoutController extends Controller
                 ->get(),
             'activePackage' => $activePackage,
             'todaySchedule' => $todaySchedule,
+            'bookings' => \App\Models\Booking::with('trainer.user')
+                ->where('user_id', $user->id)
+                ->get(),
         ]);
     }
 
@@ -105,15 +108,49 @@ class GymLayoutController extends Controller
                 ->first();
         }
 
-        $bookings = \App\Models\Booking::where('user_id', $user->id)
-            ->where('status', 'confirmed')
+        $bookings = \App\Models\Booking::with('trainer.user')
+            ->where('user_id', $user->id)
             ->get();
+
+        $trainers = \App\Models\Trainer::with(['user', 'courses'])
+            ->withAvg('reviews', 'rating')
+            ->get()
+            ->map(function ($trainer) use ($user) {
+                $todayWork = \App\Models\TrainerVerification::where('trainer_id', $trainer->id)
+                    ->where('date', now()->toDateString());
+
+                $trainer->verifications_present_count = (clone $todayWork)->where('status', 'present')->count();
+                $trainer->verifications_absent_count = (clone $todayWork)->where('status', 'absent')->count();
+
+                $myVerification = \App\Models\TrainerVerification::where('trainer_id', $trainer->id)
+                    ->where('user_id', $user->id)
+                    ->where('date', now()->toDateString())
+                    ->first();
+
+                $trainer->has_verified_today = $myVerification ? true : false;
+                $trainer->my_verification_status = $myVerification ? $myVerification->status : null;
+
+                $myBooking = \App\Models\Booking::where('trainer_id', $trainer->id)
+                    ->where('user_id', $user->id)
+                    ->latest()
+                    ->first();
+
+                $trainer->my_booking = $myBooking;
+
+                if ($myBooking && $myBooking->status === 'confirmed' && $myBooking->course_name) {
+                    $trainer->active_course = \App\Models\TrainerCourse::where('trainer_id', $trainer->id)
+                        ->where('title', $myBooking->course_name)
+                        ->first();
+                }
+
+                return $trainer;
+            });
 
         return Inertia::render('MobileWorkout', [
             'gyms' => GymLayout::where('is_public', true)
                 ->where('is_approved', true)
                 ->get(),
-            'trainers' => \App\Models\Trainer::with(['user', 'courses'])->get(),
+            'trainers' => $trainers,
             'activePackage' => $activePackage,
             'todaySchedule' => $todaySchedule,
             'bookings' => $bookings,

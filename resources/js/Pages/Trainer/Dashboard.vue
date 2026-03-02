@@ -8,7 +8,7 @@ import { useI18n } from '@/language';
 const { t } = useI18n();
 const page = usePage();
 
-const props = defineProps(['trainer', 'clients', 'bookings', 'courses']);
+const props = defineProps(['trainer', 'clients', 'bookings', 'courses', 'verifications']);
 
 const groupedClientsList = computed(() => {
     const groups = {};
@@ -39,10 +39,13 @@ const isRecordingModalOpen = ref(false);
 const isDetailModalOpen = ref(false);
 const isCourseModalOpen = ref(false);
 const isScheduleModalOpen = ref(false);
+const isAttendanceOpen = ref(false); // Toggle for attendance history
 const clientMetrics = ref([]);
 const schedules = ref([]);
 const currentMonth = ref(new Date());
-const coursesSubTab = ref('blueprint'); // 'blueprint' | 'catalog'
+const coursesSubTab = ref('master'); // 'master' | 'blueprint' | 'catalog'
+const isMasterDayOpen = ref(false);
+const selectedMasterDay = ref(null);
 const selectedScheduleCourse = ref(null);
 
 const scheduleForm = ref({
@@ -53,6 +56,7 @@ const scheduleForm = ref({
 
 const recordForm = ref({
     user_id: '',
+    course_name: '',
     hours: 1,
     notes: '',
     metrics: {
@@ -171,6 +175,7 @@ const courseForm = ref({
 const openRecordModal = (client) => {
     selectedClient.value = client;
     recordForm.value.user_id = client.user_id;
+    recordForm.value.course_name = client.course_name;
     isRecordingModalOpen.value = true;
 };
 
@@ -261,10 +266,18 @@ const updateTimePart = (currentValue, part, newValue) => {
 };
 
 const getCourseColor = (course) => {
-    return { 
-        primary: 'var(--theme-color)', 
-        shadow: 'rgba(var(--theme-color-rgb), 0.3)' 
-    };
+    const id = typeof course === 'object' ? course.id : course;
+    const colors = [
+        { primary: '#ec5b13', shadow: 'rgba(236, 91, 19, 0.3)' }, // Orange
+        { primary: '#00a18c', shadow: 'rgba(0, 161, 140, 0.3)' }, // Teal
+        { primary: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.3)' }, // Blue
+        { primary: '#8b5cf6', shadow: 'rgba(139, 92, 246, 0.3)' }, // Purple
+        { primary: '#f43f5e', shadow: 'rgba(244, 63, 94, 0.3)' }, // Rose
+        { primary: '#6366f1', shadow: 'rgba(99, 102, 241, 0.3)' }, // Indigo
+    ];
+    
+    // Simple rotation based on ID
+    return colors[id % colors.length] || colors[0];
 };
 
 const getCourseMaxDays = (course) => {
@@ -278,6 +291,15 @@ const getCourseMaxDays = (course) => {
         return Math.min(parseInt(dur) || 28, 60);
     }
     return 28;
+};
+
+const hasLessonOnDay = (course, day) => {
+    return course.lesson_plan?.some(l => l.day === day);
+};
+
+const openMasterDayDetail = (day) => {
+    selectedMasterDay.value = day;
+    isMasterDayOpen.value = true;
 };
 
 const maxSyllabusDays = computed(() => {
@@ -480,6 +502,36 @@ const updateBookingStatus = (bookingId, status) => {
             showSuccess(title, msg);
         }
     });
+};
+
+const deleteVerification = (id) => {
+    showConfirm(
+        'Delete Record?',
+        'Are you sure you want to remove this attendance record?',
+        () => {
+            router.delete(`/api/trainer/verify/${id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    showSuccess('Deleted', 'Attendance record has been removed.');
+                }
+            });
+        }
+    );
+};
+
+const deleteClient = (clientId) => {
+    showConfirm(
+        'Remove Member?',
+        'Are you sure you want to delete this client registration? This is for testing purposes.',
+        () => {
+            router.delete(`/api/client-packages/${clientId}`, {
+                onSuccess: () => {
+                    isDetailModalOpen.value = false;
+                    showSuccess('Client Removed', 'Member has been removed from your roster.');
+                }
+            });
+        }
+    );
 };
 
 // Schedule Methods
@@ -736,11 +788,69 @@ const getGraphPath = (metrics, type, width, height) => {
                                         </div>
                                     </div>
                                 </div>
-                                <button 
-                                    @click.stop="openRecordModal(client)"
-                                    class="size-11 rounded-2xl bg-[var(--theme-color)]/10 text-[var(--theme-color)] transition-all active:scale-90 flex items-center justify-center border border-[var(--theme-color)]/20"
+                                <div class="flex gap-2">
+                                    <button 
+                                        @click.stop="openRecordModal(client)"
+                                        class="size-11 rounded-2xl bg-[var(--theme-color)]/10 text-[var(--theme-color)] transition-all active:scale-90 flex items-center justify-center border border-[var(--theme-color)]/20"
+                                    >
+                                        <span class="material-symbols-outlined text-sm font-black">edit_note</span>
+                                    </button>
+                                    <button 
+                                        @click.stop="deleteClient(client.id)"
+                                        class="size-11 rounded-2xl bg-rose-50 text-rose-500 transition-all active:scale-90 flex items-center justify-center border border-rose-100"
+                                    >
+                                        <span class="material-symbols-outlined text-sm font-black">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Attendance History (Toggleable) -->
+                <div class="mt-12 mb-20 px-1">
+                    <div 
+                        @click="isAttendanceOpen = !isAttendanceOpen"
+                        class="flex items-center justify-between cursor-pointer active:opacity-60 transition-all group"
+                    >
+                        <div class="flex items-center gap-2">
+                            <span class="size-1.5 rounded-full bg-[var(--text-muted)] opacity-30 group-hover:bg-[var(--theme-color)] transition-colors"></span>
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] italic opacity-40 group-hover:opacity-100 transition-opacity">
+                                ประวัติคนเข้ามาเรียน ({{ verifications?.length || 0 }})
+                            </h3>
+                        </div>
+                        <span class="material-symbols-outlined text-sm text-[var(--text-muted)] opacity-30 transition-transform duration-300" :class="{ 'rotate-180': isAttendanceOpen }">
+                            expand_more
+                        </span>
+                    </div>
+
+                    <div v-if="isAttendanceOpen" class="mt-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div v-if="!verifications || verifications.length === 0" class="py-10 text-center opacity-30 bg-[var(--page-bg)]/50 rounded-[32px] border border-dotted border-[var(--border-color)]">
+                            <p class="text-[9px] font-black uppercase tracking-widest italic">No attendance records found</p>
+                        </div>
+                        
+                        <div v-for="v in verifications" :key="v.id" class="p-4 bg-[var(--card-bg)] rounded-3xl border border-[var(--border-color)] flex items-center justify-between shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <img :src="v.user.profile_photo_url" class="size-10 rounded-2xl object-cover border-2 border-white shadow-sm ring-1 ring-[var(--border-color)]/30">
+                                <div>
+                                    <h4 class="text-[11px] font-black text-[var(--text-main)] uppercase tracking-tight">{{ v.user.name }}</h4>
+                                    <p class="text-[8px] font-bold text-[var(--text-muted)] uppercase italic opacity-60">
+                                        {{ new Date(v.date).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div 
+                                    class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase italic tracking-wider whitespace-nowrap"
+                                    :class="v.status === 'present' ? 'bg-green-500/10 text-green-600' : 'bg-rose-500/10 text-rose-600'"
                                 >
-                                    <span class="material-symbols-outlined text-sm font-black">edit_note</span>
+                                    {{ v.status }}
+                                </div>
+                                <button 
+                                    @click.stop="deleteVerification(v.id)"
+                                    class="size-8 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center active:scale-95 transition-all border border-rose-100"
+                                >
+                                    <span class="material-symbols-outlined text-sm">delete</span>
                                 </button>
                             </div>
                         </div>
@@ -823,31 +933,97 @@ const getGraphPath = (metrics, type, width, height) => {
                         </p>
                     </div>
 
-                    <!-- Modern Switcher (In Red Circle Area) -->
+                    <!-- Modern Switcher -->
                     <div class="flex p-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-sm">
                         <button 
+                            @click="coursesSubTab = 'master'"
+                            class="px-3 py-2 text-[8px] font-black uppercase tracking-tighter rounded-xl transition-all flex items-center gap-1.5"
+                            :style="coursesSubTab === 'master' ? { backgroundColor: 'var(--theme-color)', boxShadow: '0 8px 16px rgba(var(--theme-color-rgb), 0.2)' } : {}"
+                            :class="coursesSubTab === 'master' ? 'text-white shadow-lg' : 'text-[var(--text-muted)]'"
+                        >
+                            <span class="material-symbols-outlined text-[10px]">grid_view</span>
+                            Overview
+                        </button>
+                        <button 
                             @click="coursesSubTab = 'blueprint'"
-                            class="px-4 py-2 text-[9px] font-black uppercase tracking-tighter rounded-xl transition-all flex items-center gap-1.5"
+                            class="px-3 py-2 text-[8px] font-black uppercase tracking-tighter rounded-xl transition-all flex items-center gap-1.5"
                             :style="coursesSubTab === 'blueprint' ? { backgroundColor: 'var(--theme-color)', boxShadow: '0 8px 16px rgba(var(--theme-color-rgb), 0.2)' } : {}"
                             :class="coursesSubTab === 'blueprint' ? 'text-white shadow-lg' : 'text-[var(--text-muted)]'"
                         >
-                            <span class="material-symbols-outlined text-xs">grid_view</span>
-                            Plan
+                            <span class="material-symbols-outlined text-[10px]">calendar_month</span>
+                            Calendar
                         </button>
                         <button 
                             @click="coursesSubTab = 'catalog'"
-                            class="px-4 py-2 text-[9px] font-black uppercase tracking-tighter rounded-xl transition-all flex items-center gap-1.5"
+                            class="px-3 py-2 text-[8px] font-black uppercase tracking-tighter rounded-xl transition-all flex items-center gap-1.5"
                             :style="coursesSubTab === 'catalog' ? { backgroundColor: 'var(--theme-color)', boxShadow: '0 8px 16px rgba(var(--theme-color-rgb), 0.2)' } : {}"
                             :class="coursesSubTab === 'catalog' ? 'text-white shadow-lg' : 'text-[var(--text-muted)]'"
                         >
-                            <span class="material-symbols-outlined text-xs">list_alt</span>
+                            <span class="material-symbols-outlined text-[10px]">list_alt</span>
                             List
                         </button>
                     </div>
                 </div>
 
+                <!-- VIEW 0: MASTER OVERVIEW -->
+                <div v-if="coursesSubTab === 'master'" class="space-y-6 animate-in fade-in duration-500">
+                    <div class="p-8 bg-[var(--card-bg)] rounded-[40px] border border-[var(--border-color)] shadow-sm relative overflow-hidden">
+                        <!-- BG Decor -->
+                        <div class="absolute -right-6 -top-6 opacity-[0.05] rotate-12 transition-transform duration-700">
+                            <span class="material-symbols-outlined text-[100px] text-[var(--theme-color)]">calendar_view_month</span>
+                        </div>
+
+                        <div class="flex items-center justify-between mb-8 relative z-10">
+                            <div>
+                                <h3 class="text-xl font-black uppercase italic text-[var(--theme-color)]">Master Schedule</h3>
+                                <p class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-1">Overlay of all course blueprints</p>
+                            </div>
+                        </div>
+
+                        <!-- 7-Column Grid -->
+                        <div class="grid grid-cols-7 gap-1.5 p-1 bg-[var(--page-bg)]/50 rounded-[30px] border border-[var(--border-color)]/30">
+                            <div v-for="d in ['S','M','T','W','T','F','S']" :key="d" class="text-[7px] font-black text-center text-[var(--text-muted)] opacity-40 py-1">{{d}}</div>
+                            <div v-for="day in 30" :key="day" 
+                                @click="openMasterDayDetail(day)"
+                                class="aspect-square rounded-[14px] flex flex-col items-center justify-center transition-all cursor-pointer relative active:scale-95 overflow-hidden border bg-[var(--card-bg)] border-[var(--border-color)]/60 hover:border-[var(--theme-color)]"
+                            >
+                                <span class="text-[10px] font-black text-[var(--text-muted)]/50 mb-1 leading-none">{{ day }}</span>
+                                <div class="flex flex-wrap justify-center gap-0.5 px-1 max-w-full">
+                                    <template v-for="course in courses" :key="course.id">
+                                        <div v-if="hasLessonOnDay(course, day)" 
+                                            class="size-1.5 rounded-full"
+                                            :style="{ backgroundColor: getCourseColor(course.id).primary }"
+                                        ></div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="mt-8 pt-6 border-t border-[var(--border-color)]/50 grid grid-cols-2 gap-3">
+                            <div v-for="course in courses" :key="course.id" class="flex items-center gap-2">
+                                <span class="size-2 rounded-full" :style="{ backgroundColor: getCourseColor(course.id).primary }"></span>
+                                <span class="text-[8px] font-black text-[var(--text-main)] uppercase tracking-tight truncate">{{ course.title }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- VIEW 1: BLUEPRINT GRID -->
                 <div v-if="coursesSubTab === 'blueprint'" class="space-y-6">
+                    <div class="flex items-center justify-between px-1 p-4 rounded-3xl border border-[var(--theme-color)]/10" style="background-color: rgba(var(--theme-color-rgb), 0.05);">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[var(--theme-color)]">info</span>
+                            <p class="text-[9px] font-black text-[var(--text-main)] uppercase italic">Course Blueprint Management</p>
+                        </div>
+                        <button 
+                            @click="openCourseModal()"
+                            class="px-4 py-2 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
+                            :style="{ backgroundColor: 'var(--theme-color)', boxShadow: '0 10px 20px rgba(var(--theme-color-rgb), 0.2)' }"
+                        >
+                            <span class="material-symbols-outlined text-sm">add</span> New Course
+                        </button>
+                    </div>
                     <div v-for="course in courses" :key="course.id" class="space-y-4">
                         <!-- Course Header Card -->
                         <div class="p-6 bg-[var(--card-bg)] rounded-[40px] border border-[var(--border-color)] shadow-sm relative overflow-hidden">
@@ -1619,6 +1795,50 @@ const getGraphPath = (metrics, type, width, height) => {
                             {{ confirmModal.type === 'confirm' ? 'Yes, Confirm' : (confirmModal.type === 'error' ? 'Got it' : 'Awesome!') }}
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- Master Day Detail Modal -->
+        <div v-if="isMasterDayOpen" class="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+            <div class="relative w-full max-w-sm bg-[var(--card-bg)] rounded-[40px] p-8 pb-10 shadow-2xl border border-[var(--border-color)] animate-in zoom-in fade-in duration-200">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-4">
+                        <div class="size-14 rounded-full flex flex-col items-center justify-center bg-[var(--theme-color)] text-white shadow-lg">
+                            <span class="text-[10px] font-black italic leading-none">DAY</span>
+                            <span class="text-xl font-black italic mt-0.5">{{ selectedMasterDay }}</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black uppercase italic tracking-tighter text-[var(--text-main)]">Master Schedule</h3>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-0.5">Sessions Overview</p>
+                        </div>
+                    </div>
+                    <button @click="isMasterDayOpen = false" class="size-10 rounded-full bg-[var(--page-bg)] flex items-center justify-center border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                    <template v-for="course in courses" :key="course.id">
+                        <div v-if="hasLessonOnDay(course, selectedMasterDay)" 
+                            class="p-5 rounded-[28px] border transition-all"
+                            :style="{ borderColor: getCourseColor(course.id).primary + '33', backgroundColor: getCourseColor(course.id).primary + '08' }"
+                        >
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="size-2 rounded-full" :style="{ backgroundColor: getCourseColor(course.id).primary }"></span>
+                                <h4 class="text-sm font-black uppercase italic" :style="{ color: getCourseColor(course.id).primary }">
+                                    {{ course.title }}
+                                </h4>
+                            </div>
+                            <p class="text-[10px] font-bold text-[var(--text-main)] uppercase tracking-tight">
+                                {{ course.lesson_plan.find(l => l.day === selectedMasterDay)?.focus || 'General Training Session' }}
+                            </p>
+                        </div>
+                    </template>
+                </div>
+
+                <div v-if="courses.filter(c => hasLessonOnDay(c, selectedMasterDay)).length === 0" class="py-12 text-center opacity-30">
+                    <span class="material-symbols-outlined text-4xl mb-2">free_cancellation</span>
+                    <p class="text-[10px] font-black uppercase tracking-widest">No sessions planned for this day</p>
                 </div>
             </div>
         </div>
