@@ -21,7 +21,7 @@ onMounted(() => {
     }
 });
 
-const emit = defineEmits(['back']);
+const emit = defineEmits(['back', 'start-workout']);
 
 const defaultCalendar = [
     { day: 'Mon', slots: ['09:00', '14:00', '18:00'] },
@@ -31,7 +31,7 @@ const defaultCalendar = [
 
 const formatImageUrl = (path) => {
     if (!path) return null;
-    if (path.startsWith('http') || path.startsWith('/images/')) return path;
+    if (path.startsWith('http') || path.startsWith('/images/') || path.startsWith('/storage/')) return path;
     return `/storage/${path}`;
 };
 
@@ -171,6 +171,8 @@ const openBlueprintDetail = (trainer, dayNumber) => {
         schedule: info?.schedule || {
             focus_area: lesson.focus,
             description: lesson.description || 'No specific details provided for this session.',
+            exercises: lesson.exercises || [],
+            start_time: lesson.duration || 'Session Starts: TBA',
             verifications_present_count: 0,
             verifications_absent_count: 0
         }
@@ -688,52 +690,70 @@ const goBack = () => {
                 </div>
 
                 <div class="space-y-6">
-                    <!-- Teaching Plan Section -->
-                    <div v-if="selectedDayData.schedule" class="bg-[var(--page-bg)] p-6 rounded-3xl border border-[var(--border-color)]">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-sm text-[var(--theme-color)]">fitness_center</span>
-                                <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Teaching Plan</span>
-                            </div>
-                            <!-- Syllabus Match Badge -->
-                            <span v-if="findSyllabusDay(selectedDayData.trainer, selectedDayData)" class="px-2 py-0.5 bg-[var(--theme-color)]/10 text-[var(--theme-color)] rounded-md text-[8px] font-black uppercase italic">
-                                Day {{ findSyllabusDay(selectedDayData.trainer, selectedDayData).day }} Lesson
-                            </span>
+                    <!-- Exercises Structured View (Read Only) -->
+                    <div v-if="(selectedDayData.schedule?.exercises && selectedDayData.schedule.exercises.length > 0) || (findSyllabusDay(selectedDayData.trainer, selectedDayData.dayNumber)?.exercises?.length > 0)" class="space-y-4">
+                        <div class="flex items-center gap-2 px-1">
+                            <span class="material-symbols-outlined text-sm text-[var(--theme-color)]">list_alt</span>
+                            <span class="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Exercise Routine (Read Only)</span>
                         </div>
-                        <h4 class="text-base font-black uppercase text-[var(--text-main)] italic mb-2">{{ selectedDayData.schedule.focus_area }}</h4>
-                        <p class="text-xs font-medium text-[var(--text-muted)] leading-relaxed opacity-80 line-clamp-4">{{ selectedDayData.schedule.description }}</p>
+                        <div class="space-y-3">
+                            <div v-for="(ex, idx) in (selectedDayData.schedule?.exercises || findSyllabusDay(selectedDayData.trainer, selectedDayData.dayNumber)?.exercises)" :key="idx" 
+                                class="p-5 bg-white border border-[var(--border-color)] rounded-[40px] shadow-sm space-y-4"
+                            >
+                                <!-- Header: Image + Name -->
+                                <div class="flex items-center gap-4">
+                                    <!-- Machine Image -->
+                                    <div class="size-16 rounded-[24px] bg-[var(--page-bg)] border border-[var(--border-color)] overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
+                                        <img v-if="ex.image" :src="ex.image" class="w-full h-full object-contain">
+                                        <span v-else class="material-symbols-outlined text-2xl text-[var(--text-muted)] opacity-20">fitness_center</span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <div class="size-2 rounded-full bg-[var(--theme-color)]"></div>
+                                            <h5 class="text-[14px] font-black uppercase text-[var(--text-main)] italic truncate">{{ ex.name }}</h5>
+                                        </div>
+                                        <p class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 ml-4">Planned Syllabus</p>
+                                    </div>
+                                </div>
+
+                                <!-- Prescribed Sets List (Read Only) -->
+                                <div class="space-y-2">
+                                    <div v-for="(set, sIdx) in (ex.sets_data || Array.from({ length: parseInt(ex.sets) || 1 }, () => ({ weight: ex.weight || '0', reps: ex.reps || '0' })))" :key="sIdx"
+                                        class="flex items-center justify-between p-3.5 bg-[var(--page-bg)]/50 rounded-2xl border border-[var(--border-color)]/30"
+                                    >
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-[10px] font-black text-[var(--text-main)] uppercase italic">Set {{ sIdx + 1 }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-5">
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-[12px] font-black text-[var(--text-main)] italic leading-none">{{ set.weight }}</span>
+                                                <span class="text-[6px] font-black text-[var(--text-muted)] uppercase tracking-tighter mt-1 opacity-40">Weight</span>
+                                            </div>
+                                            <div class="h-4 w-px bg-[var(--border-color)] opacity-20"></div>
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-[12px] font-black text-[var(--text-main)] italic leading-none">{{ set.reps }}</span>
+                                                <span class="text-[6px] font-black text-[var(--text-muted)] uppercase tracking-tighter mt-1 opacity-40">Reps</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Huge Action Button to Start Workout -->
+                        <button 
+                            @click="emit('start-workout', { title: selectedDayData.schedule?.focus_area || 'Coaching Session', exercises: selectedDayData.schedule?.exercises || findSyllabusDay(selectedDayData.trainer, selectedDayData.dayNumber)?.exercises }); isDayDetailOpen = false;"
+                            class="w-full py-5 bg-[var(--text-main)] text-[var(--card-bg)] text-[12px] font-black uppercase tracking-[0.2em] rounded-3xl shadow-2xl active:scale-95 transition-all mt-4 flex items-center justify-center gap-3 hover:bg-[var(--theme-color)] hover:shadow-[var(--theme-color)]/20"
+                        >
+                            <span class="material-symbols-outlined animate-pulse text-lg">play_circle</span>
+                            Start Prescribed Routine
+                        </button>
                     </div>
 
                     <!-- No Official Plan State -->
-                    <div v-else class="bg-[var(--page-bg)]/40 p-8 rounded-3xl border border-dashed border-[var(--border-color)] text-center">
-                        <span class="material-symbols-outlined text-3xl text-[var(--text-muted)] opacity-20 mb-2">event_busy</span>
-                        <p class="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest leading-tight">No specific plan logged for this date</p>
-                    </div>
-
-                    <div v-if="selectedDayData.schedule" class="flex items-center justify-center gap-4 pt-2">
-                        <!-- Present Button/Status -->
-                        <button 
-                            @click="verifyTrainer(selectedDayData.trainer.id, 'present', selectedDayData.dateStr); isDayDetailOpen = false;"
-                            class="flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all active:scale-95"
-                            :class="selectedDayData.schedule.my_verification_status === 'present' 
-                                ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' 
-                                : 'bg-green-500/5 border-green-500/10 text-green-600'"
-                        >
-                            <span class="material-symbols-outlined text-sm" :style="selectedDayData.schedule.my_verification_status === 'present' ? { color: 'white' } : { color: '#22c55e' }">check_circle</span>
-                            <span class="text-[11px] font-black uppercase tracking-tight">{{ selectedDayData.schedule.verifications_present_count }} Present</span>
-                        </button>
-
-                        <!-- Absent Button/Status -->
-                        <button 
-                            @click="verifyTrainer(selectedDayData.trainer.id, 'absent', selectedDayData.dateStr); isDayDetailOpen = false;"
-                            class="flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all active:scale-95"
-                            :class="selectedDayData.schedule.my_verification_status === 'absent' 
-                                ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' 
-                                : 'bg-rose-500/5 border-rose-500/10 text-rose-600'"
-                        >
-                            <span class="material-symbols-outlined text-sm" :style="selectedDayData.schedule.my_verification_status === 'absent' ? { color: 'white' } : { color: '#e11d48' }">cancel</span>
-                            <span class="text-[11px] font-black uppercase tracking-tight">{{ selectedDayData.schedule.verifications_absent_count }} Absent</span>
-                        </button>
+                    <div v-else class="bg-[var(--page-bg)]/40 p-12 rounded-3xl border border-dashed border-[var(--border-color)] text-center">
+                        <span class="material-symbols-outlined text-4xl text-[var(--text-muted)] opacity-20 mb-3">event_busy</span>
+                        <p class="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest leading-tight">No exercises planned for this date</p>
                     </div>
 
                     <!-- Trainer-only message -->

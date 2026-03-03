@@ -56,12 +56,17 @@ class TrainerManagementController extends Controller
             ->limit(50)
             ->get();
 
+        $gyms = \App\Models\GymLayout::where('is_public', true)
+            ->where('is_approved', true)
+            ->get();
+
         return Inertia::render('Trainer/Dashboard', [
             'trainer' => $trainer,
             'clients' => $clients,
             'bookings' => $bookings,
             'courses' => $courses,
             'verifications' => $verifications,
+            'gyms' => $gyms,
         ]);
     }
 
@@ -284,10 +289,25 @@ class TrainerManagementController extends Controller
     public function clientHistory(User $user)
     {
         $trainer = Auth::user()->trainer;
-        $history = TrainerSession::where('user_id', $user->id)
+
+        // Trainer logged sessions
+        $trainerSessions = TrainerSession::where('user_id', $user->id)
             ->where('trainer_id', $trainer->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($s) {
+                $s->is_trainer_log = true;
+                return $s;
+            });
+
+        // Student workout sessions
+        $workoutSessions = \App\Models\WorkoutSession::where('user_id', $user->id)
+            ->get()
+            ->map(function ($s) {
+                $s->is_trainer_log = false;
+                return $s;
+            });
+
+        $history = $trainerSessions->concat($workoutSessions)->sortByDesc('created_at')->values();
 
         return response()->json(['history' => $history]);
     }
@@ -424,5 +444,34 @@ class TrainerManagementController extends Controller
         );
 
         return response()->json(['success' => true, 'schedule' => $schedule]);
+    }
+
+    public function deleteWorkoutSession(\App\Models\WorkoutSession $session)
+    {
+        $trainer = Auth::user()->trainer;
+        if (!$trainer)
+            abort(403);
+
+        // Check if the session owner is a client of this trainer
+        $isClient = ClientPackage::where('trainer_id', $trainer->id)
+            ->where('user_id', $session->user_id)
+            ->exists();
+
+        if (!$isClient)
+            abort(403);
+
+        $session->delete();
+        return back()->with('success', 'Workout session removed.');
+    }
+
+    public function deleteTrainerSession(TrainerSession $session)
+    {
+        $trainer = Auth::user()->trainer;
+        if (!$trainer || $session->trainer_id !== $trainer->id) {
+            abort(403);
+        }
+
+        $session->delete();
+        return back()->with('success', 'Coaching session removed.');
     }
 }

@@ -121,7 +121,7 @@ const logSet = () => {
 
 const formatImageUrl = (path) => {
     if (!path) return null;
-    if (path.startsWith('http') || path.startsWith('/images/')) return path;
+    if (path.startsWith('http') || path.startsWith('/images/') || path.startsWith('/storage/')) return path;
     return `/storage/${path}`;
 };
 
@@ -337,6 +337,39 @@ const startCombinedWorkout = () => {
     isWorkoutSessionActive.value = true;
 };
 
+const startTrainerWorkout = (plan) => {
+    activeWorkout.value = {
+        title: plan.title || 'Coaching Session',
+        sessionType: 'trainer',
+        exercises: plan.exercises.map(ex => {
+            const hasDetailedSets = ex.sets_data && ex.sets_data.length > 0;
+            const logData = hasDetailedSets 
+                ? ex.sets_data 
+                : Array.from({ length: parseInt(ex.sets) || 3 }, () => ({ weight: ex.weight || '10kg', reps: ex.reps || '12' }));
+                
+            // Attempt to find the image from the gym equipment list if not provided
+            const equipmentMatch = allEquipments.value.find(eq => eq.name === ex.name);
+            const image = ex.image || equipmentMatch?.image || getExerciseImage(ex);
+
+            return {
+                name: ex.name,
+                image: image,
+                targetSets: logData.length,
+                reps: ex.reps || '12',
+                targetWeight: ex.weight || '10kg',
+                workoutLogs: logData.map((s, idx) => ({
+                    id: Date.now() + idx + Math.random(),
+                    weight: s.weight || '10kg',
+                    reps: s.reps || '12',
+                    completed: false
+                }))
+            };
+        })
+    };
+    isWorkoutSessionActive.value = true;
+    mode.value = null;
+};
+
 const addSet = (exercise) => {
     exercise.workoutLogs.push({
         id: Date.now(),
@@ -366,14 +399,10 @@ const finishWorkout = () => {
 };
 
 const confirmFinishWorkout = async () => {
-    // Collect all exercises where at least one set has reps/weight OR is completed
+    // Collect all exercises where at least one set is completed
     const sessionExercises = activeWorkout.value.exercises.map(ex => {
-        // Find sets with interaction (either completed OR have numerical data)
-        const validSets = ex.workoutLogs.filter(s => {
-            if (s.completed) return true;
-            const repsNum = parseInt(s.reps);
-            return !isNaN(repsNum) && repsNum > 0;
-        }).map(s => ({
+        // Find sets that are marked as completed
+        const validSets = ex.workoutLogs.filter(s => s.completed).map(s => ({
             weight: s.weight,
             reps: s.reps
         }));
@@ -564,6 +593,7 @@ const getExerciseImage = (ex) => {
                 :bookings="bookings"
                 :initial-trainer-id="initialTrainerId" 
                 @back="mode = null; initialTrainerId = null" 
+                @start-workout="startTrainerWorkout"
             />
         </div>
 
@@ -573,7 +603,7 @@ const getExerciseImage = (ex) => {
                 <div>
                     <h2 class="text-[10px] font-black uppercase tracking-wider mb-1"
                         :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[var(--theme-color)]'">
-                        {{ activeWorkout.sessionType === 'manual' ? 'BUILD SESSION' : 'GUIDED PLAN' }}
+                        {{ activeWorkout.sessionType === 'manual' ? 'BUILD SESSION' : (activeWorkout.sessionType === 'trainer' ? 'COACHING PLAN' : 'GUIDED PLAN') }}
                     </h2>
                     <h3 class="text-xl font-black uppercase italic text-[var(--text-main)] leading-tight transition-colors">{{ activeWorkout.title }}</h3>
                 </div>
@@ -601,36 +631,23 @@ const getExerciseImage = (ex) => {
                             <div class="flex items-center gap-3">
                                 <!-- Progress Box -->
                                 <div class="flex flex-col items-center">
-                                    <span class="text-[7px] font-black uppercase tracking-widest mb-1 px-1"
-                                        :class="activeWorkout.sessionType === 'manual' ? 'text-blue-500' : 'text-[var(--theme-color)]'">
-                                        {{ activeWorkout.sessionType === 'manual' ? 'SETS TOTAL' : 'SETS DONE' }}
-                                    </span>
-                                    <div class="px-3 py-1.5 rounded-xl border flex items-center justify-center min-w-[48px]"
-                                        :class="activeWorkout.sessionType === 'manual' 
-                                            ? 'bg-blue-50/50 border-blue-100 text-blue-500' 
-                                            : 'bg-[var(--theme-color)]/10 border-[var(--theme-color)]/20 text-[var(--theme-color)]'">
-                                        <span class="text-[11px] font-black uppercase italic">
-                                            {{ activeWorkout.sessionType === 'manual' 
-                                                ? exercise.workoutLogs.length 
-                                                : exercise.workoutLogs.filter(s => s.completed).length + '/' + exercise.targetSets 
-                                            }}
-                                        </span>
+                                    <span class="text-[7px] font-black uppercase tracking-widest mb-1 opacity-50 text-[var(--text-muted)]">SETS TOTAL</span>
+                                    <div class="px-5 py-2.5 rounded-[20px] bg-[#f4f7f9] text-[var(--text-main)] min-w-[60px] flex items-center justify-center">
+                                        <span class="text-[12px] font-black italic">{{ exercise.targetSets || exercise.workoutLogs.length }}</span>
                                     </div>
                                 </div>
-                                <!-- Weight Box -->
+                                <!-- Target Weight Box -->
                                 <div class="flex flex-col items-center">
-                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1 px-1 transition-colors">Target</span>
-                                    <div class="px-3 py-1.5 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)] flex items-center justify-center min-w-[48px] transition-colors">
-                                        <span class="text-[11px] font-black text-[var(--text-main)] uppercase italic transition-colors">
-                                            {{ exercise.targetWeight || (exercise.workoutLogs.length > 0 ? exercise.workoutLogs[0].weight : '0kg') }}
-                                        </span>
+                                    <span class="text-[7px] font-black uppercase tracking-widest mb-1 opacity-50 text-[var(--text-muted)]">TARGET</span>
+                                    <div class="px-5 py-2.5 rounded-[20px] bg-[#f4f7f9] text-[var(--text-main)] min-w-[60px] flex items-center justify-center">
+                                        <span class="text-[12px] font-black italic">{{ exercise.targetWeight || (exercise.workoutLogs[0]?.weight) || '10KG' }}</span>
                                     </div>
                                 </div>
                                 <!-- Reps Box -->
                                 <div class="flex flex-col items-center">
-                                    <span class="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1 px-1 transition-colors">Reps</span>
-                                    <div class="px-3 py-1.5 bg-[var(--page-bg)] rounded-xl border border-[var(--border-color)] flex items-center justify-center min-w-[48px] transition-colors">
-                                        <span class="text-[11px] font-black text-[var(--text-main)] uppercase italic transition-colors">{{ exercise.reps }}</span>
+                                    <span class="text-[7px] font-black uppercase tracking-widest mb-1 opacity-50 text-[var(--text-muted)]">REPS</span>
+                                    <div class="px-5 py-2.5 rounded-[20px] bg-[#f4f7f9] text-[var(--text-main)] min-w-[60px] flex items-center justify-center">
+                                        <span class="text-[12px] font-black italic">{{ exercise.reps }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -638,58 +655,60 @@ const getExerciseImage = (ex) => {
                     </div>
 
                     <div class="flex items-center justify-between mt-8 mb-4">
-                        <h4 class="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] transition-colors">Workout Log</h4>
+                        <h4 class="text-[10px] font-black uppercase tracking-[0.1em] text-[var(--text-muted)]">Workout Log</h4>
                         <button @click="addSet(exercise)" 
-                            class="flex items-center gap-1.5 px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm"
-                            :style="{ borderColor: 'var(--theme-color)', color: 'var(--theme-color)', backgroundColor: 'rgba(var(--theme-color-rgb), 0.05)' }"
+                            class="flex items-center gap-1.5 px-6 py-2.5 rounded-3xl border border-[#1cb9ac] text-[#1db9ac] text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm bg-white"
                         >
-                            <span class="material-symbols-outlined text-[10px] font-bold">add</span>
+                            <span class="material-symbols-outlined text-[16px] font-bold">add</span>
                             ADD SET
                         </button>
                     </div>
 
-                    <div class="space-y-3">
+                    <div class="space-y-4">
                         <!-- Table Header -->
-                        <div class="flex items-center gap-3 px-1 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider transition-colors">
-                            <div class="size-10"></div>
+                        <div class="flex items-center gap-2 px-1 text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                            <div class="size-10 flex-shrink-0"></div> <!-- Placeholder for delete -->
                             <div class="flex-1 text-center">Weight (KG)</div>
-                            <div class="w-16 text-center">Sets</div>
+                            <div class="w-14 text-center">Sets</div>
                             <div class="flex-1 text-center">Reps</div>
-                            <div class="size-11"></div>
+                            <div class="size-11"></div> <!-- Placeholder for check -->
                         </div>
 
                         <div v-for="(set, setIdx) in exercise.workoutLogs" :key="set.id" 
-                            class="flex items-center gap-3 transition-all duration-300"
-                            :class="{ 'opacity-40': set.completed }">
-                            
+                            class="flex items-center gap-2 group"
+                        >
                             <!-- Delete Button -->
                             <button @click="removeSet(exercise, setIdx)" class="size-10 flex items-center justify-center text-gray-200 hover:text-red-500 transition-colors">
-                                <span class="material-symbols-outlined text-[18px]">close</span>
+                                <span class="material-symbols-outlined text-xl">close</span>
                             </button>
 
                             <!-- Weight Box -->
-                            <div class="flex-1 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-1 overflow-hidden transition-colors">
-                                <select v-model="set.weight" class="w-full text-sm font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic uppercase appearance-none text-center-last transition-colors">
+                            <div class="flex-1 h-12 bg-[#f4f7f9] rounded-2xl shadow-sm flex items-center justify-center px-2 transition-all"
+                                :class="{ 'opacity-50 grayscale': set.completed }">
+                                <select v-model="set.weight" class="w-full text-[12px] font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic uppercase appearance-none" :disabled="set.completed">
                                     <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
                                 </select>
                             </div>
 
                             <!-- Set Box -->
-                            <div class="w-16 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center transition-colors">
-                                <span class="text-base font-black text-[var(--text-main)] italic transition-colors">{{ setIdx + 1 }}</span>
+                            <div class="w-14 h-12 bg-[#f4f7f9] rounded-2xl shadow-sm flex items-center justify-center transition-all"
+                                :class="{ 'opacity-50 grayscale': set.completed }">
+                                <span class="text-[14px] font-black text-[var(--text-main)] italic">{{ setIdx + 1 }}</span>
                             </div>
 
                             <!-- Reps Box -->
-                            <div class="flex-1 h-14 bg-[var(--page-bg)] rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center justify-center px-2 transition-colors">
-                                <input v-model="set.reps" class="w-full text-base font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic transition-colors" placeholder="0">
+                            <div class="flex-1 h-12 bg-[#f4f7f9] rounded-2xl shadow-sm flex items-center justify-center px-2 transition-all"
+                                :class="{ 'opacity-50 grayscale': set.completed }">
+                                <input v-model="set.reps" class="w-full text-[12px] font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic" placeholder="0" :disabled="set.completed">
                             </div>
 
                             <!-- Done Button -->
                             <button @click="toggleSet(set)" 
-                                class="size-11 rounded-full flex items-center justify-center transition-all border shadow-sm active:scale-95"
-                                :style="set.completed ? { backgroundColor: 'var(--theme-color)', borderColor: 'var(--theme-color)' } : {}"
-                                :class="set.completed ? 'text-white' : 'bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)]/30'">
-                                <span class="material-symbols-outlined text-xl font-bold">{{ set.completed ? 'check_circle' : 'check' }}</span>
+                                class="size-11 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-95"
+                                :class="set.completed 
+                                    ? 'bg-[#1db9ac] text-white' 
+                                    : 'bg-white border border-[var(--border-color)] text-[var(--text-muted)]/20 hover:border-[#1db9ac]/20'">
+                                <span class="material-symbols-outlined text-xl font-bold">{{ set.completed ? 'check' : 'check' }}</span>
                             </button>
                         </div>
                         

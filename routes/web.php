@@ -97,6 +97,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/trainer/record-session', [\App\Http\Controllers\TrainerManagementController::class, 'recordSession']);
     Route::get('/api/trainer/schedules', [\App\Http\Controllers\TrainerManagementController::class, 'getSchedules']);
     Route::post('/api/trainer/schedules', [\App\Http\Controllers\TrainerManagementController::class, 'updateSchedule']);
+    Route::delete('/api/trainer/history/workout/{session}', [\App\Http\Controllers\TrainerManagementController::class, 'deleteWorkoutSession']);
+    Route::delete('/api/trainer/history/coaching/{session}', [\App\Http\Controllers\TrainerManagementController::class, 'deleteTrainerSession']);
 });
 
 require __DIR__ . '/auth.php';

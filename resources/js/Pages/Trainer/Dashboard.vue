@@ -8,7 +8,7 @@ import { useI18n } from '@/language';
 const { t } = useI18n();
 const page = usePage();
 
-const props = defineProps(['trainer', 'clients', 'bookings', 'courses', 'verifications']);
+const props = defineProps(['trainer', 'clients', 'bookings', 'courses', 'verifications', 'gyms']);
 
 const groupedClientsList = computed(() => {
     const groups = {};
@@ -97,6 +97,42 @@ const confirmModal = ref({
     onConfirm: null
 });
 
+const formatImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http') || path.startsWith('/images/')) return path;
+    return `/storage/${path}`;
+};
+
+const allEquipments = computed(() => {
+    if (!props.gyms) return [];
+    const equipMap = new Map();
+    props.gyms.forEach(gym => {
+        if (!gym.items) return;
+        gym.items.forEach(item => {
+            const name = item.name || 'Unknown';
+            if (!equipMap.has(name)) {
+                equipMap.set(name, {
+                    name,
+                    image: formatImageUrl(item.src)
+                });
+            }
+        });
+    });
+    return Array.from(equipMap.values());
+});
+
+const machineOptions = computed(() => allEquipments.value.map(e => e.name));
+
+const weightOptions = Array.from({ length: 80 }, (_, i) => ((i + 1) * 2.5).toFixed(1).replace(/\.0$/, '') + 'kg');
+const fallbackMachineOptions = [
+    'TREADMILL', 
+    'SMITH MACHINE', 
+    'ELLIPTICAL', 
+    'LEG PRESS', 
+    'BENCH PRESS', 
+    'SQUAT RACK'
+];
+
 const showSuccess = (title, message) => {
     confirmModal.value = { 
         isOpen: true, title, message, type: 'success', 
@@ -158,7 +194,7 @@ const manualBookingForm = ref({
     notes: ''
 });
 const clientHistory = ref([]);
-const isFetchingHistory = ref(false);
+const isFetchingDetails = ref(false);
 const activeDetailTab = ref('progress'); // 'progress' or 'history'
 
 const courseForm = ref({
@@ -173,10 +209,7 @@ const courseForm = ref({
 });
 
 const openRecordModal = (client) => {
-    selectedClient.value = client;
-    recordForm.value.user_id = client.user_id;
-    recordForm.value.course_name = client.course_name;
-    isRecordingModalOpen.value = true;
+    openClientDetail(client, 'history');
 };
 
 const openCourseModal = (course = null) => {
@@ -344,10 +377,10 @@ const updateLessonDetails = (field, value) => {
     let lesson = getLessonForDay(editingDay.value);
     
     if (!lesson) {
-        // Only create if we actually have some text
-        if (!value) return;
+        // Only create if we actually have some text or it's an exercise update
+        if (!value && field !== 'exercises') return;
         
-        lesson = { day: editingDay.value, focus: '', details: '', duration: '' };
+        lesson = { day: editingDay.value, focus: '', details: '', duration: '', exercises: [] };
         courseForm.value.lesson_plan.push(lesson);
         courseForm.value.lesson_plan.sort((a, b) => a.day - b.day);
     }
@@ -355,9 +388,69 @@ const updateLessonDetails = (field, value) => {
     lesson[field] = value;
     
     // Cleanup only if all essential fields are empty to prevent accidental deletion while editing
-    if (!lesson.focus && !lesson.details && !lesson.duration) {
+    if (!lesson.focus && !lesson.details && !lesson.duration && (!lesson.exercises || lesson.exercises.length === 0)) {
         const idx = courseForm.value.lesson_plan.indexOf(lesson);
         if (idx !== -1) courseForm.value.lesson_plan.splice(idx, 1);
+    }
+};
+
+const addExerciseToDay = () => {
+    if (!editingDay.value) return;
+    let lesson = getLessonForDay(editingDay.value);
+    if (!lesson) {
+        lesson = { day: editingDay.value, focus: '', details: '', duration: '', exercises: [] };
+        courseForm.value.lesson_plan.push(lesson);
+        courseForm.value.lesson_plan.sort((a, b) => a.day - b.day);
+    }
+    if (!lesson.exercises) lesson.exercises = [];
+    const firstEquip = allEquipments.value[0];
+    const newExercise = { 
+        name: firstEquip ? firstEquip.name : (fallbackMachineOptions[0]), 
+        image: firstEquip ? firstEquip.image : null,
+        weight: '10kg', 
+        sets: 1, 
+        reps: '12',
+        sets_data: [
+            { weight: '10kg', reps: '12' }
+        ]
+    };
+    lesson.exercises.push(newExercise);
+};
+
+const addSetToExercise = (exercise) => {
+    if (!exercise.sets_data) exercise.sets_data = [];
+    const lastSet = exercise.sets_data[exercise.sets_data.length - 1] || { weight: exercise.weight || '10kg', reps: exercise.reps || '12' };
+    exercise.sets_data.push({ 
+        weight: lastSet.weight, 
+        reps: lastSet.reps 
+    });
+    exercise.sets = exercise.sets_data.length;
+};
+
+const removeSetFromExercise = (exercise, index) => {
+    exercise.sets_data.splice(index, 1);
+    exercise.sets = exercise.sets_data.length;
+};
+
+const updateAllSets = (exercise, field, value) => {
+    if (!exercise.sets_data) return;
+    exercise.sets_data.forEach(s => {
+        s[field] = value;
+    });
+};
+
+const updateExerciseMachine = (exercise, machineName) => {
+    exercise.name = machineName;
+    const equip = allEquipments.value.find(e => e.name === machineName);
+    if (equip) {
+        exercise.image = equip.image;
+    }
+};
+
+const removeExerciseFromDay = (index) => {
+    const lesson = getLessonForDay(editingDay.value);
+    if (lesson && lesson.exercises) {
+        lesson.exercises.splice(index, 1);
     }
 };
 
@@ -433,11 +526,11 @@ const deleteCourse = (id) => {
     };
 };
 
-const openClientDetail = async (client) => {
+const openClientDetail = async (client, tab = 'progress') => {
     selectedClient.value = client;
     isFetchingDetails.value = true;
     isDetailModalOpen.value = true;
-    activeDetailTab.value = 'progress';
+    activeDetailTab.value = tab;
     
     try {
         const [metricsRes, historyRes] = await Promise.all([
@@ -484,7 +577,7 @@ const submitSession = () => {
                 hours: 1,
                 notes: '',
                 metrics: { weight: '', body_fat: '' }
-            },
+            };
             showSuccess('Record Saved', 'Session results have been logged for this student.');
         }
     });
@@ -528,6 +621,25 @@ const deleteClient = (clientId) => {
                 onSuccess: () => {
                     isDetailModalOpen.value = false;
                     showSuccess('Client Removed', 'Member has been removed from your roster.');
+                }
+            });
+        }
+    );
+};
+
+const deleteHistoryRecord = (session) => {
+    const type = session.is_trainer_log ? 'coaching' : 'workout';
+    const url = `/api/trainer/history/${type}/${session.id}`;
+    
+    showConfirm(
+        'Delete Record?',
+        'Are you sure you want to remove this session from history? This is for testing purposes.',
+        () => {
+            router.delete(url, {
+                onSuccess: () => {
+                    // Update local history state
+                    clientHistory.value = clientHistory.value.filter(s => s.id !== session.id || s.is_trainer_log !== session.is_trainer_log);
+                    showSuccess('Deleted', 'History record has been removed.');
                 }
             });
         }
@@ -1248,22 +1360,92 @@ const getGraphPath = (metrics, type, width, height) => {
                             </div>
                         </div>
 
-                        <!-- History Tab -->
                         <div v-if="activeDetailTab === 'history'" class="space-y-4">
-                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Training Logs</h3>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Training Logs</h3>
+                            </div>
+
                             <div v-if="clientHistory.length === 0" class="text-center py-10 opacity-30">
                                 <span class="material-symbols-outlined text-4xl">history_toggle_off</span>
                                 <p class="text-[9px] font-black uppercase tracking-widest mt-2 px-10">No past sessions recorded yet</p>
                             </div>
+
                             <div v-for="session in clientHistory" :key="session.id" class="p-5 bg-[var(--page-bg)] rounded-[32px] border border-[var(--border-color)]">
-                                <div class="flex items-center justify-between mb-3">
-                                    <span class="px-2 py-0.5 rounded-lg bg-[var(--theme-color)]/10 text-[var(--theme-color)] text-[8px] font-black uppercase italic">{{ session.type || 'Session' }}</span>
-                                    <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase">{{ new Date(session.created_at).toLocaleDateString() }}</span>
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span 
+                                                class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase italic"
+                                                :class="session.is_trainer_log ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-blue-500/10 text-blue-600 border border-blue-500/20'"
+                                            >
+                                                {{ session.is_trainer_log ? 'Coaching' : 'Workout' }}
+                                            </span>
+                                            <span v-if="session.hours" class="px-2 py-0.5 rounded-lg bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase italic border border-gray-500/20">{{ session.hours }}H Session</span>
+                                            <span v-if="session.data?.sets" class="px-2 py-0.5 rounded-lg bg-green-500/10 text-green-600 text-[8px] font-black uppercase italic border border-green-500/20">{{ session.data.sets }} Sets Total</span>
+                                            <span v-if="session.data?.title && !session.is_trainer_log" class="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider opacity-60 italic ml-1">"{{ session.data.title }}"</span>
+                                        </div>
+                                        <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase">{{ new Date(session.created_at || session.workout_date).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' }) }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button @click="deleteHistoryRecord(session)" class="size-8 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center active:scale-90 transition-all">
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                        <div class="size-8 rounded-full bg-white border border-[var(--border-color)] flex items-center justify-center opacity-40">
+                                            <span class="material-symbols-outlined text-sm">{{ session.is_trainer_log ? 'history_edu' : 'bolt' }}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-2 mb-3">
-                                    <span class="text-[10px] font-black text-[var(--text-main)] uppercase tracking-tight">{{ session.hours }} Hours Training</span>
+
+                                <!-- Detailed Workout Logs (if available) -->
+                                <div v-if="session.data?.exercises" class="space-y-4 pt-2 border-t border-[var(--border-color)]/50 mt-4">
+                                    <div v-for="(ex, idx) in session.data.exercises" :key="idx" class="space-y-3">
+                                        <div class="flex items-center gap-4">
+                                            <!-- Machine Image -->
+                                            <div class="size-16 rounded-[24px] bg-white border border-[var(--border-color)] overflow-hidden flex-shrink-0 flex items-center justify-center p-2.5 shadow-sm">
+                                                <img v-if="ex.image" :src="ex.image" class="w-full h-full object-contain">
+                                                <span v-else class="material-symbols-outlined text-2xl text-[var(--text-muted)] opacity-20">fitness_center</span>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between">
+                                                    <h4 class="text-[12px] font-black uppercase italic text-[var(--text-main)] truncate mr-2">{{ ex.name }}</h4>
+                                                    <div class="flex flex-col items-end">
+                                                        <span class="text-[10px] font-black text-[var(--theme-color)] italic leading-none">{{ ex.sets?.length || 0 }}</span>
+                                                        <span class="text-[6px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Sets Done</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sets List Checklist Style -->
+                                        <div class="space-y-2 mt-2">
+                                            <div v-for="(set, sIdx) in ex.sets" :key="sIdx" 
+                                                class="flex items-center justify-between p-3 bg-white rounded-2xl border border-[var(--border-color)]/30 group hover:border-[var(--theme-color)]/30 transition-all"
+                                            >
+                                                <div class="flex items-center gap-3">
+                                                    <div class="size-7 rounded-full bg-green-500/10 text-green-600 flex items-center justify-center">
+                                                        <span class="material-symbols-outlined text-[14px] font-black">check</span>
+                                                    </div>
+                                                    <span class="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest italic opacity-60">Set {{ sIdx + 1 }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-5">
+                                                    <div class="flex flex-col items-center">
+                                                        <span class="text-[11px] font-black text-[var(--text-main)] italic leading-none">{{ set.weight }}</span>
+                                                        <span class="text-[6px] font-black text-[var(--text-muted)] uppercase tracking-tighter mt-1 opacity-40">Weight</span>
+                                                    </div>
+                                                    <div class="size-6 rounded-full border border-[var(--border-color)] flex items-center justify-center opacity-10">
+                                                        <div class="size-3 rounded-full border border-[var(--border-color)]"></div>
+                                                    </div>
+                                                    <div class="flex flex-col items-center">
+                                                        <span class="text-[11px] font-black text-[var(--text-main)] italic leading-none">{{ set.reps }}</span>
+                                                        <span class="text-[6px] font-black text-[var(--text-muted)] uppercase tracking-tighter mt-1 opacity-40">Reps</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p v-if="session.notes" class="text-[10px] font-bold text-[var(--text-muted)] italic leading-relaxed bg-[var(--card-bg)] p-3 rounded-2xl border border-[var(--border-color)]">
+
+                                <p v-if="session.notes" class="text-[10px] font-bold text-[var(--text-muted)] italic leading-relaxed bg-[var(--card-bg)] p-3 rounded-2xl border border-[var(--border-color)] mt-3">
                                     "{{ session.notes }}"
                                 </p>
                             </div>
@@ -1463,30 +1645,30 @@ const getGraphPath = (metrics, type, width, height) => {
 
                                     <div>
                                         <label class="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Start Time</label>
-                                        <div class="mt-2 flex gap-2">
-                                            <div class="flex-1 relative">
+                                        <div class="mt-2 flex gap-1.5">
+                                            <div class="flex-1">
                                                 <select 
                                                     :value="getTimePart(getLessonForDay(editingDay)?.duration, 'hour')"
                                                     @change="updateLessonDetails('duration', updateTimePart(getLessonForDay(editingDay)?.duration, 'hour', $event.target.value))"
-                                                    class="w-full bg-white/50 border border-[var(--border-color)] rounded-2xl pl-4 pr-8 py-5 text-[11px] font-black uppercase italic text-[var(--text-main)] transition-all outline-none appearance-none text-center focus:border-[var(--theme-color)]"
+                                                    class="w-full bg-white/50 border border-[var(--border-color)] rounded-xl px-0 py-3 text-[11px] font-black text-center outline-none focus:border-[var(--theme-color)]"
                                                 >
                                                     <option v-for="h in hoursOptions" :key="h" :value="h">{{ h }}</option>
                                                 </select>
                                             </div>
-                                            <div class="flex-1 relative">
+                                            <div class="flex-1">
                                                 <select 
                                                     :value="getTimePart(getLessonForDay(editingDay)?.duration, 'minute')"
                                                     @change="updateLessonDetails('duration', updateTimePart(getLessonForDay(editingDay)?.duration, 'minute', $event.target.value))"
-                                                    class="w-full bg-white/50 border border-[var(--border-color)] rounded-2xl pl-4 pr-8 py-5 text-[11px] font-black uppercase italic text-[var(--text-main)] transition-all outline-none appearance-none text-center focus:border-[var(--theme-color)]"
+                                                    class="w-full bg-white/50 border border-[var(--border-color)] rounded-xl px-0 py-3 text-[11px] font-black text-center outline-none focus:border-[var(--theme-color)]"
                                                 >
                                                     <option v-for="m in minutesOptions" :key="m" :value="m">{{ m }}</option>
                                                 </select>
                                             </div>
-                                            <div class="w-24 relative">
+                                            <div class="flex-1">
                                                 <select 
                                                     :value="getTimePart(getLessonForDay(editingDay)?.duration, 'period')"
                                                     @change="updateLessonDetails('duration', updateTimePart(getLessonForDay(editingDay)?.duration, 'period', $event.target.value))"
-                                                    class="w-full bg-white/80 border-2 rounded-2xl px-2 py-5 text-[10px] font-black uppercase tracking-tighter transition-all outline-none appearance-none text-center border-[var(--theme-color)]/20 text-[var(--theme-color)]"
+                                                    class="w-full bg-white/80 border border-[var(--theme-color)]/20 rounded-xl px-0 py-3 text-[10px] font-black text-[var(--theme-color)] text-center outline-none"
                                                 >
                                                     <option v-for="p in periodsOptions" :key="p" :value="p">{{ p }}</option>
                                                 </select>
@@ -1494,17 +1676,96 @@ const getGraphPath = (metrics, type, width, height) => {
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Workout Details</label>
-                                        <textarea 
-                                            :value="getLessonForDay(editingDay)?.details || ''"
-                                            @input="updateLessonDetails('details', $event.target.value)"
-                                            placeholder="Add exercises, set counts, or key takeaways..."
-                                            rows="4"
-                                            class="w-full mt-2 bg-white/50 border border-[var(--border-color)] rounded-3xl px-6 py-5 text-sm font-medium text-[var(--text-muted)] placeholder:text-[var(--text-muted)]/20 transition-all resize-none outline-none focus:border-[var(--theme-color)]"
-                                        ></textarea>
+                                        <div class="flex items-center justify-between mb-4 ml-1">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">Exercises (เครื่องเล่น & น้ำหนัก)</label>
+                                            <button @click="addExerciseToDay" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--theme-color)]/20 text-[var(--theme-color)] text-[8px] font-black uppercase tracking-widest bg-[var(--theme-color)]/5 active:scale-95 transition-all">
+                                                <span class="material-symbols-outlined text-[10px]">add</span>
+                                                Add Machine
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
+                                            <div v-for="(ex, exIdx) in getLessonForDay(editingDay)?.exercises || []" :key="exIdx" 
+                                                class="p-4 bg-white/40 border border-[var(--border-color)] rounded-2xl space-y-3 relative group"
+                                            >
+                                                <button @click="removeExerciseFromDay(exIdx)" class="absolute top-2 right-2 size-6 rounded-lg flex items-center justify-center text-red-500/30 hover:text-red-500 hover:bg-red-50 transition-all">
+                                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                                </button>
+
+                                                <div class="flex items-start gap-3">
+                                                    <!-- Machine Icon -->
+                                                    <div class="size-16 rounded-xl bg-white border border-[var(--border-color)] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                                        <img v-if="ex.image" :src="ex.image" class="w-full h-full object-contain">
+                                                        <span v-else class="material-symbols-outlined text-2xl text-[var(--text-muted)] opacity-20">fitness_center</span>
+                                                    </div>
+
+                                                    <!-- Machine Selection -->
+                                                    <div class="flex-1">
+                                                        <label class="text-[7px] font-black uppercase text-[var(--text-muted)] tracking-widest ml-1">Select Machine / Exercise</label>
+                                                        <select 
+                                                            :value="ex.name"
+                                                            @change="updateExerciseMachine(ex, $event.target.value)"
+                                                            class="w-full mt-1 bg-white border border-[var(--border-color)] rounded-xl px-4 py-3 text-[10px] font-black uppercase italic text-[var(--text-main)] outline-none focus:border-[var(--theme-color)]"
+                                                        >
+                                                            <option v-for="opt in (allEquipments.length ? allEquipments : fallbackMachineOptions.map(n => ({name:n})))" :key="opt.name" :value="opt.name">{{ opt.name }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Detailed Sets -->
+                                                <div class="mt-3 space-y-2">
+                                                    <div class="flex items-center justify-between px-1">
+                                                        <label class="text-[7px] font-black uppercase text-[var(--text-muted)] tracking-widest">Workout Log / Sets</label>
+                                                        <button @click="addSetToExercise(ex)" class="px-4 py-2 rounded-xl bg-white border border-[var(--theme-color)]/20 text-[8px] font-black uppercase text-[var(--theme-color)] tracking-widest flex items-center gap-1.5 active:scale-95 transition-all shadow-sm">
+                                                            <span class="material-symbols-outlined text-[13px]">add</span>
+                                                            Add Set
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- Table Header -->
+                                                    <div class="flex items-center gap-2 px-1 text-[7px] font-black text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                                        <div class="size-9 flex-shrink-0"></div> <!-- Placeholder for close -->
+                                                        <div class="flex-1 text-center">Weight (KG)</div>
+                                                        <div class="w-16 text-center">Sets</div>
+                                                        <div class="flex-1 text-center">Reps</div>
+                                                    </div>
+                                                    
+                                                    <div v-for="(set, sIdx) in ex.sets_data" :key="sIdx" 
+                                                        class="flex items-center gap-2 animate-in slide-in-from-right-1 fade-in duration-200"
+                                                    >
+                                                        <!-- Remove Button -->
+                                                        <button @click="removeSetFromExercise(ex, sIdx)" class="size-9 flex items-center justify-center text-red-500/20 hover:text-red-500 transition-colors flex-shrink-0">
+                                                            <span class="material-symbols-outlined text-xl">close</span>
+                                                        </button>
+
+                                                        <!-- Weight Selection -->
+                                                        <div class="flex-1 h-11 bg-white rounded-[16px] border border-[var(--border-color)] shadow-sm flex items-center justify-center px-2 transition-all focus-within:border-[var(--theme-color)]">
+                                                            <select v-model="set.weight" class="w-full text-[11px] font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic uppercase appearance-none">
+                                                                <option v-for="opt in weightOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <!-- Index Box (Sets) -->
+                                                        <div class="w-16 h-11 bg-white rounded-[16px] border border-[var(--border-color)] shadow-sm flex items-center justify-center flex-shrink-0">
+                                                            <span class="text-[13px] font-black text-[var(--text-main)] italic">{{ sIdx + 1 }}</span>
+                                                        </div>
+
+                                                        <!-- Reps Input -->
+                                                        <div class="flex-1 h-11 bg-white rounded-[16px] border border-[var(--border-color)] shadow-sm flex items-center justify-center px-2 transition-all focus-within:border-[var(--theme-color)]">
+                                                            <input v-model="set.reps" type="number" class="w-full text-[11px] font-black text-[var(--text-main)] border-none p-0 focus:ring-0 text-center bg-transparent italic" placeholder="0">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="!(getLessonForDay(editingDay)?.exercises?.length)" class="py-8 border border-dashed border-[var(--border-color)] rounded-3xl flex flex-col items-center justify-center opacity-30">
+                                                <span class="material-symbols-outlined text-2xl mb-2">fitness_center</span>
+                                                <p class="text-[8px] font-black uppercase">Click add to set daily goals</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    
-                                    <div class="flex flex-col gap-3 pt-2">
+
+                                    <div class="flex flex-col gap-3 pt-6 border-t border-[var(--border-color)]">
                                         <button @click="saveDayConfirm" 
                                             class="w-full py-5 text-white text-xs font-black uppercase tracking-[0.2em] rounded-3xl shadow-xl active:scale-95 transition-all"
                                             style="background-color: var(--theme-color); box-shadow: 0 10px 20px rgba(var(--theme-color-rgb), 0.3);"
